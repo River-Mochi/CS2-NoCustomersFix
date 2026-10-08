@@ -58,6 +58,8 @@ namespace NoCustomersFix
             updateSystem.UpdateBefore<LeisureBalanceSystem,CitizenBehaviorSystem>(SystemUpdatePhase.GameSimulation);
 
             updateSystem.UpdateBefore<HotelBalanceSystem,TouristFindTargetSystem>(SystemUpdatePhase.GameSimulation);
+
+            updateSystem.UpdateAfter<PathHealthSystem,CommercialBalanceSystem>(SystemUpdatePhase.GameSimulation);
 #endif
         }
 
