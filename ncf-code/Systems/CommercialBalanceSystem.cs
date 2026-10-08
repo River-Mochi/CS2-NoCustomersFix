@@ -6,13 +6,10 @@
 // This notice MUST be kept with copies or substantial portions of this code.
 // ================= </copyright> ======================
 
-// File: Systems/Commercial/CommercialBalanceSystem.cs
-// Purpose: DEBUG-only prototype that adds controlled physical retail demand
-// when commercial shops have excessive unused service.
+// File: Systems/CommercialBalanceSystem.cs
+// Purpose: Single post-vanilla physical retail + Vehicle NEC correction pass.
 
 #if DEBUG
-
-using System;
 
 using Colossal.Serialization.Entities;
 
@@ -28,11 +25,14 @@ using Unity.Entities;
 namespace NoCustomersFix.Systems
 {
     /// <summary>
-    /// Runs immediately after vanilla HouseholdBehaviorSystem.
+    /// Runs after vanilla HouseholdBehaviorSystem.
     ///
-    /// V4 does not reroll normal vanilla shopping choices.
-    /// It only adds a corrective physical retail need to households that were
-    /// ready to shop before vanilla ran but still have no need afterward.
+    /// Vanilla-created shopping needs always win. NCF only uses households
+    /// that were eligible before vanilla and remain without a shopping need
+    /// afterward.
+    ///
+    /// Ordinary physical retail is attempted first. If it cannot use that
+    /// household, Vehicle correction may use it second.
     /// </summary>
     public partial class CommercialBalanceSystem : GameSystemBase
     {
@@ -50,6 +50,10 @@ namespace NoCustomersFix.Systems
 
         private int m_WindowInjectedNeeds;
         private long m_WindowInjectedUnits;
+
+        private int m_WindowVehicleInjectedNeeds;
+        private long m_WindowVehicleInjectedUnits;
+        private int m_WindowAvoidedCarAmount;
 
         private bool m_ConfigurationLogged;
 
@@ -94,6 +98,10 @@ namespace NoCustomersFix.Systems
             m_WindowInjectedNeeds = 0;
             m_WindowInjectedUnits = 0;
 
+            m_WindowVehicleInjectedNeeds = 0;
+            m_WindowVehicleInjectedUnits = 0;
+            m_WindowAvoidedCarAmount = 0;
+
             m_ConfigurationLogged = false;
         }
 
@@ -105,6 +113,61 @@ namespace NoCustomersFix.Systems
             if (!m_PrepareSystem.HasSnapshotFor(
                     simulationFrame))
             {
+                return;
+            }
+
+            ComponentLookup<
+                Game.Companies.ServiceCompanyData>
+                serviceCompanyDatas =
+                    SystemAPI.GetComponentLookup<
+                        Game.Companies.ServiceCompanyData>(
+                            true);
+
+            ComponentLookup<
+                IndustrialProcessData>
+                industrialProcessDatas =
+                    SystemAPI.GetComponentLookup<
+                        IndustrialProcessData>(
+                            true);
+
+            ComponentLookup<
+                ResourceData>
+                resourceDatas =
+                    SystemAPI.GetComponentLookup<
+                        ResourceData>(
+                            true);
+
+            RefreshCommercialPressure(
+                serviceCompanyDatas,
+                industrialProcessDatas,
+                resourceDatas);
+
+            if (!m_ConfigurationLogged)
+            {
+                m_ConfigurationLogged = true;
+
+                LogUtils.Info(
+                    "[NCF-BALANCE] ACTIVE DEBUG. " +
+                    "Single post-vanilla household pass handles normal " +
+                    "physical retail first and Vehicle stores second. " +
+                    "Company pressure is cached for 4 correction updates. " +
+                    "Existing vanilla shopping needs are untouched.");
+            }
+
+            // Nothing needs correction: do not scan the household bucket.
+            if (m_RemainingInjectionBudget <= 0 &&
+                m_RemainingVehicleBudget <= 0)
+            {
+                FinishUpdate(
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0);
+
                 return;
             }
 
@@ -128,27 +191,6 @@ namespace NoCustomersFix.Systems
                     modeSetting
                         .m_ResourceDemandPerCitizenMultiplier;
             }
-
-            ComponentLookup<
-                Game.Companies.ServiceCompanyData>
-                serviceCompanyDatas =
-                    SystemAPI.GetComponentLookup<
-                        Game.Companies.ServiceCompanyData>(
-                            true);
-
-            ComponentLookup<
-                IndustrialProcessData>
-                industrialProcessDatas =
-                    SystemAPI.GetComponentLookup<
-                        IndustrialProcessData>(
-                            true);
-
-            ComponentLookup<
-                ResourceData>
-                resourceDatas =
-                    SystemAPI.GetComponentLookup<
-                        ResourceData>(
-                            true);
 
             ComponentLookup<
                 Game.Citizens.Citizen>
@@ -199,26 +241,6 @@ namespace NoCustomersFix.Systems
                         Game.Buildings.Renter>(
                             true);
 
-            BuildCommercialPressure(
-                serviceCompanyDatas,
-                industrialProcessDatas,
-                resourceDatas);
-
-            PrepareCorrectionBudget();
-
-            if (!m_ConfigurationLogged)
-            {
-                m_ConfigurationLogged = true;
-
-                LogUtils.Info(
-                    "[CWD-BALANCE] ACTIVE DEBUG prototype v4. " +
-                    "Existing vanilla shopping choices are untouched. " +
-                    "V4 only adds physical retail demand when individual " +
-                    "shops have Service above 85% and stock above 200. " +
-                    "Correction is spread across 16 balance updates. " +
-                    "Vehicles, leisure, and office resources are untouched.");
-            }
-
             uint updateFrame =
                 SimulationUtils.GetUpdateFrameWithInterval(
                     simulationFrame,
@@ -233,6 +255,10 @@ namespace NoCustomersFix.Systems
             int injectedNeeds = 0;
             long injectedUnits = 0;
 
+            int vehicleInjectedNeeds = 0;
+            long vehicleInjectedUnits = 0;
+            int avoidedCarAmount = 0;
+
             foreach ((
                 RefRW<Game.Citizens.HouseholdNeed>
                     needRef,
@@ -243,12 +269,9 @@ namespace NoCustomersFix.Systems
                 Entity householdEntity) in
                 SystemAPI
                     .Query<
-                        RefRW<
-                            Game.Citizens.HouseholdNeed>,
-                        RefRO<
-                            Game.Citizens.Household>,
-                        RefRO<
-                            Game.Buildings.PropertyRenter>>()
+                        RefRW<Game.Citizens.HouseholdNeed>,
+                        RefRO<Game.Citizens.Household>,
+                        RefRO<Game.Buildings.PropertyRenter>>()
                     .WithAll<
                         Game.Citizens.HouseholdCitizen,
                         Game.Economy.Resources>()
@@ -263,6 +286,15 @@ namespace NoCustomersFix.Systems
                         new UpdateFrame(updateFrame))
                     .WithEntityAccess())
             {
+                // Major prototype performance fix:
+                // stop inspecting households as soon as all useful corrective
+                // demand for this update has been assigned.
+                if (m_RemainingInjectionBudget <= 0 &&
+                    m_RemainingVehicleBudget <= 0)
+                {
+                    break;
+                }
+
                 if (!m_PrepareSystem
                         .WasReadyBeforeVanilla(
                             householdEntity))
@@ -275,21 +307,15 @@ namespace NoCustomersFix.Systems
                 Game.Citizens.HouseholdNeed need =
                     needRef.ValueRO;
 
-                // V4 deliberately leaves every vanilla-created need alone.
+                // Vanilla always wins.
                 if (need.m_Resource !=
-                        Resource.NoResource)
+                    Resource.NoResource)
                 {
                     vanillaCreatedNeeds++;
                     continue;
                 }
 
                 emptyAfterVanilla++;
-
-                if (m_RemainingInjectionBudget <= 0 ||
-                    m_TotalCorrectionUnits <= 0)
-                {
-                    continue;
-                }
 
                 if (!householdCitizens.HasBuffer(
                         householdEntity) ||
@@ -299,17 +325,30 @@ namespace NoCustomersFix.Systems
                     continue;
                 }
 
-                if (!TryCreateCorrectiveNeed(
+                DynamicBuffer<
+                    Game.Citizens.HouseholdCitizen>
+                    citizens =
+                        householdCitizens[
+                            householdEntity];
+
+                DynamicBuffer<
+                    Game.Economy.Resources>
+                    resources =
+                        householdResources[
+                            householdEntity];
+
+                // Ordinary physical retail gets first opportunity.
+                if (m_RemainingInjectionBudget > 0 &&
+                    m_TotalCorrectionUnits > 0 &&
+                    TryCreateCorrectiveNeed(
                         householdEntity,
                         simulationFrame,
                         householdRef.ValueRO,
                         propertyRenterRef.ValueRO,
                         resourceDemandMultiplier,
                         economyParameters,
-                        householdCitizens[
-                            householdEntity],
-                        householdResources[
-                            householdEntity],
+                        citizens,
+                        resources,
                         ownedVehicles,
                         renterBuffers,
                         consumptionDatas,
@@ -319,39 +358,106 @@ namespace NoCustomersFix.Systems
                         out Resource targetResource,
                         out int amount))
                 {
+                    need.m_Resource =
+                        targetResource;
+
+                    need.m_Amount =
+                        amount;
+
+                    needRef.ValueRW =
+                        need;
+
+                    injectedNeeds++;
+                    injectedUnits += amount;
+
+                    int resourceIndex =
+                        EconomyUtils.GetResourceIndex(
+                            targetResource);
+
+                    if (resourceIndex >= 0 &&
+                        resourceIndex <
+                            m_WindowInjectedNeedsByResource
+                                .Length)
+                    {
+                        m_WindowInjectedNeedsByResource[
+                            resourceIndex]++;
+
+                        m_WindowInjectedUnitsByResource[
+                            resourceIndex] +=
+                                amount;
+                    }
+
+                    continue;
+                }
+
+                // Only households still unused by vanilla and ordinary retail
+                // may receive Vehicle-store correction.
+                if (m_RemainingVehicleBudget <= 0 ||
+                    m_WorkingVehicleExcess <= 0)
+                {
+                    continue;
+                }
+
+                if (!TryCreateVehicleNeed(
+                        householdEntity,
+                        householdRef.ValueRO,
+                        propertyRenterRef.ValueRO,
+                        resourceDemandMultiplier,
+                        economyParameters,
+                        citizens,
+                        resources,
+                        ownedVehicles,
+                        renterBuffers,
+                        consumptionDatas,
+                        prefabRefs,
+                        citizenDatas,
+                        resourceDatas,
+                        out int vehicleAmount,
+                        out bool avoidedSpecialCarAmount))
+                {
                     continue;
                 }
 
                 need.m_Resource =
-                    targetResource;
+                    Resource.Vehicles;
 
                 need.m_Amount =
-                    amount;
+                    vehicleAmount;
 
                 needRef.ValueRW =
                     need;
 
-                injectedNeeds++;
-                injectedUnits += amount;
+                vehicleInjectedNeeds++;
+                vehicleInjectedUnits +=
+                    vehicleAmount;
 
-                int resourceIndex =
-                    EconomyUtils.GetResourceIndex(
-                        targetResource);
-
-                if (resourceIndex >= 0 &&
-                    resourceIndex <
-                        m_WindowInjectedNeedsByResource
-                            .Length)
+                if (avoidedSpecialCarAmount)
                 {
-                    m_WindowInjectedNeedsByResource[
-                        resourceIndex]++;
-
-                    m_WindowInjectedUnitsByResource[
-                        resourceIndex] +=
-                            amount;
+                    avoidedCarAmount++;
                 }
             }
 
+            FinishUpdate(
+                readyHouseholds,
+                vanillaCreatedNeeds,
+                emptyAfterVanilla,
+                injectedNeeds,
+                injectedUnits,
+                vehicleInjectedNeeds,
+                vehicleInjectedUnits,
+                avoidedCarAmount);
+        }
+
+        private void FinishUpdate(
+            int readyHouseholds,
+            int vanillaCreatedNeeds,
+            int emptyAfterVanilla,
+            int injectedNeeds,
+            long injectedUnits,
+            int vehicleInjectedNeeds,
+            long vehicleInjectedUnits,
+            int avoidedCarAmount)
+        {
             m_UpdateCount++;
 
             m_WindowReadyHouseholds +=
@@ -368,6 +474,15 @@ namespace NoCustomersFix.Systems
 
             m_WindowInjectedUnits +=
                 injectedUnits;
+
+            m_WindowVehicleInjectedNeeds +=
+                vehicleInjectedNeeds;
+
+            m_WindowVehicleInjectedUnits +=
+                vehicleInjectedUnits;
+
+            m_WindowAvoidedCarAmount +=
+                avoidedCarAmount;
 
             if (m_UpdateCount %
                 kLogEveryUpdates == 0)

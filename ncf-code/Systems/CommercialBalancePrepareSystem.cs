@@ -6,12 +6,10 @@
 // This notice MUST be kept with copies or substantial portions of this code.
 // ================= </copyright> ======================
 
-// File: Systems/Commercial/CommercialBalancePrepareSystem.cs
-// Purpose: DEBUG-only snapshot immediately before vanilla household shopping.
+// File: Systems/CommercialBalancePrepareSystem.cs
+// Purpose: Snapshot households eligible for post-vanilla NEC correction.
 
 #if DEBUG
-
-using System.Collections.Generic;
 
 using Colossal.Serialization.Entities;
 
@@ -19,6 +17,7 @@ using Game;
 using Game.Economy;
 using Game.Simulation;
 
+using Unity.Collections;
 using Unity.Entities;
 
 namespace NoCustomersFix.Systems
@@ -27,37 +26,28 @@ namespace NoCustomersFix.Systems
     /// Records households that enter vanilla HouseholdBehaviorSystem with no
     /// existing shopping need and no remaining household-consumption resources.
     ///
-    /// If one of these households still has no need after vanilla runs, V4 may
-    /// use it for controlled corrective physical shopping demand.
+    /// NCF may use only these households if vanilla still leaves them without
+    /// a need after HouseholdBehaviorSystem runs.
     /// </summary>
-    public partial class CommercialBalancePrepareSystem
-        : GameSystemBase
+    public partial class CommercialBalancePrepareSystem : GameSystemBase
     {
-        private readonly HashSet<Entity>
-            m_ReadyHouseholds = new();
+        private NativeHashSet<Entity> m_ReadyHouseholds;
 
-        private SimulationSystem
-            m_SimulationSystem = null!;
+        private SimulationSystem m_SimulationSystem = null!;
 
-        private uint m_CapturedSimulationFrame =
-            uint.MaxValue;
+        private uint m_CapturedSimulationFrame = uint.MaxValue;
 
-        internal bool HasSnapshotFor(
-            uint simulationFrame)
+        internal bool HasSnapshotFor(uint simulationFrame)
         {
-            return m_CapturedSimulationFrame ==
-                simulationFrame;
+            return m_CapturedSimulationFrame == simulationFrame;
         }
 
-        internal bool WasReadyBeforeVanilla(
-            Entity household)
+        internal bool WasReadyBeforeVanilla(Entity household)
         {
-            return m_ReadyHouseholds.Contains(
-                household);
+            return m_ReadyHouseholds.Contains(household);
         }
 
-        public override int GetUpdateInterval(
-            SystemUpdatePhase phase)
+        public override int GetUpdateInterval(SystemUpdatePhase phase)
         {
             return 262144 /
                 (HouseholdBehaviorSystem.kUpdatesPerDay * 16);
@@ -68,20 +58,34 @@ namespace NoCustomersFix.Systems
             base.OnCreate();
 
             m_SimulationSystem =
-                World.GetOrCreateSystemManaged<
-                    SimulationSystem>();
+                World.GetOrCreateSystemManaged<SimulationSystem>();
+
+            // Only one of the 16 household update buckets is captured at once.
+            // NativeHashSet avoids the managed allocation/GC path used by the
+            // original CWD prototype.
+            m_ReadyHouseholds =
+                new NativeHashSet<Entity>(
+                    32768,
+                    Allocator.Persistent);
+        }
+
+        protected override void OnDestroy()
+        {
+            if (m_ReadyHouseholds.IsCreated)
+            {
+                m_ReadyHouseholds.Dispose();
+            }
+
+            base.OnDestroy();
         }
 
         protected override void OnGameLoaded(
             Context serializationContext)
         {
-            base.OnGameLoaded(
-                serializationContext);
+            base.OnGameLoaded(serializationContext);
 
             m_ReadyHouseholds.Clear();
-
-            m_CapturedSimulationFrame =
-                uint.MaxValue;
+            m_CapturedSimulationFrame = uint.MaxValue;
         }
 
         protected override void OnUpdate()
@@ -99,17 +103,13 @@ namespace NoCustomersFix.Systems
                     16);
 
             foreach ((
-                RefRO<Game.Citizens.HouseholdNeed>
-                    needRef,
-                RefRO<Game.Citizens.Household>
-                    householdRef,
+                RefRO<Game.Citizens.HouseholdNeed> needRef,
+                RefRO<Game.Citizens.Household> householdRef,
                 Entity household) in
                 SystemAPI
                     .Query<
-                        RefRO<
-                            Game.Citizens.HouseholdNeed>,
-                        RefRO<
-                            Game.Citizens.Household>>()
+                        RefRO<Game.Citizens.HouseholdNeed>,
+                        RefRO<Game.Citizens.Household>>()
                     .WithAll<
                         Game.Citizens.HouseholdCitizen,
                         Game.Economy.Resources,
@@ -131,17 +131,14 @@ namespace NoCustomersFix.Systems
                     continue;
                 }
 
-                // Vanilla exits early while households still have previously
-                // purchased resources to consume. Do not turn those households
-                // into extra shoppers.
-                if (householdRef.ValueRO.m_Resources >
-                    0)
+                // Match vanilla's important early-out. Households still consuming
+                // previously purchased goods do not become the extra extra corrective shoppers.
+                if (householdRef.ValueRO.m_Resources > 0)
                 {
                     continue;
                 }
 
-                m_ReadyHouseholds.Add(
-                    household);
+                m_ReadyHouseholds.Add(household);
             }
 
             m_CapturedSimulationFrame =

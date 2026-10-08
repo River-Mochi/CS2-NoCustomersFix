@@ -54,7 +54,6 @@ namespace NoCustomersFix
 #if DEBUG
             updateSystem.UpdateBefore<CommercialBalancePrepareSystem,HouseholdBehaviorSystem>(SystemUpdatePhase.GameSimulation);
             updateSystem.UpdateAfter<CommercialBalanceSystem,HouseholdBehaviorSystem>(SystemUpdatePhase.GameSimulation);
-            updateSystem.UpdateAfter<VehicleBalanceSystem,CommercialBalanceSystem>(SystemUpdatePhase.GameSimulation);
 
             updateSystem.UpdateBefore<LeisureBalanceSystem,CitizenBehaviorSystem>(SystemUpdatePhase.GameSimulation);
 

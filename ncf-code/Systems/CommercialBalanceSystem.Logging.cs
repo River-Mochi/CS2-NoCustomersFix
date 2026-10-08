@@ -6,8 +6,8 @@
 // This notice MUST be kept with copies or substantial portions of this code.
 // ================= </copyright> ======================
 
-// File: Systems/Commercial/CommercialBalanceSystem.Logging.cs
-// Purpose: DEBUG diagnostics for commercial demand-balance prototype.
+// File: Systems/CommercialBalanceSystem.Logging.cs
+// Purpose: Concise DEBUG diagnostics for combined NEC balancing.
 
 #if DEBUG
 
@@ -25,17 +25,30 @@ namespace NoCustomersFix.Systems
     {
         private void LogBalanceWindow()
         {
+            int retailWarnings =
+                GetPhysicalWarningCount();
+
+            int totalWarnings =
+                retailWarnings +
+                m_VehicleWarningCount;
+
             LogUtils.Info(
-                "[CWD-BALANCE] " +
-                "prototype=v4 " +
+                "[NCF-BALANCE] " +
                 $"updates={kLogEveryUpdates} " +
+                $"pressureEvery={kPressureRefreshUpdates} " +
                 $"ready={m_WindowReadyHouseholds} " +
                 $"vanillaNeeds={m_WindowVanillaCreatedNeeds} " +
                 $"emptyAfterVanilla={m_WindowEmptyAfterVanilla} " +
-                $"injected={m_WindowInjectedNeeds} " +
-                $"injectedUnits={m_WindowInjectedUnits} " +
-                $"physicalWarnings={GetPhysicalWarningCount()} " +
-                $"excess85={m_TotalExcessService}");
+                $"retailInjected={m_WindowInjectedNeeds} " +
+                $"retailUnits={m_WindowInjectedUnits} " +
+                $"vehicleInjected={m_WindowVehicleInjectedNeeds} " +
+                $"vehicleUnits={m_WindowVehicleInjectedUnits} " +
+                $"warnings={totalWarnings} " +
+                $"retailWarnings={retailWarnings} " +
+                $"vehicleWarnings={m_VehicleWarningCount} " +
+                $"retailExcess85={m_TotalExcessService} " +
+                $"vehicleExcess85={m_VehicleExcess} " +
+                $"avoidedCarAmount={m_WindowAvoidedCarAmount}");
 
             StringBuilder details =
                 new(4096);
@@ -64,7 +77,7 @@ namespace NoCustomersFix.Systems
 
                 details
                     .Append(
-                        "[CWD-BALANCE-RESOURCE] ")
+                        "[NCF-BALANCE-RESOURCE] ")
                     .Append("resource=")
                     .Append(resource)
                     .Append(" shops=")
@@ -92,6 +105,43 @@ namespace NoCustomersFix.Systems
                     .AppendLine();
             }
 
+            if (m_VehicleShopCount > 0 &&
+                (m_VehicleWarningCount > 0 ||
+                 m_VehicleExcess > 0 ||
+                 m_WindowVehicleInjectedNeeds > 0))
+            {
+                float unused =
+                    m_VehicleMaxService > 0
+                        ? 100f *
+                          m_VehicleServiceAvailable /
+                          m_VehicleMaxService
+                        : 0f;
+
+                details
+                    .Append(
+                        "[NCF-BALANCE-RESOURCE] ")
+                    .Append("resource=Vehicles")
+                    .Append(" shops=")
+                    .Append(m_VehicleShopCount)
+                    .Append(" warnings=")
+                    .Append(m_VehicleWarningCount)
+                    .Append(" avgUnused=")
+                    .Append(
+                        unused.ToString(
+                            "F1",
+                            CultureInfo.InvariantCulture))
+                    .Append('%')
+                    .Append(" stock=")
+                    .Append(m_VehicleStock)
+                    .Append(" excess85=")
+                    .Append(m_VehicleExcess)
+                    .Append(" injected=")
+                    .Append(m_WindowVehicleInjectedNeeds)
+                    .Append(" injectedUnits=")
+                    .Append(m_WindowVehicleInjectedUnits)
+                    .AppendLine();
+            }
+
             if (details.Length > 0)
             {
                 LogUtils.Info(
@@ -114,6 +164,10 @@ namespace NoCustomersFix.Systems
 
             m_WindowInjectedNeeds = 0;
             m_WindowInjectedUnits = 0;
+
+            m_WindowVehicleInjectedNeeds = 0;
+            m_WindowVehicleInjectedUnits = 0;
+            m_WindowAvoidedCarAmount = 0;
         }
 
         private int GetPhysicalWarningCount()
