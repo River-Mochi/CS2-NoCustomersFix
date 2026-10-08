@@ -1,76 +1,69 @@
 // <copyright file="Mod.cs" company="River-Mochi">
 // Copyright (c) 2026 River-Mochi. All rights reserved.
-// Licensed under the MIT License. You may not use this file except in compliance with this License.
-// See LICENSE file in the project root for full license information.
-// This notice and the MIT License notice must be kept with
-// all copies or substantial portions of this code.
+// Licensed under the GNU General Public License v3.0 or later,
+// with the Cities: Skylines II Linking Exception.
+// See LICENSE and LICENSE-EXCEPTION in the project root.
+// This notice MUST be kept with copies or substantial portions of this code.
 // ================= </copyright> ======================
-
-// File: Mod.cs
-// Purpose: No Customers Fix mod entrypoint.
 
 namespace NoCustomersFix
 {
-    using System.Reflection;
-
+    using Colossal.IO.AssetDatabase;
     using Colossal.Logging;
-
-    using CS2Shared.RiverMochi;
-
     using Game;
+    using Game.Input;
     using Game.Modding;
-    using Game.Simulation;
+    using Game.SceneFlow;
+    using UnityEngine;
 
-    using NoCustomersFix.Systems;
-
-    public sealed class Mod : IMod
+    public class Mod : IMod
     {
-        public const string ModName = "No Customers Fix";
-        public const string ModId = "NoCustomersFix";
-        public const string ModTag = "[NCF]";
+        public static ILog log = LogManager.GetLogger($"{nameof(NoCustomersFix)}.{nameof(Mod)}").SetShowsErrorsInUI(false);
+        private Setting m_Setting;
+        public static ProxyAction m_ButtonAction;
+        public static ProxyAction m_AxisAction;
+        public static ProxyAction m_VectorAction;
 
-        public static readonly string ModVersion =
-            Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.1.0";
-
-#if DEBUG
-        public static readonly ILog s_Log =
-            LogManager.GetLogger(ModId).SetShowsErrorsInUI(true);
-#else
-        public static readonly ILog s_Log =
-            LogManager.GetLogger(ModId).SetShowsErrorsInUI(false);
-#endif
-
-        private static bool s_BannerLogged;
+        public const string kButtonActionName = "ButtonBinding";
+        public const string kAxisActionName = "FloatBinding";
+        public const string kVectorActionName = "Vector2Binding";
 
         public void OnLoad(UpdateSystem updateSystem)
         {
-            LogUtils.Configure(ModId, s_Log);
+            log.Info(nameof(OnLoad));
 
-            if (!s_BannerLogged)
-            {
-                s_BannerLogged = true;
+            if (GameManager.instance.modManager.TryGetExecutableAsset(this, out var asset))
+                log.Info($"Current mod asset at {asset.path}");
 
-#if DEBUG
-                LogUtils.Info($"{ModName} v{ModVersion} DEBUG loaded");
-#else
-                LogUtils.Info($"{ModName} v{ModVersion} loaded");
-#endif
-            }
+            m_Setting = new Setting(this);
+            m_Setting.RegisterInOptionsUI();
+            GameManager.instance.localizationManager.AddSource("en-US", new LocaleEN(m_Setting));
 
-#if DEBUG
-            updateSystem.UpdateBefore<CommercialBalancePrepareSystem, HouseholdBehaviorSystem>(SystemUpdatePhase.GameSimulation);
-            updateSystem.UpdateAfter<CommercialBalanceSystem, HouseholdBehaviorSystem>(SystemUpdatePhase.GameSimulation);
-            updateSystem.UpdateAfter<VehicleBalanceSystem, CommercialBalanceSystem>(SystemUpdatePhase.GameSimulation);
+            m_Setting.RegisterKeyBindings();
 
-            updateSystem.UpdateBefore<LeisureBalanceSystem, CitizenBehaviorSystem>(SystemUpdatePhase.GameSimulation);
-            updateSystem.UpdateAfter<LeisureRestoreSystem, CitizenBehaviorSystem>(SystemUpdatePhase.GameSimulation);
+            m_ButtonAction = m_Setting.GetAction(kButtonActionName);
+            m_AxisAction = m_Setting.GetAction(kAxisActionName);
+            m_VectorAction = m_Setting.GetAction(kVectorActionName);
 
-            updateSystem.UpdateBefore<HotelBalanceSystem, TouristFindTargetSystem>(SystemUpdatePhase.GameSimulation);
-#endif
+            m_ButtonAction.shouldBeEnabled = true;
+            m_AxisAction.shouldBeEnabled = true;
+            m_VectorAction.shouldBeEnabled = true;
+
+            m_ButtonAction.onInteraction += (_, phase) => log.Info($"[{m_ButtonAction.name}] On{phase} {m_ButtonAction.ReadValue<float>()}");
+            m_AxisAction.onInteraction += (_, phase) => log.Info($"[{m_AxisAction.name}] On{phase} {m_AxisAction.ReadValue<float>()}");
+            m_VectorAction.onInteraction += (_, phase) => log.Info($"[{m_VectorAction.name}] On{phase} {m_VectorAction.ReadValue<Vector2>()}");
+
+            AssetDatabase.global.LoadSettings(nameof(NoCustomersFix), m_Setting, new Setting(this));
         }
 
-        public void OnDispose()
+        public void OnDispose( )
         {
+            log.Info(nameof(OnDispose));
+            if (m_Setting != null)
+            {
+                m_Setting.UnregisterInOptionsUI();
+                m_Setting = null;
+            }
         }
     }
 }

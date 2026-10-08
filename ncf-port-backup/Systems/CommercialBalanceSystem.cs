@@ -1,15 +1,18 @@
-// <copyright file="VehicleBalanceSystem.cs" company="River-Mochi">
+// <copyright file="CommercialBalanceSystem.cs" company="River-Mochi">
 // Copyright (c) 2026 River-Mochi. All rights reserved.
-// Licensed under the MIT License. You may not use this file except in compliance with this License.
-// See LICENSE file in the project root for full license information.
-// This notice and the MIT License notice must be kept with
-// all copies or substantial portions of this code.
+// Licensed under the GNU General Public License v3.0 or later,
+// with the Cities: Skylines II Linking Exception.
+// See LICENSE and LICENSE-EXCEPTION in the project root.
+// This notice MUST be kept with copies or substantial portions of this code.
 // ================= </copyright> ======================
 
-// File: Systems/Commercial/VehicleBalanceSystem.cs
-// Purpose: DEBUG-only corrective demand for commercial Vehicle stores.
+// File: Systems/Commercial/CommercialBalanceSystem.cs
+// Purpose: DEBUG-only prototype that adds controlled physical retail demand
+// when commercial shops have excessive unused service.
 
 #if DEBUG
+
+using System;
 
 using Colossal.Serialization.Entities;
 
@@ -25,16 +28,13 @@ using Unity.Entities;
 namespace NoCustomersFix.Systems
 {
     /// <summary>
-    /// Runs after the ordinary-retail demand controller.
+    /// Runs immediately after vanilla HouseholdBehaviorSystem.
     ///
-    /// Uses households that were ready to shop before vanilla but still have
-    /// no shopping need after vanilla and the ordinary-retail correction.
-    ///
-    /// Corrective Vehicle purchases intentionally never use vanilla's special
-    /// car-purchase amount of 50, so this system does not manufacture extra
-    /// personal cars.
+    /// V4 does not reroll normal vanilla shopping choices.
+    /// It only adds a corrective physical retail need to households that were
+    /// ready to shop before vanilla ran but still have no need afterward.
     /// </summary>
-    public partial class VehicleBalanceSystem : GameSystemBase
+    public partial class CommercialBalanceSystem : GameSystemBase
     {
         private SimulationSystem m_SimulationSystem = null!;
         private ResourceSystem m_ResourceSystem = null!;
@@ -44,12 +44,12 @@ namespace NoCustomersFix.Systems
 
         private int m_UpdateCount;
 
-        private int m_WindowReady;
-        private int m_WindowEmpty;
-        private int m_WindowInjected;
-        private long m_WindowInjectedUnits;
+        private int m_WindowReadyHouseholds;
+        private int m_WindowVanillaCreatedNeeds;
+        private int m_WindowEmptyAfterVanilla;
 
-        private int m_WindowAvoidedCarAmount;
+        private int m_WindowInjectedNeeds;
+        private long m_WindowInjectedUnits;
 
         private bool m_ConfigurationLogged;
 
@@ -83,16 +83,16 @@ namespace NoCustomersFix.Systems
             base.OnGameLoaded(
                 serializationContext);
 
-            ResetVehicleState();
+            ResetBalanceState();
 
             m_UpdateCount = 0;
 
-            m_WindowReady = 0;
-            m_WindowEmpty = 0;
-            m_WindowInjected = 0;
-            m_WindowInjectedUnits = 0;
+            m_WindowReadyHouseholds = 0;
+            m_WindowVanillaCreatedNeeds = 0;
+            m_WindowEmptyAfterVanilla = 0;
 
-            m_WindowAvoidedCarAmount = 0;
+            m_WindowInjectedNeeds = 0;
+            m_WindowInjectedUnits = 0;
 
             m_ConfigurationLogged = false;
         }
@@ -199,23 +199,24 @@ namespace NoCustomersFix.Systems
                         Game.Buildings.Renter>(
                             true);
 
-            BuildVehiclePressure(
+            BuildCommercialPressure(
                 serviceCompanyDatas,
-                industrialProcessDatas);
+                industrialProcessDatas,
+                resourceDatas);
 
-            PrepareVehicleBudget();
+            PrepareCorrectionBudget();
 
             if (!m_ConfigurationLogged)
             {
                 m_ConfigurationLogged = true;
 
                 LogUtils.Info(
-                    "[CWD-VEHICLE] ACTIVE DEBUG vehicle prototype. " +
-                    "Vehicle shops above 85% unused Service receive " +
-                    "controlled generic Vehicle demand. Existing vanilla " +
-                    "needs are untouched. Corrective Vehicle purchases " +
-                    "never use amount=50, so they cannot trigger vanilla's " +
-                    "personal-car creation path.");
+                    "[CWD-BALANCE] ACTIVE DEBUG prototype v4. " +
+                    "Existing vanilla shopping choices are untouched. " +
+                    "V4 only adds physical retail demand when individual " +
+                    "shops have Service above 85% and stock above 200. " +
+                    "Correction is spread across 16 balance updates. " +
+                    "Vehicles, leisure, and office resources are untouched.");
             }
 
             uint updateFrame =
@@ -225,11 +226,12 @@ namespace NoCustomersFix.Systems
                         SystemUpdatePhase.GameSimulation),
                     16);
 
-            int ready = 0;
-            int empty = 0;
-            int injected = 0;
+            int readyHouseholds = 0;
+            int vanillaCreatedNeeds = 0;
+            int emptyAfterVanilla = 0;
+
+            int injectedNeeds = 0;
             long injectedUnits = 0;
-            int avoidedCarAmount = 0;
 
             foreach ((
                 RefRW<Game.Citizens.HouseholdNeed>
@@ -268,23 +270,23 @@ namespace NoCustomersFix.Systems
                     continue;
                 }
 
-                ready++;
+                readyHouseholds++;
 
                 Game.Citizens.HouseholdNeed need =
                     needRef.ValueRO;
 
-                // Vanilla and the successful V4 retail controller always win.
-                // Only use households that are still empty afterward.
+                // V4 deliberately leaves every vanilla-created need alone.
                 if (need.m_Resource !=
-                    Resource.NoResource)
+                        Resource.NoResource)
                 {
+                    vanillaCreatedNeeds++;
                     continue;
                 }
 
-                empty++;
+                emptyAfterVanilla++;
 
-                if (m_RemainingVehicleBudget <= 0 ||
-                    m_WorkingVehicleExcess <= 0)
+                if (m_RemainingInjectionBudget <= 0 ||
+                    m_TotalCorrectionUnits <= 0)
                 {
                     continue;
                 }
@@ -297,8 +299,9 @@ namespace NoCustomersFix.Systems
                     continue;
                 }
 
-                if (!TryCreateVehicleNeed(
+                if (!TryCreateCorrectiveNeed(
                         householdEntity,
+                        simulationFrame,
                         householdRef.ValueRO,
                         propertyRenterRef.ValueRO,
                         resourceDemandMultiplier,
@@ -313,14 +316,14 @@ namespace NoCustomersFix.Systems
                         prefabRefs,
                         citizenDatas,
                         resourceDatas,
-                        out int amount,
-                        out bool avoidedSpecialCarAmount))
+                        out Resource targetResource,
+                        out int amount))
                 {
                     continue;
                 }
 
                 need.m_Resource =
-                    Resource.Vehicles;
+                    targetResource;
 
                 need.m_Amount =
                     amount;
@@ -328,31 +331,48 @@ namespace NoCustomersFix.Systems
                 needRef.ValueRW =
                     need;
 
-                injected++;
+                injectedNeeds++;
                 injectedUnits += amount;
 
-                if (avoidedSpecialCarAmount)
+                int resourceIndex =
+                    EconomyUtils.GetResourceIndex(
+                        targetResource);
+
+                if (resourceIndex >= 0 &&
+                    resourceIndex <
+                        m_WindowInjectedNeedsByResource
+                            .Length)
                 {
-                    avoidedCarAmount++;
+                    m_WindowInjectedNeedsByResource[
+                        resourceIndex]++;
+
+                    m_WindowInjectedUnitsByResource[
+                        resourceIndex] +=
+                            amount;
                 }
             }
 
             m_UpdateCount++;
 
-            m_WindowReady += ready;
-            m_WindowEmpty += empty;
+            m_WindowReadyHouseholds +=
+                readyHouseholds;
 
-            m_WindowInjected += injected;
+            m_WindowVanillaCreatedNeeds +=
+                vanillaCreatedNeeds;
+
+            m_WindowEmptyAfterVanilla +=
+                emptyAfterVanilla;
+
+            m_WindowInjectedNeeds +=
+                injectedNeeds;
+
             m_WindowInjectedUnits +=
                 injectedUnits;
 
-            m_WindowAvoidedCarAmount +=
-                avoidedCarAmount;
-
             if (m_UpdateCount %
-                kVehicleLogEveryUpdates == 0)
+                kLogEveryUpdates == 0)
             {
-                LogVehicleWindow();
+                LogBalanceWindow();
             }
         }
     }
