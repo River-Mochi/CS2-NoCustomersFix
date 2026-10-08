@@ -9,7 +9,6 @@
 // File: Systems/CommercialBalanceSystem.cs
 // Purpose: Single post-vanilla physical retail + Vehicle NEC correction pass.
 
-#if DEBUG
 
 using Colossal.Serialization.Entities;
 
@@ -150,6 +149,7 @@ namespace NoCustomersFix.Systems
                 industrialProcessDatas,
                 resourceDatas);
 
+#if DEBUG
             if (!m_ConfigurationLogged)
             {
                 m_ConfigurationLogged = true;
@@ -160,6 +160,7 @@ namespace NoCustomersFix.Systems
                     "Normal retail runs first; Vehicle stores second. " +
                     "Company pressure is cached for 4 correction updates.");
             }
+#endif
 
             // No pressure at all: do not inspect even the candidate list.
             if (m_RemainingInjectionBudget <= 0 &&
@@ -495,13 +496,15 @@ namespace NoCustomersFix.Systems
             m_WindowAvoidedCarAmount +=
                 avoidedCarAmount;
 
+#if DEBUG
             if (m_UpdateCount %
                 kLogEveryUpdates == 0)
             {
                 LogBalanceWindow();
             }
+#endif
+
         }
     }
 }
 
-#endif

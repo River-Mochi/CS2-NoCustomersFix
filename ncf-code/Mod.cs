@@ -51,7 +51,7 @@ namespace NoCustomersFix
             LogUtils.Info($"{ModName} v{ModVersion} loaded");
 #endif
 
-#if DEBUG
+            // Functional NCF systems run in both Debug and Release.
             updateSystem.UpdateBefore<CommercialBalancePrepareSystem,HouseholdBehaviorSystem>(SystemUpdatePhase.GameSimulation);
             updateSystem.UpdateAfter<CommercialBalanceSystem,HouseholdBehaviorSystem>(SystemUpdatePhase.GameSimulation);
 
@@ -59,6 +59,8 @@ namespace NoCustomersFix
 
             updateSystem.UpdateBefore<HotelBalanceSystem,TouristFindTargetSystem>(SystemUpdatePhase.GameSimulation);
 
+#if DEBUG
+            // Diagnostics only. Never included in the player Release build.
             updateSystem.UpdateAfter<PathHealthSystem,CommercialBalanceSystem>(SystemUpdatePhase.GameSimulation);
 #endif
         }

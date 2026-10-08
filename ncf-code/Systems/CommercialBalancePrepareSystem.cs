@@ -9,8 +9,6 @@
 // File: Systems/CommercialBalancePrepareSystem.cs
 // Purpose: Burst snapshot of households eligible for post-vanilla NEC correction.
 
-#if DEBUG
-
 using Colossal.Serialization.Entities;
 
 using Game;
@@ -285,5 +283,3 @@ namespace NoCustomersFix.Systems
         }
     }
 }
-
-#endif

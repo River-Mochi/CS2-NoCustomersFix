@@ -9,7 +9,6 @@
 // File: Systems/CommercialBalanceSystem.Vehicle.cs
 // Purpose: Vehicle-store pressure and safe generic Vehicle correction.
 
-#if DEBUG
 
 using System;
 
@@ -294,4 +293,3 @@ namespace NoCustomersFix.Systems
     }
 }
 
-#endif

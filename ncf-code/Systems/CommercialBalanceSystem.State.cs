@@ -9,8 +9,6 @@
 // File: Systems/CommercialBalanceSystem.State.cs
 // Purpose: Cached commercial NEC pressure and correction budgets.
 
-#if DEBUG
-
 using System;
 
 using Game.Economy;
@@ -426,4 +424,3 @@ namespace NoCustomersFix.Systems
     }
 }
 
-#endif

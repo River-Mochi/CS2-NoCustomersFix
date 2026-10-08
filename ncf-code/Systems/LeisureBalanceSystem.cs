@@ -9,7 +9,6 @@
 // File: Systems/LeisureBalanceSystem.cs
 // Purpose: Adaptive vanilla leisure-demand correction for commercial NEC pressure.
 
-#if DEBUG
 
 using Colossal.Serialization.Entities;
 
@@ -115,10 +114,12 @@ namespace NoCustomersFix.Systems
             int desiredFactor =
                 CalculateDesiredFactor(warningCount);
 
+#if DEBUG
             LogState(
                 warningCount,
                 currentFactor,
                 desiredFactor);
+#endif
 
             if (desiredFactor == currentFactor)
             {
@@ -373,5 +374,3 @@ namespace NoCustomersFix.Systems
         }
     }
 }
-
-#endif

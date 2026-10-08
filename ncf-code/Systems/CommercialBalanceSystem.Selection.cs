@@ -9,7 +9,6 @@
 // File: Systems/Commercial/CommercialBalanceSystem.Selection.cs
 // Purpose: Select and create corrective physical retail shopping needs.
 
-#if DEBUG
 
 using System;
 
@@ -399,4 +398,3 @@ namespace NoCustomersFix.Systems
     }
 }
 
-#endif
