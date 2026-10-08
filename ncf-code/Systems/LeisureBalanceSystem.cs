@@ -6,8 +6,8 @@
 // This notice MUST be kept with copies or substantial portions of this code.
 // ================= </copyright> ======================
 
-// File: Systems/Commercial/LeisureBalanceSystem.cs
-// Purpose: DEBUG-only vanilla leisure-demand correction.
+// File: Systems/LeisureBalanceSystem.cs
+// Purpose: Adaptive vanilla leisure-demand correction for commercial NEC pressure.
 
 #if DEBUG
 
@@ -18,213 +18,223 @@ using CS2Shared.RiverMochi;
 using Game;
 using Game.Economy;
 using Game.Prefabs;
-using Game.Simulation;
 
 using Unity.Entities;
 using Unity.Mathematics;
 
 namespace NoCustomersFix.Systems
 {
-    internal static class LeisureBalanceState
-    {
-        internal static bool Applied;
-        internal static Entity ParametersEntity;
-        internal static int OriginalRandomFactor;
-    }
-
     /// <summary>
-    /// Temporarily increases vanilla leisure-seeking probability when
-    /// commercial Leisure NEC warnings remain high.
+    /// Adjusts vanilla leisure-seeking probability only while commercial
+    /// Leisure NEC pressure is elevated.
     ///
-    /// No trips or destinations are created here. CitizenBehaviorSystem
-    /// continues to decide which eligible citizens begin leisure, and
-    /// vanilla LeisureSystem/pathfinding handles destination selection,
-    /// travel, spending, and Service consumption.
+    /// No trips, destinations, or paths are created by this system.
+    /// Vanilla CitizenBehaviorSystem and LeisureSystem continue to handle
+    /// leisure decisions, destination selection, pathfinding, and spending.
     /// </summary>
-    public partial class LeisureBalanceSystem :
-        GameSystemBase
+    public partial class LeisureBalanceSystem : GameSystemBase
     {
         private const int kWarningGoal = 5;
-
         private const int kWarningScanInterval = 256;
-
         private const int kReductionPerExcessWarning = 32;
-
-        private SimulationSystem m_SimulationSystem = null!;
 
         private EntityQuery m_LeisureParametersQuery;
 
-        private uint m_LastWarningScanFrame;
+        private Entity m_ParametersEntity = Entity.Null;
 
-        private int m_CachedWarningCount;
+        private int m_BaselineFactor;
+        private int m_LastAppliedFactor;
+
+        private bool m_HasBaseline;
+        private bool m_AppliedByUs;
 
         private int m_LastLoggedWarnings = -1;
-
         private int m_LastLoggedFactor = -1;
+
+        public override int GetUpdateInterval(SystemUpdatePhase phase)
+        {
+            return kWarningScanInterval;
+        }
 
         protected override void OnCreate()
         {
             base.OnCreate();
 
-            m_SimulationSystem =
-                World.GetOrCreateSystemManaged<
-                    SimulationSystem>();
-
             m_LeisureParametersQuery =
                 GetEntityQuery(
-                    ComponentType.ReadWrite<
-                        LeisureParametersData>());
+                    ComponentType.ReadWrite<LeisureParametersData>());
 
-            RequireForUpdate(
-                m_LeisureParametersQuery);
-
-            m_LastWarningScanFrame =
-                uint.MaxValue;
+            RequireForUpdate(m_LeisureParametersQuery);
         }
 
         protected override void OnGameLoaded(
             Context serializationContext)
         {
-            base.OnGameLoaded(
-                serializationContext);
+            base.OnGameLoaded(serializationContext);
 
-            LeisureBalanceState.Applied =
-                false;
+            ResetState();
+        }
 
-            LeisureBalanceState.ParametersEntity =
-                Entity.Null;
+        protected override void OnDestroy()
+        {
+            RestoreBaselineIfOwned();
 
-            LeisureBalanceState.OriginalRandomFactor =
-                0;
-
-            m_LastWarningScanFrame =
-                uint.MaxValue;
-
-            m_CachedWarningCount =
-                0;
-
-            m_LastLoggedWarnings =
-                -1;
-
-            m_LastLoggedFactor =
-                -1;
+            base.OnDestroy();
         }
 
         protected override void OnUpdate()
         {
-            RestoreStaleState();
-
-            if (m_LeisureParametersQuery
-                    .CalculateEntityCount() != 1)
-            {
-                return;
-            }
-
-            uint frame =
-                m_SimulationSystem.frameIndex;
-
-            if (m_LastWarningScanFrame ==
-                    uint.MaxValue ||
-                frame - m_LastWarningScanFrame >=
-                    kWarningScanInterval)
-            {
-                m_LastWarningScanFrame =
-                    frame;
-
-                m_CachedWarningCount =
-                    CountCommercialLeisureWarnings();
-            }
-
-            if (m_CachedWarningCount <=
-                kWarningGoal)
+            if (m_LeisureParametersQuery.CalculateEntityCount() != 1)
             {
                 return;
             }
 
             Entity parametersEntity =
-                m_LeisureParametersQuery
-                    .GetSingletonEntity();
+                m_LeisureParametersQuery.GetSingletonEntity();
 
             LeisureParametersData parameters =
-                EntityManager.GetComponentData<
-                    LeisureParametersData>(
-                        parametersEntity);
+                EntityManager.GetComponentData<LeisureParametersData>(
+                    parametersEntity);
 
-            int originalFactor =
+            int currentFactor =
                 parameters.m_LeisureRandomFactor;
 
-            if (originalFactor <= 1)
+            RefreshBaseline(
+                parametersEntity,
+                currentFactor);
+
+            if (!m_HasBaseline ||
+                m_BaselineFactor <= 0)
             {
                 return;
             }
 
-            // At high NEC pressure, allow at most a 2x increase
-            // in vanilla leisure-seeking probability.
-            int minimumFactor =
-                math.max(
-                    1,
-                    originalFactor / 2);
+            int warningCount =
+                CountCommercialLeisureWarnings();
 
-           int excessWarnings =
-                m_CachedWarningCount - kWarningGoal;
+            int desiredFactor =
+                CalculateDesiredFactor(warningCount);
 
-            int adjustedFactor =
-                math.max(
-                    minimumFactor,
-                    originalFactor -
-                        (excessWarnings *
-                            kReductionPerExcessWarning));
+            LogState(
+                warningCount,
+                currentFactor,
+                desiredFactor);
 
-            if (adjustedFactor >=
-                originalFactor)
+            if (desiredFactor == currentFactor)
             {
+                if (desiredFactor == m_BaselineFactor)
+                {
+                    m_AppliedByUs = false;
+                }
+
+                m_LastAppliedFactor =
+                    currentFactor;
+
                 return;
             }
-
-            LeisureBalanceState.Applied =
-                true;
-
-            LeisureBalanceState.ParametersEntity =
-                parametersEntity;
-
-            LeisureBalanceState.OriginalRandomFactor =
-                originalFactor;
 
             parameters.m_LeisureRandomFactor =
-                adjustedFactor;
+                desiredFactor;
 
             EntityManager.SetComponentData(
                 parametersEntity,
                 parameters);
 
-            if (m_LastLoggedWarnings !=
-                    m_CachedWarningCount ||
-                m_LastLoggedFactor !=
-                    adjustedFactor)
+            m_LastAppliedFactor =
+                desiredFactor;
+
+            m_AppliedByUs =
+                desiredFactor != m_BaselineFactor;
+        }
+
+        private int CalculateDesiredFactor(
+            int warningCount)
+        {
+            if (warningCount <= kWarningGoal)
             {
-                m_LastLoggedWarnings =
-                    m_CachedWarningCount;
+                return m_BaselineFactor;
+            }
 
-                m_LastLoggedFactor =
-                    adjustedFactor;
+            int minimumFactor =
+                math.max(
+                    1,
+                    m_BaselineFactor / 2);
 
-                LogUtils.Info(
-                    "[CWD-LEISURE] " +
-                    "prototype=v3 " +
-                    "mode=vanilla-demand " +
-                    $"warnings={m_CachedWarningCount} " +
-                    $"randomFactor={originalFactor}->{adjustedFactor}");
+            int excessWarnings =
+                warningCount - kWarningGoal;
+
+            return math.max(
+                minimumFactor,
+                m_BaselineFactor -
+                    (excessWarnings *
+                        kReductionPerExcessWarning));
+        }
+
+        private void RefreshBaseline(
+            Entity parametersEntity,
+            int currentFactor)
+        {
+            if (!m_HasBaseline ||
+                parametersEntity != m_ParametersEntity)
+            {
+                m_ParametersEntity =
+                    parametersEntity;
+
+                m_BaselineFactor =
+                    currentFactor;
+
+                m_LastAppliedFactor =
+                    currentFactor;
+
+                m_HasBaseline =
+                    true;
+
+                m_AppliedByUs =
+                    false;
+
+                return;
+            }
+
+            if (m_AppliedByUs)
+            {
+                if (currentFactor ==
+                    m_LastAppliedFactor)
+                {
+                    return;
+                }
+
+                // Another mod changed the value after NCF applied its value.
+                // Treat that value as the new baseline instead of overwriting it.
+                m_BaselineFactor =
+                    currentFactor;
+
+                m_LastAppliedFactor =
+                    currentFactor;
+
+                m_AppliedByUs =
+                    false;
+
+                return;
+            }
+
+            if (currentFactor !=
+                m_BaselineFactor)
+            {
+                // NCF is inactive, so an external change becomes the new baseline.
+                m_BaselineFactor =
+                    currentFactor;
+
+                m_LastAppliedFactor =
+                    currentFactor;
             }
         }
 
         private int CountCommercialLeisureWarnings()
         {
-            ComponentLookup<
-                IndustrialProcessData>
+            ComponentLookup<IndustrialProcessData>
                 processDatas =
                     SystemAPI.GetComponentLookup<
-                        IndustrialProcessData>(
-                            true);
+                        IndustrialProcessData>(true);
 
             int warnings = 0;
 
@@ -237,8 +247,7 @@ namespace NoCustomersFix.Systems
                     .Query<
                         RefRO<
                             Game.Companies.CompanyNotifications>,
-                        RefRO<
-                            PrefabRef>>()
+                        RefRO<PrefabRef>>()
                     .WithAll<
                         Game.Companies.CommercialCompany>()
                     .WithNone<
@@ -255,8 +264,7 @@ namespace NoCustomersFix.Systems
                 Entity prefab =
                     prefabRef.ValueRO.m_Prefab;
 
-                if (!processDatas.HasComponent(
-                        prefab))
+                if (!processDatas.HasComponent(prefab))
                 {
                     continue;
                 }
@@ -265,12 +273,9 @@ namespace NoCustomersFix.Systems
                     processDatas[prefab]
                         .m_Output.m_Resource;
 
-                if (resource ==
-                        Resource.Entertainment ||
-                    resource ==
-                        Resource.Meals ||
-                    resource ==
-                        Resource.Recreation)
+                if (resource == Resource.Entertainment ||
+                    resource == Resource.Meals ||
+                    resource == Resource.Recreation)
                 {
                     warnings++;
                 }
@@ -279,39 +284,92 @@ namespace NoCustomersFix.Systems
             return warnings;
         }
 
-        private void RestoreStaleState()
+        private void RestoreBaselineIfOwned()
         {
-            if (!LeisureBalanceState.Applied)
+            if (!m_HasBaseline ||
+                !m_AppliedByUs ||
+                m_ParametersEntity == Entity.Null ||
+                !EntityManager.Exists(m_ParametersEntity) ||
+                !EntityManager.HasComponent<
+                    LeisureParametersData>(
+                        m_ParametersEntity))
             {
                 return;
             }
 
-            Entity entity =
-                LeisureBalanceState
-                    .ParametersEntity;
-
-            if (entity != Entity.Null &&
-                EntityManager.Exists(entity) &&
-                EntityManager.HasComponent<
+            LeisureParametersData parameters =
+                EntityManager.GetComponentData<
                     LeisureParametersData>(
-                        entity))
-            {
-                LeisureParametersData parameters =
-                    EntityManager.GetComponentData<
-                        LeisureParametersData>(
-                            entity);
+                        m_ParametersEntity);
 
+            // Restore only if the value is still the one NCF applied.
+            // Never overwrite a later change made by another mod.
+            if (parameters.m_LeisureRandomFactor ==
+                m_LastAppliedFactor)
+            {
                 parameters.m_LeisureRandomFactor =
-                    LeisureBalanceState
-                        .OriginalRandomFactor;
+                    m_BaselineFactor;
 
                 EntityManager.SetComponentData(
-                    entity,
+                    m_ParametersEntity,
                     parameters);
             }
 
-            LeisureBalanceState.Applied =
+            m_AppliedByUs = false;
+        }
+
+        private void LogState(
+            int warningCount,
+            int currentFactor,
+            int desiredFactor)
+        {
+            if (m_LastLoggedWarnings == warningCount &&
+                m_LastLoggedFactor == desiredFactor)
+            {
+                return;
+            }
+
+            m_LastLoggedWarnings =
+                warningCount;
+
+            m_LastLoggedFactor =
+                desiredFactor;
+
+            string mode =
+                warningCount <= kWarningGoal
+                    ? "vanilla"
+                    : "adaptive";
+
+            LogUtils.Info(
+                "[NCF-LEISURE] " +
+                $"mode={mode} " +
+                $"warnings={warningCount} " +
+                $"randomFactor={currentFactor}->{desiredFactor} " +
+                $"baseline={m_BaselineFactor}");
+        }
+
+        private void ResetState()
+        {
+            m_ParametersEntity =
+                Entity.Null;
+
+            m_BaselineFactor =
+                0;
+
+            m_LastAppliedFactor =
+                0;
+
+            m_HasBaseline =
                 false;
+
+            m_AppliedByUs =
+                false;
+
+            m_LastLoggedWarnings =
+                -1;
+
+            m_LastLoggedFactor =
+                -1;
         }
     }
 }

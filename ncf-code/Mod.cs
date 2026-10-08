@@ -30,7 +30,7 @@ namespace NoCustomersFix
         public const string ModTag = "[NCF]";
 
         public static readonly string ModVersion =
-            Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.1.0";
+            Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.5.0";
 
         internal static readonly ILog s_Log =
             LogManager.GetLogger(ModId).SetShowsErrorsInUI(
@@ -52,14 +52,13 @@ namespace NoCustomersFix
 #endif
 
 #if DEBUG
-            updateSystem.UpdateBefore<CommercialBalancePrepareSystem, HouseholdBehaviorSystem>(SystemUpdatePhase.GameSimulation);
-            updateSystem.UpdateAfter<CommercialBalanceSystem, HouseholdBehaviorSystem>(SystemUpdatePhase.GameSimulation);
-            updateSystem.UpdateAfter<VehicleBalanceSystem, CommercialBalanceSystem>(SystemUpdatePhase.GameSimulation);
+            updateSystem.UpdateBefore<CommercialBalancePrepareSystem,HouseholdBehaviorSystem>(SystemUpdatePhase.GameSimulation);
+            updateSystem.UpdateAfter<CommercialBalanceSystem,HouseholdBehaviorSystem>(SystemUpdatePhase.GameSimulation);
+            updateSystem.UpdateAfter<VehicleBalanceSystem,CommercialBalanceSystem>(SystemUpdatePhase.GameSimulation);
 
-            updateSystem.UpdateBefore<LeisureBalanceSystem, CitizenBehaviorSystem>(SystemUpdatePhase.GameSimulation);
-            updateSystem.UpdateAfter<LeisureRestoreSystem, CitizenBehaviorSystem>(SystemUpdatePhase.GameSimulation);
+            updateSystem.UpdateBefore<LeisureBalanceSystem,CitizenBehaviorSystem>(SystemUpdatePhase.GameSimulation);
 
-            updateSystem.UpdateBefore<HotelBalanceSystem, TouristFindTargetSystem>(SystemUpdatePhase.GameSimulation);
+            updateSystem.UpdateBefore<HotelBalanceSystem,TouristFindTargetSystem>(SystemUpdatePhase.GameSimulation);
 #endif
         }
 
