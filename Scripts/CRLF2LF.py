@@ -8,7 +8,7 @@
 
 # File: Scripts/CRLF2LF.py
 # Version: 0.4.1
-# Purpose: 
+# Purpose:
 #   River-Mochi Shared Lib file to check/fix line endings, final newline, and UTF-8 BOM.
 #
 # policy for VS2026 + GitHub:
@@ -323,4 +323,4 @@ def print_report(changed: list[Path], skipped_binary: list[Path], write_files: b
 
 if __name__ == "__main__":
     raise SystemExit(main())
-    
+

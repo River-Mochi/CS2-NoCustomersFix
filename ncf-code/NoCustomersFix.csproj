@@ -1,73 +1,154 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<Configurations>Debug;Release</Configurations>
-	
-		<!--The file where mod information which is required for publishing mod on PDX mods are stored-->
-		<PublishConfigurationPath>Properties\PublishConfiguration.xml</PublishConfigurationPath>
-	</PropertyGroup>
-	
-	<!--Imports must be after PropertyGroup block-->
-	<Import Project="$([System.Environment]::GetEnvironmentVariable('CSII_TOOLPATH', 'EnvironmentVariableTarget.User'))\Mod.props" />
-	<Import Project="$([System.Environment]::GetEnvironmentVariable('CSII_TOOLPATH', 'EnvironmentVariableTarget.User'))\Mod.targets" />
+    <PropertyGroup>
 
-	<ItemGroup>
-		<Reference Include="Game">
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="Colossal.Core">
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="Colossal.Logging">
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="Colossal.IO.AssetDatabase">
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="Colossal.UI">
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="Colossal.UI.Binding">
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="Colossal.Localization">
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="Unity.InputSystem">
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="UnityEngine.CoreModule">
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="Unity.Burst">
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="Unity.Collections">
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="Unity.Entities">
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="Unity.Mathematics">
-			<Private>false</Private>
-		</Reference>
-	</ItemGroup>
+        <OutputType>Library</OutputType>
 
-	<ItemGroup>
-		<Reference Update="System">
-			<Private>false</Private>
-		</Reference>
-		<Reference Update="System.Core">
-			<Private>false</Private>
-		</Reference>
-		<Reference Update="System.Data">
-			<Private>false</Private>
-		</Reference>
-	</ItemGroup>
+        <Configurations>Debug;Release</Configurations>
 
-	<ItemGroup>
-		<None Include="$(ModPropsFile)" Link="Properties\Mod.props" />
-		<None Include="$(ModTargetsFile)" Link="Properties\Mod.targets" />
-	</ItemGroup>
+        <Nullable>enable</Nullable>
+
+
+
+        <PublishConfigurationPath>Properties\PublishConfiguration.xml</PublishConfigurationPath>
+
+        <PublishConfigScript>$(MSBuildProjectDirectory)\..\Scripts\Update-PublishConfig.ps1</PublishConfigScript>
+
+
+
+        <Version>0.1.0</Version>
+
+        <AssemblyVersion>$(Version).0</AssemblyVersion>
+
+        <FileVersion>$(Version).0</FileVersion>
+
+        <GameVersion>1.6.*</GameVersion>
+
+
+
+        <AssemblyName>NoCustomersFix</AssemblyName>
+
+        <RootNamespace>NoCustomersFix</RootNamespace>
+
+        <AssemblyTitle>No Customers Fix</AssemblyTitle>
+
+        <Product>No Customers Fix</Product>
+
+        <Copyright>Copyright © 2026 River-Mochi</Copyright>
+
+    </PropertyGroup>
+
+
+
+    <Import Project="$([System.Environment]::GetEnvironmentVariable('CSII_TOOLPATH', 'EnvironmentVariableTarget.User'))\Mod.props" />
+
+    <Import Project="$([System.Environment]::GetEnvironmentVariable('CSII_TOOLPATH', 'EnvironmentVariableTarget.User'))\Mod.targets" />
+
+
+
+    <ItemGroup>
+
+        <Reference Include="Game">
+
+            <Private>false</Private>
+
+        </Reference>
+
+        <Reference Include="Colossal.Core">
+
+            <Private>false</Private>
+
+        </Reference>
+
+        <Reference Include="Colossal.Logging">
+
+            <Private>false</Private>
+
+        </Reference>
+
+        <Reference Include="Colossal.IO.AssetDatabase">
+
+            <Private>false</Private>
+
+        </Reference>
+
+        <Reference Include="UnityEngine.CoreModule">
+
+            <Private>false</Private>
+
+        </Reference>
+
+        <Reference Include="Unity.Burst">
+
+            <Private>false</Private>
+
+        </Reference>
+
+        <Reference Include="Unity.Collections">
+
+            <Private>false</Private>
+
+        </Reference>
+
+        <Reference Include="Unity.Entities">
+
+            <Private>false</Private>
+
+        </Reference>
+
+        <Reference Include="Unity.Mathematics">
+
+            <Private>false</Private>
+
+        </Reference>
+
+    </ItemGroup>
+
+
+
+    <ItemGroup>
+
+        <Reference Update="System">
+
+            <Private>false</Private>
+
+        </Reference>
+
+        <Reference Update="System.Core">
+
+            <Private>false</Private>
+
+        </Reference>
+
+        <Reference Update="System.Data">
+
+            <Private>false</Private>
+
+        </Reference>
+
+    </ItemGroup>
+
+
+
+    <ItemGroup>
+
+        <None Include="$(ModPropsFile)" Link="Properties\Mod.props" />
+
+        <None Include="$(ModTargetsFile)" Link="Properties\Mod.targets" />
+
+    </ItemGroup>
+
+
+
+    <Target Name="UpdatePublishConfigVersion"
+BeforeTargets="PrepareForBuild"
+Condition="Exists('$(PublishConfigScript)') AND Exists('$(MSBuildProjectDirectory)\$(PublishConfigurationPath)')">
+
+        <Message Text="$(AssemblyTitle) PublishConfig: syncing ModVersion/GameVersion + normalizing EOL/BOM + left-aligning blocks..."
+Importance="high" />
+
+        <Exec Command="&quot;$(SystemRoot)\System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -ExecutionPolicy Bypass -File &quot;$(PublishConfigScript)&quot; -Path &quot;$(MSBuildProjectDirectory)\$(PublishConfigurationPath)&quot; -Version &quot;$(Version)&quot; -GameVersion &quot;$(GameVersion)&quot; -Eol lf -LeftAlignBlocks" />
+
+    </Target>
 
 </Project>
