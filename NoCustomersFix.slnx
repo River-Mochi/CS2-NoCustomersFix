@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/NewFolder1/">
+    <File Path="Scripts/add_gpl_headers.py" />
+    <File Path="Scripts/check_locales.py" />
+    <File Path="Scripts/CRLF2LF.py" />
+    <File Path="Scripts/Update-PublishConfig.ps1" />
+  </Folder>
+  <Project Path="ncf-code/NoCustomersFix.csproj" />
+</Solution>
