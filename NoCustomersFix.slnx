@@ -3,7 +3,7 @@
     <File Path=".editorconfig" />
     <File Path=".gitattributes" />
     <File Path=".gitignore" />
-    <File Path="GPL-LICENSE" />
+    <File Path="LICENSE" />
     <File Path="LICENSE-EXCEPTION" />
     <File Path="Scripts/add_gpl_headers.py" />
     <File Path="Scripts/check_locales.py" />

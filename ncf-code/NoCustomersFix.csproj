@@ -1,27 +1,37 @@
 <Project Sdk="Microsoft.NET.Sdk">
+    <!--
+    No Customers Fix [NCF]
+    - CS2 toolchain supplies net48, supported C# version, and game references.
+    - Version is the single source of truth for assembly + PDX publish version.
+    -->
+
     <PropertyGroup>
         <OutputType>Library</OutputType>
         <Configurations>Debug;Release</Configurations>
         <Nullable>enable</Nullable>
 
+        <!-- Paradox Mods publish configuration -->
         <PublishConfigurationPath>Properties\PublishConfiguration.xml</PublishConfigurationPath>
         <PublishConfigScript>$(MSBuildProjectDirectory)\..\Scripts\Update-PublishConfig.ps1</PublishConfigScript>
 
+        <!-- Versioning -->
         <Version>0.5.0</Version>
         <AssemblyVersion>$(Version).0</AssemblyVersion>
         <FileVersion>$(Version).0</FileVersion>
         <GameVersion>1.6.*</GameVersion>
 
+        <!-- Assembly identity -->
         <AssemblyName>NoCustomersFix</AssemblyName>
         <RootNamespace>NoCustomersFix</RootNamespace>
         <AssemblyTitle>No Customers Fix</AssemblyTitle>
-        <Product>No Customers Fix</Product>
         <Copyright>Copyright © 2026 River-Mochi</Copyright>
     </PropertyGroup>
 
+    <!-- CS2 toolchain imports must follow PropertyGroup -->
     <Import Project="$([System.Environment]::GetEnvironmentVariable('CSII_TOOLPATH', 'EnvironmentVariableTarget.User'))\Mod.props" />
     <Import Project="$([System.Environment]::GetEnvironmentVariable('CSII_TOOLPATH', 'EnvironmentVariableTarget.User'))\Mod.targets" />
 
+    <!-- Game / Colossal / Unity references -->
     <ItemGroup>
         <Reference Include="Game">
             <Private>false</Private>
@@ -31,6 +41,7 @@
             <Private>false</Private>
         </Reference>
 
+        <!-- Required by EconomyParameterData / AnimationCurve1 -->
         <Reference Include="Colossal.Collections">
             <Private>false</Private>
         </Reference>
@@ -51,6 +62,7 @@
             <Private>false</Private>
         </Reference>
 
+        <!-- Used by the upcoming Burst household correction jobs -->
         <Reference Include="Unity.Burst">
             <Private>false</Private>
         </Reference>
@@ -68,6 +80,7 @@
         </Reference>
     </ItemGroup>
 
+    <!-- Framework assemblies supplied by the toolchain -->
     <ItemGroup>
         <Reference Update="System">
             <Private>false</Private>
@@ -82,17 +95,25 @@
         </Reference>
     </ItemGroup>
 
+    <!-- Convenient links to the CS2 toolchain files in Visual Studio -->
     <ItemGroup>
         <None Include="$(ModPropsFile)" Link="Properties\Mod.props" />
         <None Include="$(ModTargetsFile)" Link="Properties\Mod.targets" />
     </ItemGroup>
 
+    <!--
+    Before each build:
+    - sync ModVersion + GameVersion into PublishConfiguration.xml
+    - normalize LF / UTF-8 formatting
+    -->
     <Target Name="UpdatePublishConfigVersion"
             BeforeTargets="PrepareForBuild"
             Condition="Exists('$(PublishConfigScript)') AND Exists('$(MSBuildProjectDirectory)\$(PublishConfigurationPath)')">
+
         <Message Text="$(AssemblyTitle) PublishConfig: syncing ModVersion/GameVersion + normalizing EOL/BOM + left-aligning blocks..."
                  Importance="high" />
 
         <Exec Command="&quot;$(SystemRoot)\System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -ExecutionPolicy Bypass -File &quot;$(PublishConfigScript)&quot; -Path &quot;$(MSBuildProjectDirectory)\$(PublishConfigurationPath)&quot; -Version &quot;$(Version)&quot; -GameVersion &quot;$(GameVersion)&quot; -Eol lf -LeftAlignBlocks" />
     </Target>
+
 </Project>
