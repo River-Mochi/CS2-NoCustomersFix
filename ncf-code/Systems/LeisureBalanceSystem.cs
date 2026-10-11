@@ -7,8 +7,7 @@
 // ================= </copyright> ======================
 
 // File: Systems/LeisureBalanceSystem.cs
-// Purpose: Adaptive vanilla leisure-demand correction for commercial NEC pressure.
-
+// Purpose: Preventive adaptive vanilla Leisure demand for commercial NEC pressure.
 
 using Colossal.Serialization.Entities;
 
@@ -24,18 +23,23 @@ using Unity.Mathematics;
 namespace NoCustomersFix.Systems
 {
     /// <summary>
-    /// Adjusts vanilla leisure-seeking probability only while commercial
-    /// Leisure NEC pressure is elevated.
+    /// Preventively adjusts vanilla Leisure demand when Entertainment,
+    /// Meals, or Recreation businesses approach NEC pressure.
     ///
-    /// No trips, destinations, or paths are created by this system.
-    /// Vanilla CitizenBehaviorSystem and LeisureSystem continue to handle
-    /// leisure decisions, destination selection, pathfinding, and spending.
+    /// NCF does not select destinations and does not create paths.
+    /// Vanilla CitizenBehaviorSystem, LeisureSystem, and pathfinding continue
+    /// to handle Leisure decisions, destination selection, travel, and spending.
     /// </summary>
     public partial class LeisureBalanceSystem : GameSystemBase
     {
-        private const int kWarningGoal = 5;
-        private const int kWarningScanInterval = 256;
-        private const int kReductionPerExcessWarning = 32;
+        // Begin helping well before vanilla's ~90% unused-Service NEC trigger.
+        private const float kMediumPressureRatio = 0.82f;
+        private const float kStrongPressureRatio = 0.89f;
+
+        // Match vanilla's physical-stock requirement for NEC.
+        private const int kMinimumStock = 200;
+
+        private const int kPressureScanInterval = 256;
 
         private EntityQuery m_LeisureParametersQuery;
 
@@ -47,12 +51,23 @@ namespace NoCustomersFix.Systems
         private bool m_HasBaseline;
         private bool m_AppliedByUs;
 
-        private int m_LastLoggedWarnings = -1;
+#if DEBUG
+        private int m_LastLoggedMedium = -1;
+        private int m_LastLoggedStrong = -1;
         private int m_LastLoggedFactor = -1;
+#endif
+
+        private struct LeisurePressure
+        {
+            public int MediumCount;
+            public int StrongCount;
+            public int WarningCount;
+            public float MaxUnusedRatio;
+        }
 
         public override int GetUpdateInterval(SystemUpdatePhase phase)
         {
-            return kWarningScanInterval;
+            return kPressureScanInterval;
         }
 
         protected override void OnCreate()
@@ -108,15 +123,15 @@ namespace NoCustomersFix.Systems
                 return;
             }
 
-            int warningCount =
-                CountCommercialLeisureWarnings();
+            LeisurePressure pressure =
+                ScanLeisurePressure();
 
             int desiredFactor =
-                CalculateDesiredFactor(warningCount);
+                CalculateDesiredFactor(pressure);
 
 #if DEBUG
             LogState(
-                warningCount,
+                pressure,
                 currentFactor,
                 desiredFactor);
 #endif
@@ -149,26 +164,140 @@ namespace NoCustomersFix.Systems
         }
 
         private int CalculateDesiredFactor(
-            int warningCount)
+            LeisurePressure pressure)
         {
-            if (warningCount <= kWarningGoal)
+            // Strong: same maximum help already exercised safely in testing.
+            if (pressure.StrongCount > 0)
             {
-                return m_BaselineFactor;
-            }
-
-            int minimumFactor =
-                math.max(
+                return math.max(
                     1,
                     m_BaselineFactor / 2);
+            }
 
-            int excessWarnings =
-                warningCount - kWarningGoal;
+            // Medium: modest preventive increase before NEC appears.
+            if (pressure.MediumCount > 0)
+            {
+                return math.max(
+                    1,
+                    (m_BaselineFactor * 3) / 4);
+            }
 
-            return math.max(
-                minimumFactor,
-                m_BaselineFactor -
-                    (excessWarnings *
-                        kReductionPerExcessWarning));
+            return m_BaselineFactor;
+        }
+
+        private LeisurePressure ScanLeisurePressure()
+        {
+            ComponentLookup<
+                Game.Companies.ServiceCompanyData>
+                serviceCompanyDatas =
+                    SystemAPI.GetComponentLookup<
+                        Game.Companies.ServiceCompanyData>(
+                            true);
+
+            ComponentLookup<IndustrialProcessData>
+                processDatas =
+                    SystemAPI.GetComponentLookup<
+                        IndustrialProcessData>(
+                            true);
+
+            BufferLookup<Game.Economy.Resources>
+                resources =
+                    SystemAPI.GetBufferLookup<
+                        Game.Economy.Resources>(
+                            true);
+
+            LeisurePressure pressure = default;
+
+            foreach ((
+                RefRO<Game.Companies.ServiceAvailable>
+                    serviceRef,
+                RefRO<Game.Companies.CompanyNotifications>
+                    notificationsRef,
+                RefRO<PrefabRef>
+                    prefabRef,
+                Entity company) in
+                SystemAPI
+                    .Query<
+                        RefRO<Game.Companies.ServiceAvailable>,
+                        RefRO<Game.Companies.CompanyNotifications>,
+                        RefRO<PrefabRef>>()
+                    .WithAll<
+                        Game.Companies.CommercialCompany>()
+                    .WithNone<
+                        Game.Common.Deleted,
+                        Game.Tools.Temp>()
+                    .WithEntityAccess())
+            {
+                Entity prefab =
+                    prefabRef.ValueRO.m_Prefab;
+
+                if (!serviceCompanyDatas.HasComponent(prefab) ||
+                    !processDatas.HasComponent(prefab) ||
+                    !resources.HasBuffer(company))
+                {
+                    continue;
+                }
+
+                Resource resource =
+                    processDatas[prefab]
+                        .m_Output.m_Resource;
+
+                if (resource != Resource.Entertainment &&
+                    resource != Resource.Meals &&
+                    resource != Resource.Recreation)
+                {
+                    continue;
+                }
+
+                int stock =
+                    EconomyUtils.GetResources(
+                        resource,
+                        resources[company]);
+
+                if (stock <= kMinimumStock)
+                {
+                    continue;
+                }
+
+                Game.Companies.ServiceCompanyData
+                    serviceData =
+                        serviceCompanyDatas[prefab];
+
+                if (serviceData.m_MaxService <= 0)
+                {
+                    continue;
+                }
+
+                float unusedRatio =
+                    math.saturate(
+                        (float)serviceRef.ValueRO.m_ServiceAvailable /
+                        serviceData.m_MaxService);
+
+                pressure.MaxUnusedRatio =
+                    math.max(
+                        pressure.MaxUnusedRatio,
+                        unusedRatio);
+
+                if (notificationsRef.ValueRO
+                        .m_NoCustomersEntity !=
+                    Entity.Null)
+                {
+                    pressure.WarningCount++;
+                }
+
+                if (unusedRatio >=
+                    kStrongPressureRatio)
+                {
+                    pressure.StrongCount++;
+                }
+                else if (unusedRatio >=
+                    kMediumPressureRatio)
+                {
+                    pressure.MediumCount++;
+                }
+            }
+
+            return pressure;
         }
 
         private void RefreshBaseline(
@@ -230,61 +359,6 @@ namespace NoCustomersFix.Systems
             }
         }
 
-        private int CountCommercialLeisureWarnings()
-        {
-            ComponentLookup<IndustrialProcessData>
-                processDatas =
-                    SystemAPI.GetComponentLookup<
-                        IndustrialProcessData>(true);
-
-            int warnings = 0;
-
-            foreach ((
-                RefRO<Game.Companies.CompanyNotifications>
-                    notificationsRef,
-                RefRO<PrefabRef>
-                    prefabRef) in
-                SystemAPI
-                    .Query<
-                        RefRO<
-                            Game.Companies.CompanyNotifications>,
-                        RefRO<PrefabRef>>()
-                    .WithAll<
-                        Game.Companies.CommercialCompany>()
-                    .WithNone<
-                        Game.Common.Deleted,
-                        Game.Tools.Temp>())
-            {
-                if (notificationsRef.ValueRO
-                        .m_NoCustomersEntity ==
-                    Entity.Null)
-                {
-                    continue;
-                }
-
-                Entity prefab =
-                    prefabRef.ValueRO.m_Prefab;
-
-                if (!processDatas.HasComponent(prefab))
-                {
-                    continue;
-                }
-
-                Resource resource =
-                    processDatas[prefab]
-                        .m_Output.m_Resource;
-
-                if (resource == Resource.Entertainment ||
-                    resource == Resource.Meals ||
-                    resource == Resource.Recreation)
-                {
-                    warnings++;
-                }
-            }
-
-            return warnings;
-        }
-
         private void RestoreBaselineIfOwned()
         {
             if (!m_HasBaseline ||
@@ -319,58 +393,72 @@ namespace NoCustomersFix.Systems
             m_AppliedByUs = false;
         }
 
+#if DEBUG
         private void LogState(
-            int warningCount,
+            LeisurePressure pressure,
             int currentFactor,
             int desiredFactor)
         {
-            if (m_LastLoggedWarnings == warningCount &&
-                m_LastLoggedFactor == desiredFactor)
+            if (m_LastLoggedMedium ==
+                    pressure.MediumCount &&
+                m_LastLoggedStrong ==
+                    pressure.StrongCount &&
+                m_LastLoggedFactor ==
+                    desiredFactor)
             {
                 return;
             }
 
-            m_LastLoggedWarnings =
-                warningCount;
+            m_LastLoggedMedium =
+                pressure.MediumCount;
+
+            m_LastLoggedStrong =
+                pressure.StrongCount;
 
             m_LastLoggedFactor =
                 desiredFactor;
 
             string mode =
-                warningCount <= kWarningGoal
-                    ? "vanilla"
-                    : "adaptive";
+                pressure.StrongCount > 0
+                    ? "strong"
+                    : pressure.MediumCount > 0
+                        ? "medium"
+                        : "vanilla";
 
             LogUtils.Info(
                 "[NCF-LEISURE] " +
                 $"mode={mode} " +
-                $"warnings={warningCount} " +
+                $"medium={pressure.MediumCount} " +
+                $"strong={pressure.StrongCount} " +
+                $"warnings={pressure.WarningCount} " +
+                $"maxUnused={pressure.MaxUnusedRatio * 100f:F1}% " +
                 $"randomFactor={currentFactor}->{desiredFactor} " +
                 $"baseline={m_BaselineFactor}");
         }
+#endif
 
         private void ResetState()
         {
-            m_ParametersEntity =
-                Entity.Null;
+            m_ParametersEntity = Entity.Null;
 
-            m_BaselineFactor =
-                0;
+            m_BaselineFactor = 0;
 
-            m_LastAppliedFactor =
-                0;
+            m_LastAppliedFactor = 0;
 
-            m_HasBaseline =
-                false;
+            m_HasBaseline = false;
 
-            m_AppliedByUs =
-                false;
+            m_AppliedByUs = false;
 
-            m_LastLoggedWarnings =
+#if DEBUG
+            m_LastLoggedMedium =
+                -1;
+
+            m_LastLoggedStrong =
                 -1;
 
             m_LastLoggedFactor =
                 -1;
+#endif
         }
     }
 }
