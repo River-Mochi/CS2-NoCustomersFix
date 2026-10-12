@@ -31,7 +31,7 @@ namespace NoCustomersFix.Systems
     public partial class PathHealthSystem :
         GameSystemBase
     {
-        private const int kScanInterval = 256;
+        private const int kScanInterval = 1024;
         private const int kLogEveryScans = 4;
 
         private int m_ScanCount;

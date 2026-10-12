@@ -62,6 +62,10 @@ namespace NoCustomersFix.Systems
             public int MediumCount;
             public int StrongCount;
             public int WarningCount;
+            public int EntertainmentWarnings;
+            public int MealsWarnings;
+            public int RecreationWarnings;
+            public int LodgingWarnings;
             public float MaxUnusedRatio;
         }
 
@@ -242,12 +246,26 @@ namespace NoCustomersFix.Systems
                     processDatas[prefab]
                         .m_Output.m_Resource;
 
+                bool hasWarning = notificationsRef.ValueRO.m_NoCustomersEntity != Entity.Null;
+
+                if (resource == Resource.Lodging)
+                {
+                    if (hasWarning)
+                    {
+                        pressure.LodgingWarnings++;
+                    }
+
+                    continue;
+                }
+
                 if (resource != Resource.Entertainment &&
                     resource != Resource.Meals &&
                     resource != Resource.Recreation)
                 {
                     continue;
                 }
+
+
 
                 int stock =
                     EconomyUtils.GetResources(
@@ -278,12 +296,26 @@ namespace NoCustomersFix.Systems
                         pressure.MaxUnusedRatio,
                         unusedRatio);
 
-                if (notificationsRef.ValueRO
-                        .m_NoCustomersEntity !=
-                    Entity.Null)
+
+                if (hasWarning)
                 {
                     pressure.WarningCount++;
+
+                    if (resource == Resource.Entertainment)
+                    {
+                        pressure.EntertainmentWarnings++;
+                    }
+                    else if (resource == Resource.Meals)
+                    {
+                        pressure.MealsWarnings++;
+                    }
+                    else
+                    {
+                        pressure.RecreationWarnings++;
+                    }
                 }
+
+
 
                 if (unusedRatio >=
                     kStrongPressureRatio)
@@ -431,9 +463,14 @@ namespace NoCustomersFix.Systems
                 $"medium={pressure.MediumCount} " +
                 $"strong={pressure.StrongCount} " +
                 $"warnings={pressure.WarningCount} " +
+                $"ent={pressure.EntertainmentWarnings} " +
+                $"meals={pressure.MealsWarnings} " +
+                $"rec={pressure.RecreationWarnings} " +
+                $"lodging={pressure.LodgingWarnings} " +
                 $"maxUnused={pressure.MaxUnusedRatio * 100f:F1}% " +
                 $"randomFactor={currentFactor}->{desiredFactor} " +
                 $"baseline={m_BaselineFactor}");
+
         }
 #endif
 
