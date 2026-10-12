@@ -173,10 +173,9 @@ namespace NoCustomersFix.Systems
             // Strong: same maximum help already exercised safely in testing.
             if (pressure.StrongCount > 0)
             {
-                return math.max(
-                    1,
-                    m_BaselineFactor / 2);
+                return math.max(1, (m_BaselineFactor * 3) / 8);     // change vanilla baseline from 512 to: medium = 384, strong = 192
             }
+
 
             // Medium: modest preventive increase before NEC appears.
             if (pressure.MediumCount > 0)
