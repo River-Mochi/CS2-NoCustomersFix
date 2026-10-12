@@ -9,7 +9,6 @@
 // File: Systems/CommercialBalanceSystem.cs
 // Purpose: Single post-vanilla physical retail + Vehicle NEC correction pass.
 
-
 using Colossal.Serialization.Entities;
 
 using CS2Shared.RiverMochi;
@@ -30,20 +29,15 @@ namespace NoCustomersFix.Systems
     /// Vanilla-created shopping needs always win. NCF examines only the
     /// Burst-built candidate snapshot captured immediately before vanilla.
     ///
-    /// Ordinary physical retail is attempted first. Vehicle correction may
-    /// use only a candidate still unused by vanilla and ordinary retail.
+    /// Fresh households are always available to NCF. Households that already
+    /// shopped today remain eligible at a pressure-dependent rate instead of
+    /// being completely excluded.
     /// </summary>
-    public partial class CommercialBalanceSystem :
-        GameSystemBase
+    public partial class CommercialBalanceSystem : GameSystemBase
     {
-        private SimulationSystem
-            m_SimulationSystem = null!;
-
-        private ResourceSystem
-            m_ResourceSystem = null!;
-
-        private CommercialBalancePrepareSystem
-            m_PrepareSystem = null!;
+        private SimulationSystem m_SimulationSystem = null!;
+        private ResourceSystem m_ResourceSystem = null!;
+        private CommercialBalancePrepareSystem m_PrepareSystem = null!;
 
         private int m_UpdateCount;
 
@@ -58,10 +52,18 @@ namespace NoCustomersFix.Systems
         private long m_WindowVehicleInjectedUnits;
         private int m_WindowAvoidedCarAmount;
 
+#if DEBUG
+        private int m_WindowFreshCandidates;
+        private int m_WindowRepeatCandidates;
+        private int m_WindowRepeatAllowed;
+        private int m_WindowFreshInjected;
+        private int m_WindowRepeatInjected;
+        private int m_LastRepeatPercent;
+#endif
+
         private bool m_ConfigurationLogged;
 
-        public override int GetUpdateInterval(
-            SystemUpdatePhase phase)
+        public override int GetUpdateInterval(SystemUpdatePhase phase)
         {
             return 262144 /
                 (HouseholdBehaviorSystem.kUpdatesPerDay * 16);
@@ -72,23 +74,18 @@ namespace NoCustomersFix.Systems
             base.OnCreate();
 
             m_SimulationSystem =
-                World.GetOrCreateSystemManaged<
-                    SimulationSystem>();
+                World.GetOrCreateSystemManaged<SimulationSystem>();
 
             m_ResourceSystem =
-                World.GetOrCreateSystemManaged<
-                    ResourceSystem>();
+                World.GetOrCreateSystemManaged<ResourceSystem>();
 
             m_PrepareSystem =
-                World.GetOrCreateSystemManaged<
-                    CommercialBalancePrepareSystem>();
+                World.GetOrCreateSystemManaged<CommercialBalancePrepareSystem>();
         }
 
-        protected override void OnGameLoaded(
-            Context serializationContext)
+        protected override void OnGameLoaded(Context serializationContext)
         {
-            base.OnGameLoaded(
-                serializationContext);
+            base.OnGameLoaded(serializationContext);
 
             ResetBalanceState();
 
@@ -105,51 +102,58 @@ namespace NoCustomersFix.Systems
             m_WindowVehicleInjectedUnits = 0;
             m_WindowAvoidedCarAmount = 0;
 
+#if DEBUG
+            m_WindowFreshCandidates = 0;
+            m_WindowRepeatCandidates = 0;
+            m_WindowRepeatAllowed = 0;
+            m_WindowFreshInjected = 0;
+            m_WindowRepeatInjected = 0;
+            m_LastRepeatPercent = 0;
+#endif
+
             m_ConfigurationLogged = false;
         }
 
         protected override void OnUpdate()
         {
-            uint simulationFrame =
-                m_SimulationSystem.frameIndex;
+            uint simulationFrame = m_SimulationSystem.frameIndex;
 
             NativeArray<Entity> readyHouseholds =
-                m_PrepareSystem
-                    .CompleteAndGetSnapshot(
-                        simulationFrame);
+                m_PrepareSystem.CompleteAndGetSnapshot(simulationFrame);
 
             if (!readyHouseholds.IsCreated)
             {
                 return;
             }
 
-            ComponentLookup<
-                Game.Companies.ServiceCompanyData>
+            ComponentLookup<Game.Companies.ServiceCompanyData>
                 serviceCompanyDatas =
-                    SystemAPI.GetComponentLookup<
-                        Game.Companies.ServiceCompanyData>(
-                            true);
+                    SystemAPI.GetComponentLookup<Game.Companies.ServiceCompanyData>(
+                        true);
 
-            ComponentLookup<
-                IndustrialProcessData>
+            ComponentLookup<IndustrialProcessData>
                 industrialProcessDatas =
-                    SystemAPI.GetComponentLookup<
-                        IndustrialProcessData>(
-                            true);
+                    SystemAPI.GetComponentLookup<IndustrialProcessData>(
+                        true);
 
-            ComponentLookup<
-                ResourceData>
+            ComponentLookup<ResourceData>
                 resourceDatas =
-                    SystemAPI.GetComponentLookup<
-                        ResourceData>(
-                            true);
+                    SystemAPI.GetComponentLookup<ResourceData>(
+                        true);
 
             RefreshCommercialPressure(
                 serviceCompanyDatas,
                 industrialProcessDatas,
                 resourceDatas);
 
+            int controlledWarnings = GetControlledWarningCount();
+
+            int repeatPercent =
+                GetRepeatShoppingPercent(controlledWarnings);
+
 #if DEBUG
+            m_LastRepeatPercent = repeatPercent;
+
             if (!m_ConfigurationLogged)
             {
                 m_ConfigurationLogged = true;
@@ -157,12 +161,12 @@ namespace NoCustomersFix.Systems
                 LogUtils.Info(
                     "[NCF-BALANCE] ACTIVE DEBUG. " +
                     "Burst candidate snapshot + one native candidate pass. " +
-                    "Normal retail runs first; Vehicle stores second. " +
+                    "Fresh households always eligible; repeat shoppers scale " +
+                    "with active retail/Vehicle warnings. " +
                     "Company pressure is cached for 4 correction updates.");
             }
 #endif
 
-            // No pressure at all: do not inspect even the candidate list.
             if (m_RemainingInjectionBudget <= 0 &&
                 m_RemainingVehicleBudget <= 0)
             {
@@ -179,98 +183,53 @@ namespace NoCustomersFix.Systems
                 return;
             }
 
-            if (!SystemAPI.TryGetSingleton<
-                    EconomyParameterData>(
-                    out EconomyParameterData
-                        economyParameters))
+            if (!SystemAPI.TryGetSingleton<EconomyParameterData>(
+                    out EconomyParameterData economyParameters))
             {
                 return;
             }
 
             float resourceDemandMultiplier = 1f;
 
-            if (SystemAPI.TryGetSingleton<
-                    Game.Prefabs.Modes.ModeSettingData>(
-                    out Game.Prefabs.Modes.ModeSettingData
-                        modeSetting) &&
+            if (SystemAPI.TryGetSingleton<Game.Prefabs.Modes.ModeSettingData>(
+                    out Game.Prefabs.Modes.ModeSettingData modeSetting) &&
                 modeSetting.m_Enable)
             {
                 resourceDemandMultiplier =
-                    modeSetting
-                        .m_ResourceDemandPerCitizenMultiplier;
+                    modeSetting.m_ResourceDemandPerCitizenMultiplier;
             }
 
-            ComponentLookup<
-                Game.Citizens.HouseholdNeed>
-                householdNeeds =
-                    SystemAPI.GetComponentLookup<
-                        Game.Citizens.HouseholdNeed>();
+            ComponentLookup<Game.Citizens.HouseholdNeed> householdNeeds =
+                SystemAPI.GetComponentLookup<Game.Citizens.HouseholdNeed>();
 
-            ComponentLookup<
-                Game.Citizens.Household>
-                households =
-                    SystemAPI.GetComponentLookup<
-                        Game.Citizens.Household>(
-                            true);
+            ComponentLookup<Game.Citizens.Household> households =
+                SystemAPI.GetComponentLookup<Game.Citizens.Household>(true);
 
-            ComponentLookup<
-                Game.Buildings.PropertyRenter>
-                propertyRenters =
-                    SystemAPI.GetComponentLookup<
-                        Game.Buildings.PropertyRenter>(
-                            true);
+            ComponentLookup<Game.Buildings.PropertyRenter> propertyRenters =
+                SystemAPI.GetComponentLookup<Game.Buildings.PropertyRenter>(true);
 
-            ComponentLookup<
-                Game.Citizens.Citizen>
-                citizenDatas =
-                    SystemAPI.GetComponentLookup<
-                        Game.Citizens.Citizen>(
-                            true);
+            ComponentLookup<Game.Citizens.Citizen> citizenDatas =
+                SystemAPI.GetComponentLookup<Game.Citizens.Citizen>(true);
 
-            ComponentLookup<
-                ConsumptionData>
-                consumptionDatas =
-                    SystemAPI.GetComponentLookup<
-                        ConsumptionData>(
-                            true);
+            ComponentLookup<ConsumptionData> consumptionDatas =
+                SystemAPI.GetComponentLookup<ConsumptionData>(true);
 
-            ComponentLookup<
-                PrefabRef>
-                prefabRefs =
-                    SystemAPI.GetComponentLookup<
-                        PrefabRef>(
-                            true);
+            ComponentLookup<PrefabRef> prefabRefs =
+                SystemAPI.GetComponentLookup<PrefabRef>(true);
 
-            BufferLookup<
-                Game.Citizens.HouseholdCitizen>
-                householdCitizens =
-                    SystemAPI.GetBufferLookup<
-                        Game.Citizens.HouseholdCitizen>(
-                            true);
+            BufferLookup<Game.Citizens.HouseholdCitizen> householdCitizens =
+                SystemAPI.GetBufferLookup<Game.Citizens.HouseholdCitizen>(true);
 
-            BufferLookup<
-                Game.Economy.Resources>
-                householdResources =
-                    SystemAPI.GetBufferLookup<
-                        Game.Economy.Resources>(
-                            true);
+            BufferLookup<Game.Economy.Resources> householdResources =
+                SystemAPI.GetBufferLookup<Game.Economy.Resources>(true);
 
-            BufferLookup<
-                Game.Vehicles.OwnedVehicle>
-                ownedVehicles =
-                    SystemAPI.GetBufferLookup<
-                        Game.Vehicles.OwnedVehicle>(
-                            true);
+            BufferLookup<Game.Vehicles.OwnedVehicle> ownedVehicles =
+                SystemAPI.GetBufferLookup<Game.Vehicles.OwnedVehicle>(true);
 
-            BufferLookup<
-                Game.Buildings.Renter>
-                renterBuffers =
-                    SystemAPI.GetBufferLookup<
-                        Game.Buildings.Renter>(
-                            true);
+            BufferLookup<Game.Buildings.Renter> renterBuffers =
+                SystemAPI.GetBufferLookup<Game.Buildings.Renter>(true);
 
-            int readyCount =
-                readyHouseholds.Length;
+            int readyCount = readyHouseholds.Length;
 
             int vanillaCreatedNeeds = 0;
             int emptyAfterVanilla = 0;
@@ -282,42 +241,30 @@ namespace NoCustomersFix.Systems
             long vehicleInjectedUnits = 0;
             int avoidedCarAmount = 0;
 
-            for (int i = 0;
-                i < readyHouseholds.Length;
-                i++)
+            for (int i = 0; i < readyHouseholds.Length; i++)
             {
-                // Stop immediately once this update's measured correction
-                // budgets have been consumed.
                 if (m_RemainingInjectionBudget <= 0 &&
                     m_RemainingVehicleBudget <= 0)
                 {
                     break;
                 }
 
-                Entity householdEntity =
-                    readyHouseholds[i];
+                Entity householdEntity = readyHouseholds[i];
 
-                if (!householdNeeds.HasComponent(
-                        householdEntity) ||
-                    !households.HasComponent(
-                        householdEntity) ||
-                    !propertyRenters.HasComponent(
-                        householdEntity) ||
-                    !householdCitizens.HasBuffer(
-                        householdEntity) ||
-                    !householdResources.HasBuffer(
-                        householdEntity))
+                if (!householdNeeds.HasComponent(householdEntity) ||
+                    !households.HasComponent(householdEntity) ||
+                    !propertyRenters.HasComponent(householdEntity) ||
+                    !householdCitizens.HasBuffer(householdEntity) ||
+                    !householdResources.HasBuffer(householdEntity))
                 {
                     continue;
                 }
 
                 Game.Citizens.HouseholdNeed need =
-                    householdNeeds[
-                        householdEntity];
+                    householdNeeds[householdEntity];
 
                 // Vanilla always wins.
-                if (need.m_Resource !=
-                    Resource.NoResource)
+                if (need.m_Resource != Resource.NoResource)
                 {
                     vanillaCreatedNeeds++;
                     continue;
@@ -326,27 +273,47 @@ namespace NoCustomersFix.Systems
                 emptyAfterVanilla++;
 
                 Game.Citizens.Household household =
-                    households[
-                        householdEntity];
+                    households[householdEntity];
 
-                Game.Buildings.PropertyRenter
-                    propertyRenter =
-                        propertyRenters[
-                            householdEntity];
+                bool repeatShopper =
+                    household.m_ShoppedValuePerDay != 0;
 
-                DynamicBuffer<
-                    Game.Citizens.HouseholdCitizen>
-                    citizens =
-                        householdCitizens[
-                            householdEntity];
+#if DEBUG
+                if (repeatShopper)
+                {
+                    m_WindowRepeatCandidates++;
+                }
+                else
+                {
+                    m_WindowFreshCandidates++;
+                }
+#endif
 
-                DynamicBuffer<
-                    Game.Economy.Resources>
-                    resources =
-                        householdResources[
-                            householdEntity];
+                if (repeatShopper &&
+                    !AllowRepeatShopper(
+                        householdEntity,
+                        simulationFrame,
+                        repeatPercent))
+                {
+                    continue;
+                }
 
-                // Ordinary physical retail gets first opportunity.
+#if DEBUG
+                if (repeatShopper)
+                {
+                    m_WindowRepeatAllowed++;
+                }
+#endif
+
+                Game.Buildings.PropertyRenter propertyRenter =
+                    propertyRenters[householdEntity];
+
+                DynamicBuffer<Game.Citizens.HouseholdCitizen> citizens =
+                    householdCitizens[householdEntity];
+
+                DynamicBuffer<Game.Economy.Resources> resources =
+                    householdResources[householdEntity];
+
                 if (m_RemainingInjectionBudget > 0 &&
                     m_TotalCorrectionUnits > 0 &&
                     TryCreateCorrectiveNeed(
@@ -367,41 +334,40 @@ namespace NoCustomersFix.Systems
                         out Resource targetResource,
                         out int amount))
                 {
-                    need.m_Resource =
-                        targetResource;
+                    need.m_Resource = targetResource;
+                    need.m_Amount = amount;
 
-                    need.m_Amount =
-                        amount;
-
-                    householdNeeds[
-                        householdEntity] =
-                            need;
+                    householdNeeds[householdEntity] = need;
 
                     injectedNeeds++;
                     injectedUnits += amount;
 
+#if DEBUG
+                    if (repeatShopper)
+                    {
+                        m_WindowRepeatInjected++;
+                    }
+                    else
+                    {
+                        m_WindowFreshInjected++;
+                    }
+#endif
+
                     int resourceIndex =
-                        EconomyUtils.GetResourceIndex(
-                            targetResource);
+                        EconomyUtils.GetResourceIndex(targetResource);
 
                     if (resourceIndex >= 0 &&
                         resourceIndex <
-                            m_WindowInjectedNeedsByResource
-                                .Length)
+                            m_WindowInjectedNeedsByResource.Length)
                     {
-                        m_WindowInjectedNeedsByResource[
-                            resourceIndex]++;
+                        m_WindowInjectedNeedsByResource[resourceIndex]++;
 
-                        m_WindowInjectedUnitsByResource[
-                            resourceIndex] +=
-                                amount;
+                        m_WindowInjectedUnitsByResource[resourceIndex] += amount;
                     }
 
                     continue;
                 }
 
-                // Only a candidate still unused by vanilla and retail may be
-                // used for Vehicle-store correction.
                 if (m_RemainingVehicleBudget <= 0 ||
                     m_WorkingVehicleExcess <= 0)
                 {
@@ -428,20 +394,24 @@ namespace NoCustomersFix.Systems
                     continue;
                 }
 
-                need.m_Resource =
-                    Resource.Vehicles;
+                need.m_Resource = Resource.Vehicles;
+                need.m_Amount = vehicleAmount;
 
-                need.m_Amount =
-                    vehicleAmount;
-
-                householdNeeds[
-                    householdEntity] =
-                        need;
+                householdNeeds[householdEntity] = need;
 
                 vehicleInjectedNeeds++;
+                vehicleInjectedUnits += vehicleAmount;
 
-                vehicleInjectedUnits +=
-                    vehicleAmount;
+#if DEBUG
+                if (repeatShopper)
+                {
+                    m_WindowRepeatInjected++;
+                }
+                else
+                {
+                    m_WindowFreshInjected++;
+                }
+#endif
 
                 if (avoidedSpecialCarAmount)
                 {
@@ -460,6 +430,70 @@ namespace NoCustomersFix.Systems
                 avoidedCarAmount);
         }
 
+        private int GetControlledWarningCount()
+        {
+            int count = m_VehicleWarningCount;
+
+            for (int i = 0; i < m_WarningCount.Length; i++)
+            {
+                count += m_WarningCount[i];
+            }
+
+            return count;
+        }
+
+        private static int GetRepeatShoppingPercent(int warningCount)
+        {
+            if (warningCount >= 20)
+            {
+                return 100;
+            }
+
+            if (warningCount >= 10)
+            {
+                return 75;
+            }
+
+            if (warningCount >= 5)
+            {
+                return 50;
+            }
+
+            if (warningCount > 0)
+            {
+                return 25;
+            }
+
+            return 10;
+        }
+
+        private static bool AllowRepeatShopper(
+            Entity household,
+            uint simulationFrame,
+            int percent)
+        {
+            if (percent >= 100)
+            {
+                return true;
+            }
+
+            uint seed =
+                unchecked(
+                    ((uint)household.Index * 747796405u) ^
+                    ((uint)household.Version * 2891336453u) ^
+                    (simulationFrame * 277803737u) ^
+                    0x52E9A31u);
+
+            if (seed == 0)
+            {
+                seed = 1;
+            }
+
+            Unity.Mathematics.Random random = new(seed);
+
+            return random.NextInt(100) < percent;
+        }
+
         private void FinishUpdate(
             int readyHouseholds,
             int vanillaCreatedNeeds,
@@ -472,39 +506,23 @@ namespace NoCustomersFix.Systems
         {
             m_UpdateCount++;
 
-            m_WindowReadyHouseholds +=
-                readyHouseholds;
+            m_WindowReadyHouseholds += readyHouseholds;
+            m_WindowVanillaCreatedNeeds += vanillaCreatedNeeds;
+            m_WindowEmptyAfterVanilla += emptyAfterVanilla;
 
-            m_WindowVanillaCreatedNeeds +=
-                vanillaCreatedNeeds;
+            m_WindowInjectedNeeds += injectedNeeds;
+            m_WindowInjectedUnits += injectedUnits;
 
-            m_WindowEmptyAfterVanilla +=
-                emptyAfterVanilla;
-
-            m_WindowInjectedNeeds +=
-                injectedNeeds;
-
-            m_WindowInjectedUnits +=
-                injectedUnits;
-
-            m_WindowVehicleInjectedNeeds +=
-                vehicleInjectedNeeds;
-
-            m_WindowVehicleInjectedUnits +=
-                vehicleInjectedUnits;
-
-            m_WindowAvoidedCarAmount +=
-                avoidedCarAmount;
+            m_WindowVehicleInjectedNeeds += vehicleInjectedNeeds;
+            m_WindowVehicleInjectedUnits += vehicleInjectedUnits;
+            m_WindowAvoidedCarAmount += avoidedCarAmount;
 
 #if DEBUG
-            if (m_UpdateCount %
-                kLogEveryUpdates == 0)
+            if (m_UpdateCount % kLogEveryUpdates == 0)
             {
                 LogBalanceWindow();
             }
 #endif
-
         }
     }
 }
-

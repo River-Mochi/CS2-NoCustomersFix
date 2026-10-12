@@ -24,12 +24,14 @@ using Unity.Jobs;
 namespace NoCustomersFix.Systems
 {
     /// <summary>
-    /// Captures only households that enter vanilla HouseholdBehaviorSystem
-    /// without an existing shopping need, without resources still being
-    /// consumed, and without having already shopped today.
+    /// Captures households that enter vanilla HouseholdBehaviorSystem without
+    /// an existing shopping need and without resources still being consumed.
+    ///
+    /// Households that already shopped today remain candidates. Vanilla does
+    /// not forbid repeat shopping; CommercialBalanceSystem applies a softer
+    /// repeat-shopping throttle based on current NEC pressure.
     ///
     /// The potentially large household-bucket scan runs as a Burst IJobChunk.
-    /// The post-vanilla correction then examines only this native candidate list.
     /// </summary>
     public partial class CommercialBalancePrepareSystem : GameSystemBase
     {
@@ -115,7 +117,6 @@ namespace NoCustomersFix.Systems
 
         protected override void OnUpdate()
         {
-            // Never reuse/resize the native list while the previous job owns it.
             m_SnapshotJob.Complete();
 
             m_ReadyHouseholds.Clear();
@@ -131,8 +132,6 @@ namespace NoCustomersFix.Systems
             m_HouseholdQuery.SetSharedComponentFilter(
                 new UpdateFrame(updateFrame));
 
-            // AddNoResize is used inside the Burst job, so reserve enough
-            // capacity for every entity in the filtered bucket first.
             int candidateCount =
                 m_HouseholdQuery.CalculateEntityCount();
 
@@ -157,8 +156,6 @@ namespace NoCustomersFix.Systems
                     m_ReadyHouseholds = m_ReadyHouseholds,
                 };
 
-            // Schedule, not ScheduleParallel. One worker owns the NativeList
-            // and avoids synchronization/parallel-writer overhead.
             m_SnapshotJob =
                 job.ScheduleByRef(
                     m_HouseholdQuery,
@@ -225,17 +222,9 @@ namespace NoCustomersFix.Systems
                         continue;
                     }
 
-                    // Vanilla consumes previously purchased resources before
-                    // allowing another shopping decision.
+                    // Exactly match vanilla's hard blocker: households consume
+                    // previously purchased resources before shopping again.
                     if (households[i].m_Resources > 0)
-                    {
-                        continue;
-                    }
-
-                    // Vanilla reduces repeat-shopping probability by 10x after
-                    // a household has already shopped today. NCF must not
-                    // bypass that throttle by forcing repeated trips.
-                    if (households[i].m_ShoppedValuePerDay != 0)
                     {
                         continue;
                     }
