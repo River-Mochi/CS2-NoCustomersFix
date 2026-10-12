@@ -29,9 +29,9 @@ namespace NoCustomersFix.Systems
     /// Vanilla-created shopping needs always win. NCF examines only the
     /// Burst-built candidate snapshot captured immediately before vanilla.
     ///
-    /// Fresh households are always available to NCF. Households that already
-    /// shopped today remain eligible at a pressure-dependent rate instead of
-    /// being completely excluded.
+    /// NCF does not impose an additional repeat-shopping throttle. Vanilla
+    /// controls household consumption and citizen availability; NCF's measured
+    /// commercial correction budgets limit how much extra demand is created.
     /// </summary>
     public partial class CommercialBalanceSystem : GameSystemBase
     {
@@ -73,14 +73,9 @@ namespace NoCustomersFix.Systems
         {
             base.OnCreate();
 
-            m_SimulationSystem =
-                World.GetOrCreateSystemManaged<SimulationSystem>();
-
-            m_ResourceSystem =
-                World.GetOrCreateSystemManaged<ResourceSystem>();
-
-            m_PrepareSystem =
-                World.GetOrCreateSystemManaged<CommercialBalancePrepareSystem>();
+            m_SimulationSystem = World.GetOrCreateSystemManaged<SimulationSystem>();
+            m_ResourceSystem = World.GetOrCreateSystemManaged<ResourceSystem>();
+            m_PrepareSystem = World.GetOrCreateSystemManaged<CommercialBalancePrepareSystem>();
         }
 
         protected override void OnGameLoaded(Context serializationContext)
@@ -108,7 +103,7 @@ namespace NoCustomersFix.Systems
             m_WindowRepeatAllowed = 0;
             m_WindowFreshInjected = 0;
             m_WindowRepeatInjected = 0;
-            m_LastRepeatPercent = 0;
+            m_LastRepeatPercent = 100;
 #endif
 
             m_ConfigurationLogged = false;
@@ -126,33 +121,22 @@ namespace NoCustomersFix.Systems
                 return;
             }
 
-            ComponentLookup<Game.Companies.ServiceCompanyData>
-                serviceCompanyDatas =
-                    SystemAPI.GetComponentLookup<Game.Companies.ServiceCompanyData>(
-                        true);
+            ComponentLookup<Game.Companies.ServiceCompanyData> serviceCompanyDatas =
+                SystemAPI.GetComponentLookup<Game.Companies.ServiceCompanyData>(true);
 
-            ComponentLookup<IndustrialProcessData>
-                industrialProcessDatas =
-                    SystemAPI.GetComponentLookup<IndustrialProcessData>(
-                        true);
+            ComponentLookup<IndustrialProcessData> industrialProcessDatas =
+                SystemAPI.GetComponentLookup<IndustrialProcessData>(true);
 
-            ComponentLookup<ResourceData>
-                resourceDatas =
-                    SystemAPI.GetComponentLookup<ResourceData>(
-                        true);
+            ComponentLookup<ResourceData> resourceDatas =
+                SystemAPI.GetComponentLookup<ResourceData>(true);
 
             RefreshCommercialPressure(
                 serviceCompanyDatas,
                 industrialProcessDatas,
                 resourceDatas);
 
-            int controlledWarnings = GetControlledWarningCount();
-
-            int repeatPercent =
-                GetRepeatShoppingPercent(controlledWarnings);
-
 #if DEBUG
-            m_LastRepeatPercent = repeatPercent;
+            m_LastRepeatPercent = 100;
 
             if (!m_ConfigurationLogged)
             {
@@ -161,8 +145,8 @@ namespace NoCustomersFix.Systems
                 LogUtils.Info(
                     "[NCF-BALANCE] ACTIVE DEBUG. " +
                     "Burst candidate snapshot + one native candidate pass. " +
-                    "Fresh households always eligible; repeat shoppers scale " +
-                    "with active retail/Vehicle warnings. " +
+                    "Vanilla runs first; repeat shoppers remain eligible. " +
+                    "Measured correction budgets limit extra demand. " +
                     "Company pressure is cached for 4 correction updates.");
             }
 #endif
@@ -263,7 +247,7 @@ namespace NoCustomersFix.Systems
                 Game.Citizens.HouseholdNeed need =
                     householdNeeds[householdEntity];
 
-                // Vanilla always wins.
+                // Vanilla always wins. Never overwrite a need vanilla created.
                 if (need.m_Resource != Resource.NoResource)
                 {
                     vanillaCreatedNeeds++;
@@ -275,6 +259,16 @@ namespace NoCustomersFix.Systems
                 Game.Citizens.Household household =
                     households[householdEntity];
 
+                // Check this AFTER vanilla. Vanilla may have consumed the last
+                // of the household's previous purchase during this same update.
+                //
+                // If resources still remain, respect vanilla and do not create
+                // another shopping need yet.
+                if (household.m_Resources > 0)
+                {
+                    continue;
+                }
+
                 bool repeatShopper =
                     household.m_ShoppedValuePerDay != 0;
 
@@ -282,26 +276,11 @@ namespace NoCustomersFix.Systems
                 if (repeatShopper)
                 {
                     m_WindowRepeatCandidates++;
+                    m_WindowRepeatAllowed++;
                 }
                 else
                 {
                     m_WindowFreshCandidates++;
-                }
-#endif
-
-                if (repeatShopper &&
-                    !AllowRepeatShopper(
-                        householdEntity,
-                        simulationFrame,
-                        repeatPercent))
-                {
-                    continue;
-                }
-
-#if DEBUG
-                if (repeatShopper)
-                {
-                    m_WindowRepeatAllowed++;
                 }
 #endif
 
@@ -314,6 +293,7 @@ namespace NoCustomersFix.Systems
                 DynamicBuffer<Game.Economy.Resources> resources =
                     householdResources[householdEntity];
 
+                // Ordinary physical retail gets first opportunity.
                 if (m_RemainingInjectionBudget > 0 &&
                     m_TotalCorrectionUnits > 0 &&
                     TryCreateCorrectiveNeed(
@@ -357,17 +337,17 @@ namespace NoCustomersFix.Systems
                         EconomyUtils.GetResourceIndex(targetResource);
 
                     if (resourceIndex >= 0 &&
-                        resourceIndex <
-                            m_WindowInjectedNeedsByResource.Length)
+                        resourceIndex < m_WindowInjectedNeedsByResource.Length)
                     {
                         m_WindowInjectedNeedsByResource[resourceIndex]++;
-
                         m_WindowInjectedUnitsByResource[resourceIndex] += amount;
                     }
 
                     continue;
                 }
 
+                // Only a candidate still unused by vanilla and retail may be
+                // used for Vehicle-store correction.
                 if (m_RemainingVehicleBudget <= 0 ||
                     m_WorkingVehicleExcess <= 0)
                 {
@@ -428,70 +408,6 @@ namespace NoCustomersFix.Systems
                 vehicleInjectedNeeds,
                 vehicleInjectedUnits,
                 avoidedCarAmount);
-        }
-
-        private int GetControlledWarningCount()
-        {
-            int count = m_VehicleWarningCount;
-
-            for (int i = 0; i < m_WarningCount.Length; i++)
-            {
-                count += m_WarningCount[i];
-            }
-
-            return count;
-        }
-
-        private static int GetRepeatShoppingPercent(int warningCount)
-        {
-            if (warningCount >= 20)
-            {
-                return 100;
-            }
-
-            if (warningCount >= 10)
-            {
-                return 75;
-            }
-
-            if (warningCount >= 5)
-            {
-                return 50;
-            }
-
-            if (warningCount > 0)
-            {
-                return 25;
-            }
-
-            return 10;
-        }
-
-        private static bool AllowRepeatShopper(
-            Entity household,
-            uint simulationFrame,
-            int percent)
-        {
-            if (percent >= 100)
-            {
-                return true;
-            }
-
-            uint seed =
-                unchecked(
-                    ((uint)household.Index * 747796405u) ^
-                    ((uint)household.Version * 2891336453u) ^
-                    (simulationFrame * 277803737u) ^
-                    0x52E9A31u);
-
-            if (seed == 0)
-            {
-                seed = 1;
-            }
-
-            Unity.Mathematics.Random random = new(seed);
-
-            return random.NextInt(100) < percent;
         }
 
         private void FinishUpdate(
