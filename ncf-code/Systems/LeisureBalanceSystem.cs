@@ -167,22 +167,22 @@ namespace NoCustomersFix.Systems
                 desiredFactor != m_BaselineFactor;
         }
 
-        private int CalculateDesiredFactor(
-            LeisurePressure pressure)
+        private int CalculateDesiredFactor(LeisurePressure pressure)
         {
-            // Strong: same maximum help already exercised safely in testing.
             if (pressure.StrongCount > 0)
             {
-                return math.max(1, (m_BaselineFactor * 3) / 8);     // change vanilla baseline from 512 to: medium = 384, strong = 192
+                int strongFactor = m_BaselineFactor / 2;
+                int extraStrong = math.max(0, pressure.StrongCount - 5);
+                int step = math.max(1, m_BaselineFactor / 32);
+
+                strongFactor -= extraStrong * step;
+
+                return math.max(m_BaselineFactor / 4, strongFactor);
             }
 
-
-            // Medium: modest preventive increase before NEC appears.
             if (pressure.MediumCount > 0)
             {
-                return math.max(
-                    1,
-                    (m_BaselineFactor * 3) / 4);
+                return math.max(1, (m_BaselineFactor * 3) / 4);
             }
 
             return m_BaselineFactor;
