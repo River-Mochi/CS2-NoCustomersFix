@@ -25,8 +25,8 @@ namespace NoCustomersFix.Systems
 {
     /// <summary>
     /// Captures only households that enter vanilla HouseholdBehaviorSystem
-    /// without an existing shopping need and without resources still being
-    /// consumed.
+    /// without an existing shopping need, without resources still being
+    /// consumed, and without having already shopped today.
     ///
     /// The potentially large household-bucket scan runs as a Burst IJobChunk.
     /// The post-vanilla correction then examines only this native candidate list.
@@ -41,11 +41,9 @@ namespace NoCustomersFix.Systems
 
         private JobHandle m_SnapshotJob;
 
-        private uint m_CapturedSimulationFrame =
-            uint.MaxValue;
+        private uint m_CapturedSimulationFrame = uint.MaxValue;
 
-        public override int GetUpdateInterval(
-            SystemUpdatePhase phase)
+        public override int GetUpdateInterval(SystemUpdatePhase phase)
         {
             return 262144 /
                 (HouseholdBehaviorSystem.kUpdatesPerDay * 16);
@@ -56,53 +54,40 @@ namespace NoCustomersFix.Systems
             base.OnCreate();
 
             m_SimulationSystem =
-                World.GetOrCreateSystemManaged<
-                    SimulationSystem>();
+                World.GetOrCreateSystemManaged<SimulationSystem>();
 
-           m_HouseholdQuery =
+            m_HouseholdQuery =
                 GetEntityQuery(
                     new EntityQueryDesc
                     {
                         All =
                             new ComponentType[]
                             {
-                                ComponentType.ReadOnly<
-                                    Game.Citizens.HouseholdNeed>(),
-                                ComponentType.ReadOnly<
-                                    Game.Citizens.Household>(),
-                                ComponentType.ReadOnly<
-                                    Game.Citizens.HouseholdCitizen>(),
-                                ComponentType.ReadOnly<
-                                    Game.Economy.Resources>(),
-                                ComponentType.ReadOnly<
-                                    Game.Buildings.PropertyRenter>(),
-                                ComponentType.ReadOnly<
-                                    UpdateFrame>(),
+                                ComponentType.ReadOnly<Game.Citizens.HouseholdNeed>(),
+                                ComponentType.ReadOnly<Game.Citizens.Household>(),
+                                ComponentType.ReadOnly<Game.Citizens.HouseholdCitizen>(),
+                                ComponentType.ReadOnly<Game.Economy.Resources>(),
+                                ComponentType.ReadOnly<Game.Buildings.PropertyRenter>(),
+                                ComponentType.ReadOnly<UpdateFrame>(),
                             },
 
                         None =
                             new ComponentType[]
                             {
-                                ComponentType.ReadOnly<
-                                    Game.Citizens.TouristHousehold>(),
-                                ComponentType.ReadOnly<
-                                    Game.Citizens.HomelessHousehold>(),
-                                ComponentType.ReadOnly<
-                                    Game.Agents.MovingAway>(),
-                                ComponentType.ReadOnly<
-                                    Game.Common.Deleted>(),
-                                ComponentType.ReadOnly<
-                                    Game.Tools.Temp>(),
+                                ComponentType.ReadOnly<Game.Citizens.TouristHousehold>(),
+                                ComponentType.ReadOnly<Game.Citizens.HomelessHousehold>(),
+                                ComponentType.ReadOnly<Game.Agents.MovingAway>(),
+                                ComponentType.ReadOnly<Game.Common.Deleted>(),
+                                ComponentType.ReadOnly<Game.Tools.Temp>(),
                             },
-                    }); 
+                    });
 
             m_ReadyHouseholds =
                 new NativeList<Entity>(
                     1024,
                     Allocator.Persistent);
 
-            RequireForUpdate(
-                m_HouseholdQuery);
+            RequireForUpdate(m_HouseholdQuery);
         }
 
         protected override void OnDestroy()
@@ -117,18 +102,15 @@ namespace NoCustomersFix.Systems
             base.OnDestroy();
         }
 
-        protected override void OnGameLoaded(
-            Context serializationContext)
+        protected override void OnGameLoaded(Context serializationContext)
         {
-            base.OnGameLoaded(
-                serializationContext);
+            base.OnGameLoaded(serializationContext);
 
             m_SnapshotJob.Complete();
 
             m_ReadyHouseholds.Clear();
 
-            m_CapturedSimulationFrame =
-                uint.MaxValue;
+            m_CapturedSimulationFrame = uint.MaxValue;
         }
 
         protected override void OnUpdate()
@@ -138,14 +120,12 @@ namespace NoCustomersFix.Systems
 
             m_ReadyHouseholds.Clear();
 
-            uint simulationFrame =
-                m_SimulationSystem.frameIndex;
+            uint simulationFrame = m_SimulationSystem.frameIndex;
 
             uint updateFrame =
                 SimulationUtils.GetUpdateFrameWithInterval(
                     simulationFrame,
-                    (uint)GetUpdateInterval(
-                        SystemUpdatePhase.GameSimulation),
+                    (uint)GetUpdateInterval(SystemUpdatePhase.GameSimulation),
                     16);
 
             m_HouseholdQuery.SetSharedComponentFilter(
@@ -156,31 +136,25 @@ namespace NoCustomersFix.Systems
             int candidateCount =
                 m_HouseholdQuery.CalculateEntityCount();
 
-            if (m_ReadyHouseholds.Capacity <
-                candidateCount)
+            if (m_ReadyHouseholds.Capacity < candidateCount)
             {
-                m_ReadyHouseholds.Capacity =
-                    candidateCount;
+                m_ReadyHouseholds.Capacity = candidateCount;
             }
 
             CaptureReadyHouseholdsJob job =
                 new()
                 {
-                    m_EntityType =
-                        SystemAPI.GetEntityTypeHandle(),
+                    m_EntityType = SystemAPI.GetEntityTypeHandle(),
 
                     m_HouseholdNeedType =
-                        SystemAPI.GetComponentTypeHandle<
-                            Game.Citizens.HouseholdNeed>(
-                                isReadOnly: true),
+                        SystemAPI.GetComponentTypeHandle<Game.Citizens.HouseholdNeed>(
+                            isReadOnly: true),
 
                     m_HouseholdType =
-                        SystemAPI.GetComponentTypeHandle<
-                            Game.Citizens.Household>(
-                                isReadOnly: true),
+                        SystemAPI.GetComponentTypeHandle<Game.Citizens.Household>(
+                            isReadOnly: true),
 
-                    m_ReadyHouseholds =
-                        m_ReadyHouseholds,
+                    m_ReadyHouseholds = m_ReadyHouseholds,
                 };
 
             // Schedule, not ScheduleParallel. One worker owns the NativeList
@@ -190,19 +164,14 @@ namespace NoCustomersFix.Systems
                     m_HouseholdQuery,
                     Dependency);
 
-            Dependency =
-                m_SnapshotJob;
+            Dependency = m_SnapshotJob;
 
-            m_CapturedSimulationFrame =
-                simulationFrame;
+            m_CapturedSimulationFrame = simulationFrame;
         }
 
-        internal NativeArray<Entity>
-            CompleteAndGetSnapshot(
-                uint simulationFrame)
+        internal NativeArray<Entity> CompleteAndGetSnapshot(uint simulationFrame)
         {
-            if (m_CapturedSimulationFrame !=
-                simulationFrame)
+            if (m_CapturedSimulationFrame != simulationFrame)
             {
                 return default;
             }
@@ -213,24 +182,20 @@ namespace NoCustomersFix.Systems
         }
 
         [BurstCompile]
-        private struct CaptureReadyHouseholdsJob :
-            IJobChunk
+        private struct CaptureReadyHouseholdsJob : IJobChunk
         {
             [ReadOnly]
             public EntityTypeHandle m_EntityType;
 
             [ReadOnly]
-            public ComponentTypeHandle<
-                Game.Citizens.HouseholdNeed>
+            public ComponentTypeHandle<Game.Citizens.HouseholdNeed>
                 m_HouseholdNeedType;
 
             [ReadOnly]
-            public ComponentTypeHandle<
-                Game.Citizens.Household>
+            public ComponentTypeHandle<Game.Citizens.Household>
                 m_HouseholdType;
 
-            public NativeList<Entity>
-                m_ReadyHouseholds;
+            public NativeList<Entity> m_ReadyHouseholds;
 
             public void Execute(
                 in ArchetypeChunk chunk,
@@ -239,20 +204,13 @@ namespace NoCustomersFix.Systems
                 in v128 chunkEnabledMask)
             {
                 NativeArray<Entity> entities =
-                    chunk.GetNativeArray(
-                        m_EntityType);
+                    chunk.GetNativeArray(m_EntityType);
 
-                NativeArray<
-                    Game.Citizens.HouseholdNeed>
-                    needs =
-                        chunk.GetNativeArray(
-                            ref m_HouseholdNeedType);
+                NativeArray<Game.Citizens.HouseholdNeed> needs =
+                    chunk.GetNativeArray(ref m_HouseholdNeedType);
 
-                NativeArray<
-                    Game.Citizens.Household>
-                    households =
-                        chunk.GetNativeArray(
-                            ref m_HouseholdType);
+                NativeArray<Game.Citizens.Household> households =
+                    chunk.GetNativeArray(ref m_HouseholdType);
 
                 ChunkEntityEnumerator enumerator =
                     new(
@@ -260,24 +218,29 @@ namespace NoCustomersFix.Systems
                         chunkEnabledMask,
                         chunk.Count);
 
-                while (enumerator.NextEntityIndex(
-                    out int i))
+                while (enumerator.NextEntityIndex(out int i))
                 {
-                    if (needs[i].m_Resource !=
-                        Resource.NoResource)
+                    if (needs[i].m_Resource != Resource.NoResource)
                     {
                         continue;
                     }
 
-                    // Vanilla exits early while the household still has
-                    // previously purchased resources to consume.
+                    // Vanilla consumes previously purchased resources before
+                    // allowing another shopping decision.
                     if (households[i].m_Resources > 0)
                     {
                         continue;
                     }
 
-                    m_ReadyHouseholds.AddNoResize(
-                        entities[i]);
+                    // Vanilla reduces repeat-shopping probability by 10x after
+                    // a household has already shopped today. NCF must not
+                    // bypass that throttle by forcing repeated trips.
+                    if (households[i].m_ShoppedValuePerDay != 0)
+                    {
+                        continue;
+                    }
+
+                    m_ReadyHouseholds.AddNoResize(entities[i]);
                 }
             }
         }
