@@ -1,43 +1,39 @@
 # <copyright file="add_gpl_headers.py" company="River-Mochi">
-# Copyright (c) 2026 River-Mochi. All rights reserved.
+# Copyright (C) 2026 River-Mochi.
 # Licensed under the GNU General Public License v3.0 or later,
 # with the Cities: Skylines II Linking Exception.
 # See LICENSE and LICENSE-EXCEPTION in the project root.
-# This notice MUST be kept with copies or substantial portions of this code.
+# Copyright and license notices MUST be preserved.
 # ================= </copyright> ======================
 
-# version 0.6.3
+# version 0.7.0
 """
-Add standard River-Mochi GPL file headers to source files.
+Add or replace standard River-Mochi GPL source-file headers.
 
-Dry run by default. Run commands from the repo root:
+This script is intended to be shared across River-Mochi CS2 mods that use 
+GPL-3.0-or-later plus the Cities: Skylines II Linking Exception.
 
-  # 1. Preview only. Use this first.
-  py -3 Scripts/add_gpl_headers.py
+Examples below to run it assume the script is at <path-to-script>/add_gpl_headers.py:
 
-  # 2. Add headers to files that do not already have one.
-  py -3 Scripts/add_gpl_headers.py --apply
+  # Preview only. No files are changed.
+  py -3 <path-to-script>/add_gpl_headers.py
 
-  # 3. Replace old headers with this exact current River-Mochi header.
-  #    Use this when you intentionally want every supported source file updated.
-  py -3 Scripts/add_gpl_headers.py --apply --replace-existing
+  # Add missing headers and normalize UTF-8/LF where needed.
+  py -3 <path-to-script>/add_gpl_headers.py --apply
 
-  # 4. CI/check mode. Fails if any supported file still needs a header.
-  py -3 Scripts/add_gpl_headers.py --check
+  # Replace old/different River-Mochi headers with the current GPL header.
+  py -3 <path-to-script>/add_gpl_headers.py --apply --replace-existing
 
-  # 5. Strict CI/check mode. Also fails if an old header needs replacement.
-  py -3 Scripts/add_gpl_headers.py --check --replace-existing
+  # Check for missing headers, BOM/CRLF, invalid UTF-8, or old/different headers.
+  py -3 <path-to-script>/add_gpl_headers.py --check
 
 Supported source files:
-  .cs
-  .py
-  .ps1
+  C#:          .cs
+  Scripts:     .py, .ps1
+  UI source:   .ts, .tsx, .js, .jsx, .mjs, .scss when inside a src folder
 
 Not supported on purpose:
-  .json, .xml, .scss, .css, .ts, .tsx
-  Those file types either cannot safely use this same header style or are
-  bundled into COHTML/UI output where extra comments are not always helpful.
-
+  .json, .xml, .css, generated declaration files (*.d.ts), and binary assets.
 
 Scan behavior:
   Uses git ls-files when available, so ignored folders such as bin, obj,
@@ -45,15 +41,7 @@ Scan behavior:
 
 Repo-root behavior:
   The script finds the repo root by walking upward from its own location.
-  This works when the script is in:
-    /Scripts
-    /Project/Scripts
-    /Project/Project/Scripts
-
-
-Important:
-  Python must still be given the real path to this script. Repo-root detection
-  cannot run until Python has opened this file.
+  This works for root-level or nested project Scripts folders.
 """
 
 from __future__ import annotations
@@ -78,10 +66,28 @@ SKIP_DIRS = {
     "packages",
 }
 
+# These source types can safely use line comments for the shared header.
 SUPPORTED_SUFFIXES = {
     ".cs": "//",
     ".py": "#",
     ".ps1": "#",
+    ".ts": "//",
+    ".tsx": "//",
+    ".js": "//",
+    ".jsx": "//",
+    ".mjs": "//",
+    ".scss": "//",
+}
+
+# Web/UI files are only edited when they are real source under a src folder.
+# This avoids stamping generated/copied SDK type declarations and tooling files.
+WEB_SOURCE_SUFFIXES = {
+    ".ts",
+    ".tsx",
+    ".js",
+    ".jsx",
+    ".mjs",
+    ".scss",
 }
 
 
@@ -92,6 +98,7 @@ class FileResult:
     changed: bool
     new_text: str
     had_header: bool
+    header_matches: bool
     header_replaced: bool
     header_added: bool
     had_bom: bool
@@ -110,13 +117,14 @@ class RunStats:
     unchanged_files: int = 0
     header_added: int = 0
     header_replaced: int = 0
+    header_mismatch: int = 0
     bom_found: int = 0
     crlf_found: int = 0
     utf8_errors: int = 0
 
 
 def find_repo_root(script_path: Path) -> Path:
-    """Find the repo root by walking upward from this script."""
+    """Find the repository root by walking upward from this script."""
     for parent in [script_path.parent, *script_path.parents]:
         if (parent / ".git").exists():
             return parent
@@ -127,9 +135,12 @@ def find_repo_root(script_path: Path) -> Path:
 
     return Path.cwd().resolve()
 
+
 def should_skip(path: Path) -> bool:
     """Return true for files this GPL-header tool must not edit."""
-    if path.name.endswith(".g.cs"):
+    name = path.name.lower()
+
+    if name.endswith(".g.cs") or name.endswith(".d.ts"):
         return True
 
     parts = {part.lower() for part in path.parts}
@@ -137,8 +148,16 @@ def should_skip(path: Path) -> bool:
 
 
 def is_supported_source_file(path: Path) -> bool:
-    """Return true if the file extension is supported."""
-    return path.suffix.lower() in SUPPORTED_SUFFIXES
+    """Return true if the file is an intended source target."""
+    suffix = path.suffix.lower()
+
+    if suffix not in SUPPORTED_SUFFIXES:
+        return False
+
+    if suffix in WEB_SOURCE_SUFFIXES:
+        return "src" in {part.lower() for part in path.parts}
+
+    return True
 
 
 def normalize_lf(text: str) -> str:
@@ -162,14 +181,35 @@ def read_utf8_text(path: Path) -> tuple[str, bool, bool, bool]:
 
 
 def get_comment_prefix(path: Path) -> str:
-    """Return the comment prefix for this source file."""
+    """Return the line-comment prefix for this source file."""
     return SUPPORTED_SUFFIXES[path.suffix.lower()]
 
 
+def make_header(path: Path, year: int) -> str:
+    """Create the exact shared GPL header for this source file."""
+    prefix = get_comment_prefix(path)
+
+    return (
+        f'{prefix} <copyright file="{path.name}" company="River-Mochi">\n'
+        f"{prefix} Copyright (C) {year} River-Mochi.\n"
+        f"{prefix} Licensed under the GNU General Public License v3.0 or later,\n"
+        f"{prefix} with the Cities: Skylines II Linking Exception.\n"
+        f"{prefix} See LICENSE and LICENSE-EXCEPTION in the project root.\n"
+        f"{prefix} Copyright and license notices MUST be preserved.\n"
+        f"{prefix} ================= </copyright> ======================\n"
+        "\n"
+    )
+
+
 def has_copyright_header(text: str) -> bool:
-    """Return true if a copyright header appears near the top of the file."""
-    top = text[:1500].lower()
-    return "copyright" in top and "river-mochi" in top
+    """Return true if a River-Mochi copyright header appears near the top."""
+    top = text[:2000].lower()
+    return "copyright" in top and ("river-mochi" in top or "river mochi" in top or "rivermochi" in top)
+
+
+def has_exact_header(text: str, path: Path, year: int) -> bool:
+    """Return true when the file starts with the current exact GPL header."""
+    return text.startswith(make_header(path, year))
 
 
 def is_comment_line(line: str, prefix: str) -> bool:
@@ -195,25 +235,20 @@ def is_copyright_block_line(line: str) -> bool:
         or "license notice" in lower
         or "full license information" in lower
         or "full license info" in lower
+        or "linking exception" in lower
+        or "must be preserved" in lower
     )
 
 
 def find_existing_header_range(text: str, prefix: str) -> tuple[int, int] | None:
-    """Find a top-of-file copyright block to remove.
-
-    This supports both the current XML-style block and older comment-only blocks.
-    It only removes a top comment block if that block contains copyright/license text.
-    """
+    """Find a top-of-file River-Mochi copyright/license block to remove."""
     lines = text.split("\n")
 
     start = 0
     while start < len(lines) and lines[start].strip() == "":
         start += 1
 
-    if start >= len(lines):
-        return None
-
-    if not is_comment_line(lines[start], prefix):
+    if start >= len(lines) or not is_comment_line(lines[start], prefix):
         return None
 
     end = start
@@ -239,8 +274,8 @@ def find_existing_header_range(text: str, prefix: str) -> tuple[int, int] | None
     if not saw_copyright_text:
         return None
 
-    # If there was no explicit </copyright>, keep the removal conservative:
-    # remove only the leading comment block that contains copyright/license text.
+    # Older files may have a short comment-only license header without the
+    # explicit XML-style closing marker. Remove only the license portion.
     if not saw_explicit_end:
         while end > start and not is_copyright_block_line(lines[end - 1]):
             end -= 1
@@ -252,7 +287,7 @@ def find_existing_header_range(text: str, prefix: str) -> tuple[int, int] | None
 
 
 def remove_existing_header(text: str, prefix: str) -> tuple[str, bool]:
-    """Remove an existing top-of-file copyright block."""
+    """Remove an existing top-of-file copyright/license block."""
     header_range = find_existing_header_range(text, prefix)
 
     if header_range is None:
@@ -260,28 +295,11 @@ def remove_existing_header(text: str, prefix: str) -> tuple[str, bool]:
 
     start, end = header_range
     lines = text.split("\n")
-    new_text = "\n".join(lines[:start] + lines[end:])
+    return "\n".join(lines[:start] + lines[end:]), True
 
-    return new_text, True
-
-
-def make_header(path: Path, year: int) -> str:
-    """Create the exact header for this source file."""
-    prefix = get_comment_prefix(path)
-
-    return (
-        f'{prefix} <copyright file="{path.name}" company="River-Mochi">\n'
-        f"{prefix} Copyright (c) {year} River-Mochi. All rights reserved.\n"
-        f"{prefix} Licensed under the GNU General Public License v3.0 or later,\n"
-        f"{prefix} with the Cities: Skylines II Linking Exception.\n"
-        f"{prefix} See LICENSE and LICENSE-EXCEPTION in the project root.\n"
-        f"{prefix} This notice MUST be kept with copies or substantial portions of this code.\n"
-        f"{prefix} ================= </copyright> ======================\n"
-        "\n"
-    )
 
 def process_file(path: Path, year: int, replace_existing: bool) -> FileResult:
-    """Return whether the file would change and the new file text."""
+    """Return whether the file would change and the resulting text."""
     original_text, had_bom, had_crlf, utf8_error = read_utf8_text(path)
 
     if utf8_error:
@@ -289,6 +307,7 @@ def process_file(path: Path, year: int, replace_existing: bool) -> FileResult:
             changed=False,
             new_text="",
             had_header=False,
+            header_matches=False,
             header_replaced=False,
             header_added=False,
             had_bom=had_bom,
@@ -298,37 +317,15 @@ def process_file(path: Path, year: int, replace_existing: bool) -> FileResult:
 
     text = normalize_lf(original_text)
     prefix = get_comment_prefix(path)
-
     had_header = has_copyright_header(text)
-    header_replaced = False
-    header_added = False
+    header_matches = has_exact_header(text, path, year)
 
-    if replace_existing:
-        text, header_replaced = remove_existing_header(text, prefix)
-
-        if not header_replaced:
-            header_added = True
-
-        text = text.lstrip("\n")
-        new_text = make_header(path, year) + text
-
-        return FileResult(
-            changed=had_bom or had_crlf or new_text != original_text,
-            new_text=new_text,
-            had_header=had_header,
-            header_replaced=header_replaced,
-            header_added=header_added,
-            had_bom=had_bom,
-            had_crlf=had_crlf,
-            utf8_error=False,
-        )
-
-    if had_header:
-        # Rewrites only when needed for UTF-8 no BOM or LF normalization.
+    if header_matches:
         return FileResult(
             changed=had_bom or had_crlf or text != original_text,
             new_text=text,
             had_header=True,
+            header_matches=True,
             header_replaced=False,
             header_added=False,
             had_bom=had_bom,
@@ -336,15 +333,39 @@ def process_file(path: Path, year: int, replace_existing: bool) -> FileResult:
             utf8_error=False,
         )
 
+    if had_header and not replace_existing:
+        # Do not overwrite a different existing header unless explicitly asked.
+        return FileResult(
+            changed=had_bom or had_crlf or text != original_text,
+            new_text=text,
+            had_header=True,
+            header_matches=False,
+            header_replaced=False,
+            header_added=False,
+            had_bom=had_bom,
+            had_crlf=had_crlf,
+            utf8_error=False,
+        )
+
+    header_replaced = False
+    header_added = False
+
+    if had_header:
+        text, header_replaced = remove_existing_header(text, prefix)
+
+    if not header_replaced:
+        header_added = True
+
     text = text.lstrip("\n")
     new_text = make_header(path, year) + text
 
     return FileResult(
-        changed=True,
+        changed=had_bom or had_crlf or new_text != original_text,
         new_text=new_text,
-        had_header=False,
-        header_replaced=False,
-        header_added=True,
+        had_header=had_header,
+        header_matches=False,
+        header_replaced=header_replaced,
+        header_added=header_added,
         had_bom=had_bom,
         had_crlf=had_crlf,
         utf8_error=False,
@@ -424,6 +445,7 @@ def print_summary(stats: RunStats, apply: bool) -> None:
     print(f"Unchanged files:      {stats.unchanged_files}")
     print(f"Header added:         {stats.header_added}")
     print(f"Header replaced:      {stats.header_replaced}")
+    print(f"Header mismatch:      {stats.header_mismatch}")
     print(f"UTF-8 BOM {action_word}:    {stats.bom_found}")
     print(f"CRLF {action_word}:         {stats.crlf_found}")
     print(f"UTF-8 decode errors:  {stats.utf8_errors}")
@@ -431,16 +453,20 @@ def print_summary(stats: RunStats, apply: bool) -> None:
 
 
 def main() -> int:
-    """Run the file header tool."""
+    """Run the file-header tool."""
     default_root = find_repo_root(Path(__file__).resolve())
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--apply", action="store_true", help="Write changes.")
-    parser.add_argument("--check", action="store_true", help="Fail if files need header updates.")
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Fail if headers, UTF-8, or LF formatting need attention.",
+    )
     parser.add_argument(
         "--replace-existing",
         action="store_true",
-        help="Replace existing top-of-file copyright headers.",
+        help="Replace old/different top-of-file River-Mochi headers.",
     )
     parser.add_argument(
         "--root",
@@ -483,7 +509,7 @@ def main() -> int:
             stats.skipped_files += 1
             continue
 
-        if not is_supported_source_file(path):
+        if not is_supported_source_file(rel):
             continue
 
         if should_skip(rel):
@@ -502,6 +528,12 @@ def main() -> int:
             stats.utf8_errors += 1
             print(f"ERROR: Invalid UTF-8: {rel}")
             continue
+
+        if result.had_header and not result.header_matches:
+            stats.header_mismatch += 1
+
+            if not args.replace_existing:
+                print(f"Header differs: {rel}")
 
         if result.header_added:
             stats.header_added += 1
@@ -530,9 +562,11 @@ def main() -> int:
     print_summary(stats, apply=args.apply)
 
     if args.check:
-        if stats.updated_files or stats.utf8_errors:
+        failures = stats.updated_files + stats.header_mismatch + stats.utf8_errors
+
+        if failures:
             print()
-            print(f"Header check failed. {stats.updated_files} file(s) need updates.")
+            print("Header check failed.")
             return 1
 
         print()
@@ -541,7 +575,9 @@ def main() -> int:
 
     if not args.apply:
         print()
-        print("Dry run only. Re-run with --apply to write changes.")
+        print("Dry run only. Re-run with --apply to write safe changes.")
+        if stats.header_mismatch:
+            print("Use --replace-existing to replace old/different River-Mochi headers.")
 
     return 0
 
