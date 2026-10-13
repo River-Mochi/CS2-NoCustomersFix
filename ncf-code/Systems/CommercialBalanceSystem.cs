@@ -7,9 +7,7 @@
 // ================= </copyright> ======================
 
 // File: Systems/CommercialBalanceSystem.cs
-// Purpose: Post-vanilla physical retail + Vehicle NEC correction.
-
-using System;
+// Purpose: Single post-vanilla physical retail + Vehicle NEC correction pass.
 
 using Colossal.Serialization.Entities;
 
@@ -26,7 +24,14 @@ using Unity.Entities;
 namespace NoCustomersFix.Systems
 {
     /// <summary>
-    /// Adds corrective commercial demand after vanilla HouseholdBehaviorSystem.
+    /// Runs after vanilla HouseholdBehaviorSystem.
+    ///
+    /// Vanilla-created shopping needs always win. NCF examines only the
+    /// Burst-built candidate snapshot captured immediately before vanilla.
+    ///
+    /// NCF does not impose an additional repeat-shopping throttle. Vanilla
+    /// controls household consumption and citizen availability; NCF's measured
+    /// commercial correction budgets limit how much extra demand is created.
     /// </summary>
     public partial class CommercialBalanceSystem : GameSystemBase
     {
@@ -39,7 +44,6 @@ namespace NoCustomersFix.Systems
         private int m_WindowReadyHouseholds;
         private int m_WindowVanillaCreatedNeeds;
         private int m_WindowEmptyAfterVanilla;
-        private int m_WindowExtraNeedCap;
 
         private int m_WindowInjectedNeeds;
         private long m_WindowInjectedUnits;
@@ -61,7 +65,8 @@ namespace NoCustomersFix.Systems
 
         public override int GetUpdateInterval(SystemUpdatePhase phase)
         {
-            return 262144 / (HouseholdBehaviorSystem.kUpdatesPerDay * 16);
+            return 262144 /
+                (HouseholdBehaviorSystem.kUpdatesPerDay * 16);
         }
 
         protected override void OnCreate()
@@ -84,7 +89,6 @@ namespace NoCustomersFix.Systems
             m_WindowReadyHouseholds = 0;
             m_WindowVanillaCreatedNeeds = 0;
             m_WindowEmptyAfterVanilla = 0;
-            m_WindowExtraNeedCap = 0;
 
             m_WindowInjectedNeeds = 0;
             m_WindowInjectedUnits = 0;
@@ -140,9 +144,10 @@ namespace NoCustomersFix.Systems
 
                 LogUtils.Info(
                     "[NCF-BALANCE] ACTIVE DEBUG. " +
-                    "Vanilla runs first. Repeat shoppers remain eligible. " +
-                    "Extra NCF shopping needs are capped at vanilla's " +
-                    "current new-need rate to prevent queue saturation.");
+                    "Burst candidate snapshot + one native candidate pass. " +
+                    "Vanilla runs first; repeat shoppers remain eligible. " +
+                    "Measured correction budgets limit extra demand. " +
+                    "Company pressure is cached for 4 correction updates.");
             }
 #endif
 
@@ -151,7 +156,6 @@ namespace NoCustomersFix.Systems
             {
                 FinishUpdate(
                     readyHouseholds.Length,
-                    0,
                     0,
                     0,
                     0,
@@ -210,34 +214,9 @@ namespace NoCustomersFix.Systems
                 SystemAPI.GetBufferLookup<Game.Buildings.Renter>(true);
 
             int readyCount = readyHouseholds.Length;
+
             int vanillaCreatedNeeds = 0;
             int emptyAfterVanilla = 0;
-
-            // First pass is intentionally lightweight. Vanilla's actual new-need
-            // rate becomes backpressure for how many extra NCF needs we may add.
-            for (int i = 0; i < readyHouseholds.Length; i++)
-            {
-                Entity householdEntity = readyHouseholds[i];
-
-                if (!householdNeeds.HasComponent(householdEntity))
-                {
-                    continue;
-                }
-
-                if (householdNeeds[householdEntity].m_Resource != Resource.NoResource)
-                {
-                    vanillaCreatedNeeds++;
-                }
-                else
-                {
-                    emptyAfterVanilla++;
-                }
-            }
-
-            // NCF can at most double vanilla's current new shopping-need rate.
-            // This still adds substantial demand without flooding HouseholdNeed.
-            int extraNeedCap = Math.Max(1, vanillaCreatedNeeds);
-            int extraNeedsCreated = 0;
 
             int injectedNeeds = 0;
             long injectedUnits = 0;
@@ -248,9 +227,8 @@ namespace NoCustomersFix.Systems
 
             for (int i = 0; i < readyHouseholds.Length; i++)
             {
-                if ((m_RemainingInjectionBudget <= 0 &&
-                     m_RemainingVehicleBudget <= 0) ||
-                    extraNeedsCreated >= extraNeedCap)
+                if (m_RemainingInjectionBudget <= 0 &&
+                    m_RemainingVehicleBudget <= 0)
                 {
                     break;
                 }
@@ -269,17 +247,23 @@ namespace NoCustomersFix.Systems
                 Game.Citizens.HouseholdNeed need =
                     householdNeeds[householdEntity];
 
-                // Vanilla always wins.
+                // Vanilla always wins. Never overwrite a need vanilla created.
                 if (need.m_Resource != Resource.NoResource)
                 {
+                    vanillaCreatedNeeds++;
                     continue;
                 }
+
+                emptyAfterVanilla++;
 
                 Game.Citizens.Household household =
                     households[householdEntity];
 
-                // Vanilla consumes previous purchases before allowing another
-                // shopping cycle. Check this after vanilla had its update.
+                // Check this AFTER vanilla. Vanilla may have consumed the last
+                // of the household's previous purchase during this same update.
+                //
+                // If resources still remain, respect vanilla and do not create
+                // another shopping need yet.
                 if (household.m_Resources > 0)
                 {
                     continue;
@@ -309,6 +293,7 @@ namespace NoCustomersFix.Systems
                 DynamicBuffer<Game.Economy.Resources> resources =
                     householdResources[householdEntity];
 
+                // Ordinary physical retail gets first opportunity.
                 if (m_RemainingInjectionBudget > 0 &&
                     m_TotalCorrectionUnits > 0 &&
                     TryCreateCorrectiveNeed(
@@ -336,7 +321,6 @@ namespace NoCustomersFix.Systems
 
                     injectedNeeds++;
                     injectedUnits += amount;
-                    extraNeedsCreated++;
 
 #if DEBUG
                     if (repeatShopper)
@@ -362,6 +346,8 @@ namespace NoCustomersFix.Systems
                     continue;
                 }
 
+                // Only a candidate still unused by vanilla and retail may be
+                // used for Vehicle-store correction.
                 if (m_RemainingVehicleBudget <= 0 ||
                     m_WorkingVehicleExcess <= 0)
                 {
@@ -395,7 +381,6 @@ namespace NoCustomersFix.Systems
 
                 vehicleInjectedNeeds++;
                 vehicleInjectedUnits += vehicleAmount;
-                extraNeedsCreated++;
 
 #if DEBUG
                 if (repeatShopper)
@@ -418,7 +403,6 @@ namespace NoCustomersFix.Systems
                 readyCount,
                 vanillaCreatedNeeds,
                 emptyAfterVanilla,
-                extraNeedCap,
                 injectedNeeds,
                 injectedUnits,
                 vehicleInjectedNeeds,
@@ -430,7 +414,6 @@ namespace NoCustomersFix.Systems
             int readyHouseholds,
             int vanillaCreatedNeeds,
             int emptyAfterVanilla,
-            int extraNeedCap,
             int injectedNeeds,
             long injectedUnits,
             int vehicleInjectedNeeds,
@@ -442,7 +425,6 @@ namespace NoCustomersFix.Systems
             m_WindowReadyHouseholds += readyHouseholds;
             m_WindowVanillaCreatedNeeds += vanillaCreatedNeeds;
             m_WindowEmptyAfterVanilla += emptyAfterVanilla;
-            m_WindowExtraNeedCap += extraNeedCap;
 
             m_WindowInjectedNeeds += injectedNeeds;
             m_WindowInjectedUnits += injectedUnits;
