@@ -58,13 +58,12 @@ namespace NoCustomersFix
 
             updateSystem.UpdateBefore<HotelBalanceSystem,TouristFindTargetSystem>(SystemUpdatePhase.GameSimulation);
 
-            // Let vanilla calculate zero new production while a shop is already
-            // above its real NEC threshold.
+            // Reduce only the workforce seen by vanilla's production calculation,
+            // then restore the real Employee data immediately afterward.
             updateSystem.UpdateBefore<CommercialProductionReliefPrepareSystem,ServiceCompanySystem>(SystemUpdatePhase.GameSimulation);
             updateSystem.UpdateAfter<CommercialProductionReliefRestoreSystem,ServiceCompanySystem>(SystemUpdatePhase.GameSimulation);
 
-            // Bias only vanilla's seller selection, then restore the real
-            // TradeCost immediately after PathfindSetupSystem reads it.
+            // Bias vanilla seller selection toward pressured physical shops.
             updateSystem.UpdateBefore<CommercialAttractionPrepareSystem,PathfindSetupSystem>(SystemUpdatePhase.MainLoop);
             updateSystem.UpdateAfter<CommercialAttractionRestoreSystem,PathfindSetupSystem>(SystemUpdatePhase.MainLoop);
 

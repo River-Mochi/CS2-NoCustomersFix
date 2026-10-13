@@ -7,8 +7,7 @@
 // ================= </copyright> ======================
 
 // File: Systems/CommercialProductionReliefSystem.cs
-// Purpose: Reduce service production for commercial companies already above
-// vanilla's No Customers threshold.
+// Purpose: Prevent excessive commercial service production before NEC develops.
 
 using Colossal.Serialization.Entities;
 
@@ -28,37 +27,42 @@ using Unity.Mathematics;
 
 namespace NoCustomersFix.Systems
 {
+    internal struct CommercialProductionEmployeeRestore
+    {
+        public Entity m_Company;
+        public int m_Index;
+        public Game.Companies.Employee m_Employee;
+    }
+
     /// <summary>
-    /// Temporarily adjusts ServiceAvailable around vanilla ServiceCompanySystem
-    /// so vanilla itself calculates a lower production amount.
+    /// Temporarily reduces workforce seen by vanilla production calculation.
     /// </summary>
     public partial class CommercialProductionReliefPrepareSystem : GameSystemBase
     {
-        private const float kReliefStartRatio = 0.90f;
+        private const float kPreventiveRatio = 0.82f;
+        private const float kStrongRatio = 0.90f;
 
         private EntityQuery m_CompanyQuery;
-
         private SimulationSystem m_SimulationSystem = null!;
 
-        // Stores the temporary ServiceAvailable amount that must be removed
-        // immediately after ServiceCompanySystem finishes.
-        private NativeParallelHashMap<Entity, int> m_Boosts;
+        private NativeQueue<CommercialProductionEmployeeRestore> m_RestoreEntries;
+        private NativeArray<int> m_Counts;
 
-        private JobHandle m_BoostJob;
+        private JobHandle m_AdjustJob;
         private JobHandle m_RestoreJob;
 
 #if DEBUG
         private int m_UpdateCount;
-        private int m_WindowRelievedCompanies;
+        private int m_WindowPreventiveCompanies;
+        private int m_WindowStrongCompanies;
 #endif
 
-        internal NativeParallelHashMap<Entity, int> Boosts => m_Boosts;
+        internal NativeQueue<CommercialProductionEmployeeRestore> RestoreEntries => m_RestoreEntries;
 
-        internal JobHandle BoostJob => m_BoostJob;
+        internal JobHandle AdjustJob => m_AdjustJob;
 
         public override int GetUpdateInterval(SystemUpdatePhase phase)
         {
-            // Match vanilla ServiceCompanySystem exactly.
             return 262144 / (EconomyUtils.kCompanyUpdatesPerDay * 16);
         }
 
@@ -76,9 +80,10 @@ namespace NoCustomersFix.Systems
                             new ComponentType[]
                             {
                                 ComponentType.ReadOnly<Game.Companies.CommercialCompany>(),
-                                ComponentType.ReadWrite<Game.Companies.ServiceAvailable>(),
+                                ComponentType.ReadOnly<Game.Companies.ServiceAvailable>(),
                                 ComponentType.ReadOnly<PrefabRef>(),
                                 ComponentType.ReadOnly<Game.Economy.Resources>(),
+                                ComponentType.ReadWrite<Game.Companies.Employee>(),
                                 ComponentType.ReadOnly<UpdateFrame>(),
                             },
 
@@ -90,7 +95,12 @@ namespace NoCustomersFix.Systems
                             },
                     });
 
-            m_Boosts = new NativeParallelHashMap<Entity, int>(64, Allocator.Persistent);
+            m_RestoreEntries =
+                new NativeQueue<CommercialProductionEmployeeRestore>(
+                    Allocator.Persistent);
+
+            // 0 = preventive 82–90%, 1 = strong >90%.
+            m_Counts = new NativeArray<int>(2, Allocator.Persistent);
 
             RequireForUpdate(m_CompanyQuery);
         }
@@ -98,11 +108,16 @@ namespace NoCustomersFix.Systems
         protected override void OnDestroy()
         {
             m_RestoreJob.Complete();
-            m_BoostJob.Complete();
+            m_AdjustJob.Complete();
 
-            if (m_Boosts.IsCreated)
+            if (m_RestoreEntries.IsCreated)
             {
-                m_Boosts.Dispose();
+                m_RestoreEntries.Dispose();
+            }
+
+            if (m_Counts.IsCreated)
+            {
+                m_Counts.Dispose();
             }
 
             base.OnDestroy();
@@ -113,38 +128,47 @@ namespace NoCustomersFix.Systems
             base.OnGameLoaded(serializationContext);
 
             m_RestoreJob.Complete();
-            m_BoostJob.Complete();
+            m_AdjustJob.Complete();
 
-            m_Boosts.Clear();
+            m_RestoreEntries.Clear();
+            m_Counts[0] = 0;
+            m_Counts[1] = 0;
 
 #if DEBUG
             m_UpdateCount = 0;
-            m_WindowRelievedCompanies = 0;
+            m_WindowPreventiveCompanies = 0;
+            m_WindowStrongCompanies = 0;
 #endif
         }
 
         protected override void OnUpdate()
         {
-            // The previous restore normally finished many frames ago. Complete
-            // it before reusing the shared native map.
+            // The previous ServiceCompany pass must be completely restored
+            // before the shared queue is reused.
             m_RestoreJob.Complete();
 
 #if DEBUG
-            m_WindowRelievedCompanies += m_Boosts.Count();
+            m_WindowPreventiveCompanies += m_Counts[0];
+            m_WindowStrongCompanies += m_Counts[1];
+
             m_UpdateCount++;
 
             if (m_UpdateCount % 256 == 0)
             {
                 LogUtils.Info(
                     "[NCF-PRODUCTION] " +
-                    $"updates=256 relieved={m_WindowRelievedCompanies} " +
-                    "curve=>90:0%");
+                    $"updates=256 preventive={m_WindowPreventiveCompanies} " +
+                    $"strong={m_WindowStrongCompanies} " +
+                    "curve=82-90:~50% workforce, >90:0% workforce");
 
-                m_WindowRelievedCompanies = 0;
+                m_WindowPreventiveCompanies = 0;
+                m_WindowStrongCompanies = 0;
             }
 #endif
 
-            m_Boosts.Clear();
+            m_RestoreEntries.Clear();
+            m_Counts[0] = 0;
+            m_Counts[1] = 0;
 
             uint updateFrame =
                 SimulationUtils.GetUpdateFrameWithInterval(
@@ -154,20 +178,13 @@ namespace NoCustomersFix.Systems
 
             m_CompanyQuery.SetSharedComponentFilter(new UpdateFrame(updateFrame));
 
-            int companyCount = m_CompanyQuery.CalculateEntityCount();
-
-            if (m_Boosts.Capacity < companyCount)
-            {
-                m_Boosts.Capacity = companyCount;
-            }
-
             ApplyProductionReliefJob job =
                 new()
                 {
                     m_EntityType = SystemAPI.GetEntityTypeHandle(),
 
                     m_ServiceAvailableType =
-                        SystemAPI.GetComponentTypeHandle<Game.Companies.ServiceAvailable>(),
+                        SystemAPI.GetComponentTypeHandle<Game.Companies.ServiceAvailable>(true),
 
                     m_PrefabRefType =
                         SystemAPI.GetComponentTypeHandle<PrefabRef>(true),
@@ -175,24 +192,27 @@ namespace NoCustomersFix.Systems
                     m_ResourcesType =
                         SystemAPI.GetBufferTypeHandle<Game.Economy.Resources>(true),
 
+                    m_EmployeeType =
+                        SystemAPI.GetBufferTypeHandle<Game.Companies.Employee>(),
+
                     m_ServiceCompanyDatas =
                         SystemAPI.GetComponentLookup<Game.Companies.ServiceCompanyData>(true),
 
                     m_ProcessDatas =
                         SystemAPI.GetComponentLookup<IndustrialProcessData>(true),
 
-                    m_Boosts = m_Boosts,
+                    m_RestoreEntries = m_RestoreEntries,
+                    m_Counts = m_Counts,
                 };
 
-            // The company bucket can still be sizable, so keep this scan in Burst.
-            // It is deliberately single-threaded because it writes one shared map.
-            m_BoostJob = job.ScheduleByRef(m_CompanyQuery, Dependency);
-            Dependency = m_BoostJob;
+            // The company bucket scan can be large; keep it inside Burst.
+            m_AdjustJob = job.ScheduleByRef(m_CompanyQuery, Dependency);
+            Dependency = m_AdjustJob;
         }
 
-        internal void SetRestoreJob(JobHandle handle)
+        internal void SetRestoreJob(JobHandle restoreJob)
         {
-            m_RestoreJob = handle;
+            m_RestoreJob = restoreJob;
         }
 
         [BurstCompile]
@@ -201,8 +221,8 @@ namespace NoCustomersFix.Systems
             [ReadOnly]
             public EntityTypeHandle m_EntityType;
 
-            public ComponentTypeHandle<Game.Companies.ServiceAvailable>
-                m_ServiceAvailableType;
+            [ReadOnly]
+            public ComponentTypeHandle<Game.Companies.ServiceAvailable> m_ServiceAvailableType;
 
             [ReadOnly]
             public ComponentTypeHandle<PrefabRef> m_PrefabRefType;
@@ -210,14 +230,17 @@ namespace NoCustomersFix.Systems
             [ReadOnly]
             public BufferTypeHandle<Game.Economy.Resources> m_ResourcesType;
 
+            public BufferTypeHandle<Game.Companies.Employee> m_EmployeeType;
+
             [ReadOnly]
-            public ComponentLookup<Game.Companies.ServiceCompanyData>
-                m_ServiceCompanyDatas;
+            public ComponentLookup<Game.Companies.ServiceCompanyData> m_ServiceCompanyDatas;
 
             [ReadOnly]
             public ComponentLookup<IndustrialProcessData> m_ProcessDatas;
 
-            public NativeParallelHashMap<Entity, int> m_Boosts;
+            public NativeQueue<CommercialProductionEmployeeRestore> m_RestoreEntries;
+
+            public NativeArray<int> m_Counts;
 
             public void Execute(
                 in ArchetypeChunk chunk,
@@ -225,7 +248,8 @@ namespace NoCustomersFix.Systems
                 bool useEnabledMask,
                 in v128 chunkEnabledMask)
             {
-                NativeArray<Entity> entities = chunk.GetNativeArray(m_EntityType);
+                NativeArray<Entity> entities =
+                    chunk.GetNativeArray(m_EntityType);
 
                 NativeArray<Game.Companies.ServiceAvailable> services =
                     chunk.GetNativeArray(ref m_ServiceAvailableType);
@@ -235,6 +259,9 @@ namespace NoCustomersFix.Systems
 
                 BufferAccessor<Game.Economy.Resources> resources =
                     chunk.GetBufferAccessor(ref m_ResourcesType);
+
+                BufferAccessor<Game.Companies.Employee> employees =
+                    chunk.GetBufferAccessor(ref m_EmployeeType);
 
                 ChunkEntityEnumerator enumerator =
                     new(
@@ -252,9 +279,10 @@ namespace NoCustomersFix.Systems
                         continue;
                     }
 
-                    Resource resource = m_ProcessDatas[prefab].m_Output.m_Resource;
+                    Resource resource =
+                        m_ProcessDatas[prefab].m_Output.m_Resource;
 
-                    // Hotels keep their separate NCF/vanilla occupancy behavior.
+                    // Hotels keep separate occupancy balancing.
                     if (resource == Resource.NoResource ||
                         resource == Resource.Lodging ||
                         EconomyUtils.IsOfficeResource(resource))
@@ -262,7 +290,7 @@ namespace NoCustomersFix.Systems
                         continue;
                     }
 
-                    // Match vanilla NEC's physical-stock requirement.
+                    // Match vanilla's physical-stock side of NEC.
                     if (EconomyUtils.GetResources(resource, resources[i]) <= 200)
                     {
                         continue;
@@ -276,11 +304,9 @@ namespace NoCustomersFix.Systems
                         continue;
                     }
 
-                    Game.Companies.ServiceAvailable service = services[i];
-
                     int available =
                         math.clamp(
-                            service.m_ServiceAvailable,
+                            services[i].m_ServiceAvailable,
                             0,
                             serviceData.m_MaxService);
 
@@ -288,60 +314,77 @@ namespace NoCustomersFix.Systems
                         (float)available /
                         serviceData.m_MaxService;
 
-                    // Do not touch businesses below vanilla's 90% NEC threshold.
-                    if (unusedRatio <= kReliefStartRatio)
+                    if (unusedRatio < kPreventiveRatio)
                     {
                         continue;
                     }
 
-                    float targetProduction =
-                        GetTargetProductionRatio(unusedRatio);
+                    bool strong = unusedRatio > kStrongRatio;
 
-                    // Vanilla's own commercial production falls linearly from
-                    // 100% at 80% unused to 0% at 100% unused.
-                    //
-                    // Feed vanilla the virtual fullness that corresponds to our
-                    // desired production percentage. We remove this temporary
-                    // offset immediately after ServiceCompanySystem.
-                    float virtualUnusedRatio =
-                        1f - (0.2f * targetProduction);
+                    DynamicBuffer<Game.Companies.Employee> companyEmployees =
+                        employees[i];
 
-                    int virtualAvailable =
-                        math.clamp(
-                            (int)math.ceil(
-                                virtualUnusedRatio *
-                                serviceData.m_MaxService),
-                            available,
-                            serviceData.m_MaxService);
-
-                    int boost = virtualAvailable - available;
-
-                    if (boost <= 0 ||
-                        !m_Boosts.TryAdd(entities[i], boost))
+                    if (companyEmployees.Length == 0)
                     {
                         continue;
                     }
 
-                    service.m_ServiceAvailable = virtualAvailable;
-                    services[i] = service;
+                    bool changed = false;
+
+                    for (int j = 0; j < companyEmployees.Length; j++)
+                    {
+                        // In the preventive range, vanilla sees roughly half
+                        // the workforce. Strong NEC pressure sees none.
+                        if (!strong && (j & 1) == 0)
+                        {
+                            continue;
+                        }
+
+                        Game.Companies.Employee employee =
+                            companyEmployees[j];
+
+                        if (employee.m_Worker == Entity.Null)
+                        {
+                            continue;
+                        }
+
+                        m_RestoreEntries.Enqueue(
+                            new CommercialProductionEmployeeRestore
+                            {
+                                m_Company = entities[i],
+                                m_Index = j,
+                                m_Employee = employee,
+                            });
+
+                        // GetWorkforce ignores an Employee whose worker is not
+                        // a valid Citizen. The real entry is restored immediately
+                        // after ServiceCompanySystem finishes.
+                        employee.m_Worker = Entity.Null;
+                        companyEmployees[j] = employee;
+
+                        changed = true;
+                    }
+
+                    if (!changed)
+                    {
+                        continue;
+                    }
+
+                    if (strong)
+                    {
+                        m_Counts[1]++;
+                    }
+                    else
+                    {
+                        m_Counts[0]++;
+                    }
                 }
             }
-
-         private static float GetTargetProductionRatio(float unusedRatio)
-        {
-            // This method is only called when actual unused Service is already
-            // above vanilla's NEC threshold.
-            return 0f;
-        }
-
         }
     }
 
     public partial class CommercialProductionReliefRestoreSystem : GameSystemBase
     {
-        private EntityQuery m_CompanyQuery;
-
-        private SimulationSystem m_SimulationSystem = null!;
         private CommercialProductionReliefPrepareSystem m_PrepareSystem = null!;
 
         public override int GetUpdateInterval(SystemUpdatePhase phase)
@@ -353,66 +396,31 @@ namespace NoCustomersFix.Systems
         {
             base.OnCreate();
 
-            m_SimulationSystem = World.GetOrCreateSystemManaged<SimulationSystem>();
-
             m_PrepareSystem =
                 World.GetOrCreateSystemManaged<CommercialProductionReliefPrepareSystem>();
-
-            m_CompanyQuery =
-                GetEntityQuery(
-                    new EntityQueryDesc
-                    {
-                        All =
-                            new ComponentType[]
-                            {
-                                ComponentType.ReadOnly<Game.Companies.CommercialCompany>(),
-                                ComponentType.ReadWrite<Game.Companies.ServiceAvailable>(),
-                                ComponentType.ReadOnly<UpdateFrame>(),
-                            },
-
-                        None =
-                            new ComponentType[]
-                            {
-                                ComponentType.ReadOnly<Game.Common.Deleted>(),
-                                ComponentType.ReadOnly<Game.Tools.Temp>(),
-                            },
-                    });
-
-            RequireForUpdate(m_CompanyQuery);
         }
 
         protected override void OnUpdate()
         {
-            uint updateFrame =
-                SimulationUtils.GetUpdateFrameWithInterval(
-                    m_SimulationSystem.frameIndex,
-                    (uint)GetUpdateInterval(SystemUpdatePhase.GameSimulation),
-                    16);
-
-            m_CompanyQuery.SetSharedComponentFilter(new UpdateFrame(updateFrame));
-
             RestoreProductionReliefJob job =
                 new()
                 {
-                    m_EntityType = SystemAPI.GetEntityTypeHandle(),
+                    m_Employees =
+                        SystemAPI.GetBufferLookup<Game.Companies.Employee>(),
 
-                    m_ServiceAvailableType =
-                        SystemAPI.GetComponentTypeHandle<Game.Companies.ServiceAvailable>(),
-
-                    m_Boosts = m_PrepareSystem.Boosts,
+                    m_RestoreEntries =
+                        m_PrepareSystem.RestoreEntries,
                 };
 
-            // ServiceCompanySystem must first see the temporary fullness.
-            // This job then removes only NCF's temporary offset.
+            // Dependency also includes vanilla's Employee-buffer reader, so
+            // restoration happens only after ServiceCompanySystem is finished.
             JobHandle dependencies =
                 JobHandle.CombineDependencies(
                     Dependency,
-                    m_PrepareSystem.BoostJob);
+                    m_PrepareSystem.AdjustJob);
 
             JobHandle restoreJob =
-                job.ScheduleByRef(
-                    m_CompanyQuery,
-                    dependencies);
+                job.Schedule(dependencies);
 
             Dependency = restoreJob;
 
@@ -420,51 +428,32 @@ namespace NoCustomersFix.Systems
         }
 
         [BurstCompile]
-        private struct RestoreProductionReliefJob : IJobChunk
+        private struct RestoreProductionReliefJob : IJob
         {
-            [ReadOnly]
-            public EntityTypeHandle m_EntityType;
+            public BufferLookup<Game.Companies.Employee> m_Employees;
 
-            public ComponentTypeHandle<Game.Companies.ServiceAvailable>
-                m_ServiceAvailableType;
+            public NativeQueue<CommercialProductionEmployeeRestore> m_RestoreEntries;
 
-            [ReadOnly]
-            public NativeParallelHashMap<Entity, int> m_Boosts;
-
-            public void Execute(
-                in ArchetypeChunk chunk,
-                int unfilteredChunkIndex,
-                bool useEnabledMask,
-                in v128 chunkEnabledMask)
+            public void Execute()
             {
-                NativeArray<Entity> entities = chunk.GetNativeArray(m_EntityType);
-
-                NativeArray<Game.Companies.ServiceAvailable> services =
-                    chunk.GetNativeArray(ref m_ServiceAvailableType);
-
-                ChunkEntityEnumerator enumerator =
-                    new(
-                        useEnabledMask,
-                        chunkEnabledMask,
-                        chunk.Count);
-
-                while (enumerator.NextEntityIndex(out int i))
+                while (m_RestoreEntries.TryDequeue(
+                           out CommercialProductionEmployeeRestore restore))
                 {
-                    if (!m_Boosts.TryGetValue(
-                            entities[i],
-                            out int boost))
+                    if (!m_Employees.HasBuffer(restore.m_Company))
                     {
                         continue;
                     }
 
-                    Game.Companies.ServiceAvailable service = services[i];
+                    DynamicBuffer<Game.Companies.Employee> employees =
+                        m_Employees[restore.m_Company];
 
-                    service.m_ServiceAvailable =
-                        math.max(
-                            0,
-                            service.m_ServiceAvailable - boost);
+                    if (restore.m_Index < 0 ||
+                        restore.m_Index >= employees.Length)
+                    {
+                        continue;
+                    }
 
-                    services[i] = service;
+                    employees[restore.m_Index] = restore.m_Employee;
                 }
             }
         }
