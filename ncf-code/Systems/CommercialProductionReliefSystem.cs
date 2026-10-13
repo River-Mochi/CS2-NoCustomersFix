@@ -35,7 +35,6 @@ namespace NoCustomersFix.Systems
     public partial class CommercialProductionReliefPrepareSystem : GameSystemBase
     {
         private const float kReliefStartRatio = 0.90f;
-        private const float kQuarterProductionRatio = 0.91f;
         private const float kZeroProductionRatio = 0.95f;
 
         private EntityQuery m_CompanyQuery;
@@ -140,7 +139,7 @@ namespace NoCustomersFix.Systems
                 LogUtils.Info(
                     "[NCF-PRODUCTION] " +
                     $"updates=256 relieved={m_WindowRelievedCompanies} " +
-                    "curve=90-91:50->25%, 91-95:25->0%, 95+=0%");
+                    "curve=>90-<95:25%, 95+=0%");
 
                 m_WindowRelievedCompanies = 0;
             }
@@ -331,28 +330,16 @@ namespace NoCustomersFix.Systems
 
             private static float GetTargetProductionRatio(float unusedRatio)
             {
+                // Once a business is already in vanilla NEC territory, strongly reduce
+                // replenishment so customer demand has time to catch up.
                 if (unusedRatio >= kZeroProductionRatio)
                 {
                     return 0f;
                 }
 
-                if (unusedRatio >= kQuarterProductionRatio)
-                {
-                    float t =
-                        math.saturate(
-                            (unusedRatio - kQuarterProductionRatio) /
-                            (kZeroProductionRatio - kQuarterProductionRatio));
-
-                    return math.lerp(0.25f, 0f, t);
-                }
-
-                float strongT =
-                    math.saturate(
-                        (unusedRatio - kReliefStartRatio) /
-                        (kQuarterProductionRatio - kReliefStartRatio));
-
-                return math.lerp(0.50f, 0.25f, strongT);
+                return 0.25f;
             }
+
         }
     }
 
