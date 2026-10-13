@@ -31,6 +31,10 @@ namespace NoCustomersFix.Systems
                 retailWarnings +
                 m_VehicleWarningCount;
 
+            int extraCreated =
+                m_WindowInjectedNeeds +
+                m_WindowVehicleInjectedNeeds;
+
             LogUtils.Info(
                 "[NCF-BALANCE] " +
                 $"updates={kLogEveryUpdates} " +
@@ -38,6 +42,8 @@ namespace NoCustomersFix.Systems
                 $"ready={m_WindowReadyHouseholds} " +
                 $"vanillaNeeds={m_WindowVanillaCreatedNeeds} " +
                 $"emptyAfterVanilla={m_WindowEmptyAfterVanilla} " +
+                $"extraCap={m_WindowExtraNeedCap} " +
+                $"extraCreated={extraCreated} " +
                 $"fresh={m_WindowFreshCandidates} " +
                 $"repeat={m_WindowRepeatCandidates} " +
                 $"repeatAllowed={m_WindowRepeatAllowed} " +
@@ -51,8 +57,8 @@ namespace NoCustomersFix.Systems
                 $"warnings={totalWarnings} " +
                 $"retailWarnings={retailWarnings} " +
                 $"vehicleWarnings={m_VehicleWarningCount} " +
-                $"retailExcess85={m_TotalExcessService} " +
-                $"vehicleExcess85={m_VehicleExcess} " +
+                $"retailExcess82={m_TotalExcessService} " +
+                $"vehicleExcess82={m_VehicleExcess} " +
                 $"avoidedCarAmount={m_WindowAvoidedCarAmount}");
 
             StringBuilder details = new(4096);
@@ -92,7 +98,7 @@ namespace NoCustomersFix.Systems
                                 "F1",
                                 CultureInfo.InvariantCulture))
                     .Append('%')
-                    .Append(" excess85=")
+                    .Append(" excess82=")
                     .Append(m_ExcessService[i])
                     .Append(" injected=")
                     .Append(m_WindowInjectedNeedsByResource[i])
@@ -128,7 +134,7 @@ namespace NoCustomersFix.Systems
                     .Append('%')
                     .Append(" stock=")
                     .Append(m_VehicleStock)
-                    .Append(" excess85=")
+                    .Append(" excess82=")
                     .Append(m_VehicleExcess)
                     .Append(" injected=")
                     .Append(m_WindowVehicleInjectedNeeds)
@@ -155,6 +161,7 @@ namespace NoCustomersFix.Systems
             m_WindowReadyHouseholds = 0;
             m_WindowVanillaCreatedNeeds = 0;
             m_WindowEmptyAfterVanilla = 0;
+            m_WindowExtraNeedCap = 0;
 
             m_WindowFreshCandidates = 0;
             m_WindowRepeatCandidates = 0;
