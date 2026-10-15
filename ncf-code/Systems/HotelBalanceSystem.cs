@@ -7,7 +7,7 @@
 // ================= </copyright> ======================
 
 // File: Systems/Commercial/HotelBalanceSystem.cs
-// Purpose: DEBUG-only balancing of existing tourist demand across hotels.
+// Purpose: Balance existing tourist lodging demand across failing hotels.
 
 
 using System.Collections.Generic;

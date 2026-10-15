@@ -12,9 +12,7 @@
 namespace NoCustomersFix
 {
     using System.Reflection;
-
     using Colossal.Logging;
-
     using CS2Shared.RiverMochi;
 
     using Game;
