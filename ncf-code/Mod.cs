@@ -44,11 +44,11 @@
          {
              LogUtils.Configure(ModId, s_Log);
 
- #if DEBUG
-             LogUtils.Info($"{ModName} v{ModVersion} DEBUG loaded");
- #else
-             LogUtils.Info($"{ModName} v{ModVersion} loaded");
- #endif
+#if DEBUG
+            LogUtils.Info($"{ModName} v{ModVersion} DEBUG loaded");
+#else
+            LogUtils.Info($"{ModName} v{ModVersion} RELEASE loaded");
+#endif
 
              updateSystem.UpdateBefore<CommercialBalancePrepareSystem,HouseholdBehaviorSystem>(SystemUpdatePhase.GameSimulation);
              updateSystem.UpdateAfter<CommercialBalanceSystem,HouseholdBehaviorSystem>(SystemUpdatePhase.GameSimulation);
