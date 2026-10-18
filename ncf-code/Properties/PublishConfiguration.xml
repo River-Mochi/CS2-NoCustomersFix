@@ -4,22 +4,26 @@
 <!--Name of the mod to display to players-->
 <DisplayName Value="No Customers Fix" />
 <!--Short description of the mod-->
-<ShortDescription Value="Not Enough Customers fix for cities with 100's of these icons." />
+<ShortDescription Value="Not Enough Customers fix for cities with 100s of these Notification icons." />
 <!--Long description of the mod. Single line or multi line. Supports minimal markdown subset-->
 <!--LongDescription Value="This is a long description" /-->
 <LongDescription>
-
+## Not Enough Customers Fix
 
 The problem was not merely too few shoppers. During the low-shopping part of the day, businesses were replenishing Service faster than the available customers could consume it.
 
-The fix helps shops survive low traffic times of day by reducing total "service" production to better match the available customers.
-This is a more realistic of how businesses operate in real life.
-They are going to reduce total workers or send them on long breaks during low traffic times of the day.
 
-This is adaptive and follows what vanilla already does to balance shopping economy:
-Strong recovery when badly out of balance, no intervention once healthy.
+* This is a more realistic of how businesses operate in real life. They are going to reduce total workers or send them on long breaks during low traffic times of the day.
+* Adaptive and follows what vanilla already does to balance shopping economy:
+* Strong recovery when badly out of balance, no intervention once healthy.
 
-I still suggest making sure you don't have 100 vehicle shops and only 1 food shop. having a little of everything is still the best way to keep your city healthy.
+* I also suggest making sure you don't have 100 vehicle shops and only 1 food shop. Having a little of everything is still the best way to keep your city healthy as cims look to fill needs.
+
+
+
+### Credits and Thanks
+* RiverMochi: mod author
+* Sunny Scunny - testing
 
 </LongDescription>
 <!--Thumbnail-->
@@ -31,7 +35,7 @@ I still suggest making sure you don't have 100 vehicle shops and only 1 food sho
 <!--Link to the forum post where the mod can be discussed-->
 <ForumLink Value="" />
 <!--Version of the mod-->
-<ModVersion Value="0.5.0" />
+<ModVersion Value="0.6.0" />
 <!--Recommended version of the base game to use the mod-->
 <GameVersion Value="1.6.*" />
 <!--Dependency for the mod, can be set multiple times-->
