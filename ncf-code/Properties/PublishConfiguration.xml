@@ -9,55 +9,56 @@
 <!--LongDescription Value="This is a long description" /-->
 <LongDescription>
 # 🛒
-## Tired of "Not Enough Customers" (NEC) icons everywhere?
+## Tired of "Not Enough Customers" icons everywhere?
 
-Got a city covered in NEC icons? Give this a try!
+Got hundreds of NEC icons? Adding more citizens doesn't always help!
 
-In a 90k city, **335 NEC warnings dropped to just 20 after ~5 minutes.** No bulldozing hundreds of shops!
+#### Struggling shops don't get enough priority.
+* NEC appears when a normal shop goes over 90% unused Service (stock does not matter).
+* The shopping formula gives stores with 60% unused Service and others with 95% unused Service the same advantage.
+* So shoppers can keep choosing healthier stores while others sit above 90% and explode with NEC icons.
 
-### Why does this happen?
+### Why this happens
 
-Ironically, **"Not Enough Customers" doesn't count customers!**
+* Shop workers get paid to produce Service. It's separate from the goods delivered to the shop (food, clothes...).
+* Vanilla starts slowing things at 80% unused Service, but at 90% critical threshold it's still producing at 50% rate and does not go to 0 until it hits 100% Service.
+* Cims at work/school are not allowed to shop, so peak periods of high production have less eligible shoppers of elderly and adult children.
 
-* Normal shops get NEC when **over 90% of their Service is sitting unused**.
-* Shop workers are paid to make Service. It's separate from the goods delivered to the store (food, beverages, etc.).
-* Vanilla already slows Service production when shops get too full, but not enough and too late.
-* This explodes at peak times when lots of cims are at work or school and fewer can shop. Cims are not allowed to shop while at work/school.
-
-
-Even adding more citizens doesn't always solve it.
+**Shops end up making Service faster than shoppers can use it.**
+More population alone won't necessarily fix that especially because the game's bucket doesn't differentiate from 50%-100% full shops.
 
 ### What this mod does
 
-* **Starts helping at ~82% unused Service**, before NEC icons appear.
-* **Slows Service production harder** when shops can't sell it fast enough. Backs off when they recover.
-* **Helps balance shopping demand** using real households, not fake shoppers.
-* **Separately helps Leisure** (Meals, Entertainment, Recreation).
-* **Best-effort help for hotels**, using existing tourists. It won't invent thousands of fake guests.
-*  Safe to remove anything. No Harmony patches. Works with the game's existing systems.
+* **Starts helping at ~82% full Service**, before NEC gets out of hand. This was heavily tested to optimize good, realistic rate buckets.
+* **Slows production harder** when shops are getting too full. Once healthy, vanilla takes over again, the mod doesn't interfere.
+* **Helps balance shopping demand** using existing households, not fake shoppers.
+* **Separately helps Leisure** businesses (Meals, Entertainment, Recreation).
+* **Best-effort help for hotels**, using existing tourists as Hotels are based on total rooms rented. No fake tourists added.
+* Example, I had 700 tourist and 8 hotels with 9000 rooms, the mod reduced my hotel NEC from 8 to 4 by adaptive priorities. After that I had to delete a couple or switch to static hotels.
 
-### Test results
+### Some test results
 
-* **130k city:** 165 NEC → 4 after ~20 min.
-* **95k city:** 335 NEC → 20 after 5 min, 6 after ~20 min.
+* **130k city:** 165 NEC → 4 after ~30 minutes.
+* **90k city (Sunny Isle):** 335 NEC → 30 after 10 minutes, 9 after 20 minutes.
 
 ### What to expect
 
-* Give it a little time; NEC icons can sit at the same number for a while as the city rebalances.
-* If you have only 10–20 after ~30 min, now is a good time prune a few shops. They don't have to be the exact ones showing NEC, but some of the remainder might have path issues making it harder for cims to get to them.
-* This helps realistically balance your city with the citizens you have, but doesn't fix every case of genuinely excess commercial capacity.
+* **Give heavily affected cities 15–20 minutes** to rebalance; many changes happen within 5 minutes.
+* If you still have 10–20 left after ~30 minutes, try pruning a few excess shops. They don't have to be the exact ones showing NEC.
+* It won't fix every case of legit excess commercial zoning or poor access to shops.
+* Safe to remove. Vanilla balancing takes over again. No Harmony patch or invasive system replacement methods used.
 
 ### Support and Feedback
 
-* If this helps your city, click the **LIKE 👍** button! No donations needed.
-* Feedback is welcome on Discord, and PRs are welcome on GitHub.
+* Best way to support is click the **LIKE 👍** button (top right)! No donations needed, just a free like.
+* Feedback is welcome on Discord or GitHub where the source code is (see icon links on the right).
 
 ### Credits and Thanks
 
 * RiverMochi: mod author
 * Sunny Scunny: testing
 
-Languages
+### Languages
 English, Français, Deutsch, Español, Italiano, Polski, Português (Brasil), Português (Portugal), Türkçe, ไทย Thai, Tiếng Việt, 日本語, 한국어, 简体中文, 繁體中文
 
 </LongDescription>
