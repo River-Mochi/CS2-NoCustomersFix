@@ -11,26 +11,27 @@
 # 🛒
 ## "Not Enough Customers" icons everywhere?
 
-Got hundreds of NEC icons? Adding more citizens doesn't always help!
+Got 100's of NEC icons, but adding more citizens doesn't always help!
 
 #### Struggling shops don't get enough priority.
-* NEC appears when a normal shop goes over 90% unused Service (stock does not matter).
-* The shopping formula gives stores with 60% unused Service and others with 95% unused Service the same advantage.
-* So shoppers can keep choosing healthier stores while others sit above 90% and explode with NEC icons.
+* NEC appears when a normal shop goes over 90% unused Service (this is not the same as stock).
+* Vanilla's shopping formula has a broad **50%–100% unused Service bucket. A shop at 60% unused Service and one at 95% gets no extra priority.
+* So shoppers can keep choosing healthy stores while others could sit ignored above 90% and explode with NEC icons.
 
 ### Why this happens
 
-* Shop workers get paid to produce Service. It's separate from the goods delivered to the shop (food, clothes...).
-* Vanilla starts slowing things at 80% unused Service, but at 90% critical threshold it's still producing at 50% rate and does not go to 0 until it hits 100% Service.
-* Cims at work/school are not allowed to shop, so peak periods of high production have less eligible shoppers of elderly and adult children.
+* Shop workers get paid to produce Service. It's separate from the goods delivered to the shop (food, paper...).
+* Vanilla starts slowing production at 80% unused Service, but at critical 90% threshold, it's still producing at ~50% of normal. It does not clamp to 0 until it hits 100% Service (way too late).
+* Cims at work/school are not allowed to shop, so peak periods have less eligible shoppers of elderly and adult children.
 
 **Shops end up making Service faster than shoppers can use it.**
-More population alone won't necessarily fix that especially because the game's bucket doesn't differentiate from 50%-100% full shops.
+Adding more citizens doesn't always fix this, when struggling shops aren't getting enough priority.
 
 ### What this mod does
 
-* **Starts helping at ~82% full Service**, before NEC gets out of hand. This was heavily tested to optimize good, realistic rate buckets.
-* **Slows production harder** when shops are getting too full. Once healthy, vanilla takes over again, the mod doesn't interfere.
+* Just install the mod and it works; no Options menu settings to enable or read or translate.
+* **Starts helping at ~82% full Service**, before the critical 90% threshold levels pop the notification icons. Rates were heavily tested to optimize for good, realistic rate buckets.
+* **Slows production harder** when shops are too full. Once healthy again (below 82% shop), it goes back to vanilla to handle things normally.
 * **Helps balance shopping demand** using existing households, not fake shoppers.
 * **Separately helps Leisure** businesses (Meals, Entertainment, Recreation).
 * **Best-effort help for hotels**, using existing tourists as Hotels are based on total rooms rented. No fake tourists added.
@@ -57,9 +58,6 @@ More population alone won't necessarily fix that especially because the game's b
 
 * RiverMochi: mod author
 * Sunny Scunny: testing
-
-### Languages
-English, Français, Deutsch, Español, Italiano, Polski, Português (Brasil), Português (Portugal), Türkçe, ไทย Thai, Tiếng Việt, 日本語, 한국어, 简体中文, 繁體中文
 
 </LongDescription>
 <!--Thumbnail-->

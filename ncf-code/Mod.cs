@@ -26,7 +26,6 @@
      {
          public const string ModName = "No Customers Fix";
          public const string ModId = "NoCustomersFix";
-         public const string ModTag = "[NCF]";
 
          public static readonly string ModVersion =
              Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.6.0";
