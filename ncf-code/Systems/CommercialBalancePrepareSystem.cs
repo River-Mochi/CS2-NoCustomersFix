@@ -7,7 +7,7 @@
 // ================= </copyright> ======================
 
 // File: Systems/CommercialBalancePrepareSystem.cs
-// Purpose: Burst snapshot of households eligible for post-vanilla NEC correction.
+// Purpose: Burst snapshot of households eligible for post-vanilla NEC correction runs as IJobChunk
 
 using Colossal.Serialization.Entities;
 
@@ -26,11 +26,9 @@ namespace NoCustomersFix.Systems
     /// Captures resident households that enter vanilla HouseholdBehaviorSystem
     /// without an existing shopping need.
     ///
-    /// Vanilla runs after this snapshot and gets first chance to consume
-    /// existing household resources or create its own shopping need.
+    /// Vanilla runs after this snapshot and gets first chance to consume existing
+    /// household resources or create its own shopping need.
     /// CommercialBalanceSystem then rechecks the household after vanilla.
-    ///
-    /// The potentially large household-bucket scan runs as a Burst IJobChunk.
     /// </summary>
     public partial class CommercialBalancePrepareSystem : GameSystemBase
     {

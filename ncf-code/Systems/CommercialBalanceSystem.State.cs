@@ -26,7 +26,7 @@ namespace NoCustomersFix.Systems
         private const float kTargetServiceRatio = 0.82f;
 
         // Recheck actual company pressure every four correction updates.
-        // This removes most full-commercial scans while staying responsive.
+        // removes most full-commercial scans while staying responsive.
         private const int kPressureRefreshUpdates = 4;
 
         // Spread measured excess across a complete set of the 16 household

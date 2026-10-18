@@ -29,9 +29,9 @@ namespace NoCustomersFix.Systems
     /// Vanilla-created shopping needs always win. NCF examines only the
     /// Burst-built candidate snapshot captured immediately before vanilla.
     ///
-    /// NCF does not impose an additional repeat-shopping throttle. Vanilla
-    /// controls household consumption and citizen availability; NCF's measured
-    /// commercial correction budgets limit how much extra demand is created.
+    /// NCF does not force additional repeat-shopping throttle. Vanilla
+    /// controls household consumption and citizen availability;
+    /// NCF commercial correction limits how much extra demand is created.
     /// </summary>
     public partial class CommercialBalanceSystem : GameSystemBase
     {
