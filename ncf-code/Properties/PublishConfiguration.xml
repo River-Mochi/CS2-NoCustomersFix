@@ -29,7 +29,8 @@ The problem was not merely too few shoppers. During the low-shopping part of the
 <!--Thumbnail-->
 <Thumbnail Value="Properties/Thumbnail.png" />
 <!--Screenshot, can be set multiple times-->
-<Screenshot Value="" />
+<Screenshot Value="Properties/10-image-Before.jpg"/>
+<Screenshot Value="Properties/20-image-After.jpg"/>
 <!--Tag, can be set multiple times-->
 <Tag Value="" />
 <!--Link to the forum post where the mod can be discussed-->
