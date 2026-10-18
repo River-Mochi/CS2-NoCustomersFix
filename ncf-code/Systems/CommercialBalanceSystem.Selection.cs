@@ -9,7 +9,6 @@
 // File: Systems/Commercial/CommercialBalanceSystem.Selection.cs
 // Purpose: Select and create corrective physical retail shopping needs.
 
-#if DEBUG
 
 using System;
 
@@ -208,11 +207,11 @@ namespace NoCustomersFix.Systems
 
         /// <summary>
         /// Selects only among physical retail resources that currently have
-        /// actual Service units above the 85% target.
+        /// actual Service units above the 82% target.
         ///
-        /// Pressure comes primarily from exact excess Service units. Vanilla
-        /// household preference is retained as a soft weighting via sqrt().
-        /// This stops huge vanilla preference differences from completely
+        /// Pressure comes mainly from excess Service units. Vanilla
+        /// household preference is retained as a soft weighting with sqrt().
+        /// Stops huge vanilla preference differences from completely
         /// overwhelming the commercial correction.
         /// </summary>
         private Resource SelectCorrectiveResource(
@@ -399,4 +398,3 @@ namespace NoCustomersFix.Systems
     }
 }
 
-#endif

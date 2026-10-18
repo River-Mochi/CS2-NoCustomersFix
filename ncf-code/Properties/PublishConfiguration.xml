@@ -1,37 +1,92 @@
 <Publish>
-	<!--Id must be set in order to update existed mod. it is not required for publishing mod for the first time-->
-	<ModId Value="" />
-	<!--Name of the mod to display to players-->
-	<DisplayName Value="NoCustomersFix" />
-	<!--Short description of the mod-->
-	<ShortDescription Value="This is a short description" />
-	<!--Long description of the mod. Single line or multi line. Supports minimal markdown subset-->
-	<!--LongDescription Value="This is a long description" /-->
-	<LongDescription>
-This is a long description
+<!--Id must be set in order to update existed mod. it is not required for publishing mod for the first time-->
+<ModId Value="" />
+<!--Name of the mod to display to players-->
+<DisplayName Value="No Customers Fix" />
+<!--Short description of the mod-->
+<ShortDescription Value="Fix Not Enough Customers icons by balancing commercial shop production and shopping demand." />
+<!--Long description of the mod. Single line or multi line. Supports minimal markdown subset-->
+<!--LongDescription Value="This is a long description" /-->
+<LongDescription>
+# 🛒
+## "Not Enough Customers" icons everywhere?
+
+Got 100's of NEC icons? Adding more citizens doesn't always help!
+
+#### Struggling shops don't get enough priority
+* NEC icons appear when a shop goes over 90% unused Service (different from stock).
+* One vanilla shopping score puts **50%–100% full shops in the same bucket**. A shop at 95% full gets no more help from that score than one at 60%.
+* So citizens can keep choosing healthier stores while others still sit ignored above 90% and explode with NEC icons.
+
+### Why this happens
+
+* Shop workers get paid to produce Service. Service is not stock, it's different from the goods delivered to it (food, paper...).
+* Vanilla starts slowing production a little at 80% unused Service. By 90% critical threshold, it's still producing too much. It doesn't clamp to 0 until the shop hits 100% full Service, way too late.
+* Cims at work/school are not allowed to shop, so peak periods have less eligible shoppers as only elderly and or those not in school/work are available.
+
+**Shops end up making Service faster than shoppers can use it.**
+Adding more citizens doesn't always fix this, when struggling shops aren't getting enough priority. Smarter cims help balance shopping demand.
+
+
+### What this mod does
+
+* Just install the mod and play! No Options menu or settings to configure.
+* **Starts helping at ~82% full Service**, before the critical 90% threshold causes an alert icon. Many rates were heavily tested to optimize for good, realistic rate buckets/balance.
+* **Slows production harder** when shops are too full. Once healthy again (below 82% shop), it goes back to vanilla to handle things normally.
+* **Helps balance shopping demand** using existing households, not fake shoppers.
+* **Separately helps Leisure** businesses (Meals, Entertainment, Recreation).
+* **Best-effort help for hotels**, using existing tourists as Hotels are based on total rooms rented. No fake tourists added.
+* Example, I had 700 tourist and 8 hotels with 9000 rooms, the mod reduced my hotel NEC from 8 to 4 by adaptive priorities. After that I had to delete a couple or switch to static hotels.
+
+### Some test results
+
+* **130k city:** 165 NEC → 4 after ~30 minutes.
+* **90k city (Sunny Isle):** 335 NEC → 30 after 10 minutes, 9 after 20 minutes.
+
+### What to expect
+
+* **Give heavily affected cities 15–20 minutes** to rebalance; many changes happen within 5 minutes.
+* If you have a small number 15-20 left after ~30 minutes, this is the time to prune a few excess shops. They don't have to be the exact ones showing NEC.
+* It won't fix every case of legit excess commercial zoning or poor access to shops.
+* Safe to remove. Vanilla balancing takes over again. No Harmony patch or invasive system replacement methods used.
+
+### Support and Feedback
+
+* Best way to support is to click the **LIKE 👍** button (top right)! No donations needed, just a free like.
+* Feedback is welcome on Discord or GitHub where the source code is (see icon links on the right).
+
+### Credits and Thanks
+
+* RiverMochi: mod author
+* Sunny Scunny: testing
+
 </LongDescription>
-	<!--Thumbnail-->
-	<Thumbnail Value="Properties/Thumbnail.png" />
-	<!--Screenshot, can be set multiple times-->
-	<Screenshot Value="" />
-	<!--Tag, can be set multiple times-->
-	<Tag Value="" />
-	<!--Link to the forum post where the mod can be discussed-->
-	<ForumLink Value="" />
-	<!--Version of the mod-->
-	<ModVersion Value="0.5.0" />
-	<!--Recommended version of the base game to use the mod-->
-	<GameVersion Value="1.6.*" />
-	<!--Dependency for the mod, can be set multiple times-->
-	<Dependency Id="" />
-	<!--Required DLC, can be set multiple times. Supported values are "Landmark Buildings", "San Fransisco Set", "Beach Properties", "Urban Promenades", "Modern Architecture"-->
-	<RequiredDLC Value="" />
-	<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
-	<ChangeLog Value="" />
+<!--Thumbnail-->
+<Thumbnail Value="Properties/Thumbnail01.jpg" />
+<!--Screenshot, can be set multiple times-->
+<Screenshot Value="Properties/10-image-Chart.jpg"/>
+<Screenshot Value="Properties/15-image-Before.jpg"/>
+<Screenshot Value="Properties/20-image-After.jpg"/>
+<!--Tag, can be set multiple times-->
+<Tag Value="" />
+<!--Link to the forum post where the mod can be discussed-->
+<ForumLink Value="" />
+<!--Version of the mod-->
+<ModVersion Value="0.6.0" />
+<!--Recommended version of the base game to use the mod-->
+<GameVersion Value="1.6.*" />
+<!--Dependency for the mod, can be set multiple times-->
+<Dependency Id="" />
+<!--Required DLC, can be set multiple times. Supported values are "Landmark Buildings", "San Fransisco Set", "Beach Properties", "Urban Promenades", "Modern Architecture"-->
+<RequiredDLC Value="" />
+<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
+<ChangeLog Value="" />
 <!--<ChangeLog>
 </ChangeLog>-->
-	<!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
-	<ExternalLink Type="" Url="" />
-	<!--Supported values Public, Private, Unlisted-->
-	<AccessLevel Value="Public" />
+<!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
+<!--Supported values Public, Private, Unlisted-->
+<ExternalLink Type="github" Url="https://github.com/River-Mochi/CS2-NoCustomersFix"/>
+<ExternalLink Type="discord" Url="https://discord.gg/gwXgvtyhjc"/>
+
+<AccessLevel Value="Public" />
 </Publish>

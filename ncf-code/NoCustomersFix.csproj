@@ -15,9 +15,7 @@
         <PublishConfigScript>$(MSBuildProjectDirectory)\..\Scripts\Update-PublishConfig.ps1</PublishConfigScript>
 
         <!-- Versioning -->
-        <Version>0.5.0</Version>
-        <AssemblyVersion>$(Version).0</AssemblyVersion>
-        <FileVersion>$(Version).0</FileVersion>
+        <Version>0.6.0</Version>
         <GameVersion>1.6.*</GameVersion>
 
         <!-- Assembly identity -->
@@ -62,7 +60,7 @@
             <Private>false</Private>
         </Reference>
 
-        <!-- Used by the upcoming Burst household correction jobs -->
+        <!-- Used by Burst household correction jobs -->
         <Reference Include="Unity.Burst">
             <Private>false</Private>
         </Reference>

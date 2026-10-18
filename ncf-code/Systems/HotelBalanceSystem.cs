@@ -7,9 +7,8 @@
 // ================= </copyright> ======================
 
 // File: Systems/Commercial/HotelBalanceSystem.cs
-// Purpose: DEBUG-only balancing of existing tourist demand across hotels.
+// Purpose: Balance existing tourist lodging demand across failing hotels.
 
-#if DEBUG
 
 using System.Collections.Generic;
 
@@ -31,6 +30,7 @@ namespace NoCustomersFix.Systems
 {
     public partial class HotelBalanceSystem : GameSystemBase
     {
+        private EntityQuery m_LodgingSeekerQuery;
         private struct HotelPressure
         {
             public Entity Hotel;
@@ -52,6 +52,37 @@ namespace NoCustomersFix.Systems
 
         private readonly List<HotelPressure> m_Hotels = new();
         private readonly List<HotelAssignment> m_Assignments = new();
+
+
+        protected override void OnCreate()
+        {
+            base.OnCreate();
+
+            m_LodgingSeekerQuery =
+                GetEntityQuery(
+                    new EntityQueryDesc
+                    {
+                        All =
+                            new ComponentType[]
+                            {
+                                ComponentType.ReadOnly<TouristHousehold>(),
+                                ComponentType.ReadOnly<LodgingSeeker>(),
+                            },
+
+                        None =
+                            new ComponentType[]
+                            {
+                                ComponentType.ReadOnly<Target>(),
+                                ComponentType.ReadOnly<MovingAway>(),
+                                ComponentType.ReadOnly<Game.Common.Deleted>(),
+                                ComponentType.ReadOnly<Game.Tools.Temp>(),
+                                ComponentType.ReadOnly<PathInformation>(),
+                            },
+                    });
+
+            RequireForUpdate(
+                m_LodgingSeekerQuery);
+        }
 
         public override int GetUpdateInterval(SystemUpdatePhase phase)
         {
@@ -322,4 +353,3 @@ namespace NoCustomersFix.Systems
     }
 }
 
-#endif

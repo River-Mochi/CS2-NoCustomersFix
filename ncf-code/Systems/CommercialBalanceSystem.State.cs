@@ -6,10 +6,8 @@
 // This notice MUST be kept with copies or substantial portions of this code.
 // ================= </copyright> ======================
 
-// File: Systems/Commercial/CommercialBalanceSystem.State.cs
-// Purpose: Commercial pressure calculation for demand-balance prototype.
-
-#if DEBUG
+// File: Systems/CommercialBalanceSystem.State.cs
+// Purpose: Cached commercial NEC pressure and correction budgets.
 
 using System;
 
@@ -23,15 +21,16 @@ namespace NoCustomersFix.Systems
 {
     public partial class CommercialBalanceSystem
     {
-        // Keep shops comfortably below the vanilla ~90% warning threshold.
-        //
-        // Vanilla production already begins throttling at 80%, so 85% gives
-        // vanilla production control room while leaving a warning buffer.
-        private const float kTargetServiceRatio = 0.85f;
+        // Vanilla NEC appears at roughly >90% unused Service.
+        // Keep some safety margin below that threshold.
+        private const float kTargetServiceRatio = 0.82f;
 
-        // Spread the currently measured Service excess over one complete set
-        // of the 16 household update buckets instead of dumping all corrective
-        // demand into a single update.
+        // Recheck actual company pressure every four correction updates.
+        // This removes most full-commercial scans while staying responsive.
+        private const int kPressureRefreshUpdates = 4;
+
+        // Spread measured excess across a complete set of the 16 household
+        // update buckets rather than creating all corrective demand at once.
         private const int kCorrectionHorizonUpdates = 16;
 
         private const int kLogEveryUpdates = 256;
@@ -42,13 +41,9 @@ namespace NoCustomersFix.Systems
         private readonly long[] m_MaxService =
             new long[EconomyUtils.ResourceCount];
 
-        // Exact Service units currently sitting above the 85% target.
-        //
-        // This is calculated shop-by-shop, not from a category average.
         private readonly long[] m_ExcessService =
             new long[EconomyUtils.ResourceCount];
 
-        // Working copy reduced as corrective needs are created this update.
         private readonly long[] m_WorkingCorrectionUnits =
             new long[EconomyUtils.ResourceCount];
 
@@ -70,7 +65,10 @@ namespace NoCustomersFix.Systems
         private long m_TotalExcessService;
         private long m_TotalCorrectionUnits;
 
+        private long m_PerUpdateInjectionBudget;
         private long m_RemainingInjectionBudget;
+
+        private int m_PressureUpdateIndex;
 
         private void ResetBalanceState()
         {
@@ -121,19 +119,51 @@ namespace NoCustomersFix.Systems
 
             m_TotalExcessService = 0;
             m_TotalCorrectionUnits = 0;
+
+            m_PerUpdateInjectionBudget = 0;
             m_RemainingInjectionBudget = 0;
+
+            m_PressureUpdateIndex = 0;
+
+            ResetVehicleState();
+        }
+
+        private void RefreshCommercialPressure(
+            ComponentLookup<Game.Companies.ServiceCompanyData>
+                serviceCompanyDatas,
+            ComponentLookup<IndustrialProcessData>
+                industrialProcessDatas,
+            ComponentLookup<ResourceData>
+                resourceDatas)
+        {
+            if (m_PressureUpdateIndex == 0)
+            {
+                BuildCommercialPressure(
+                    serviceCompanyDatas,
+                    industrialProcessDatas,
+                    resourceDatas);
+
+                PrepareCorrectionWindow();
+            }
+
+            BeginCorrectionUpdate();
+
+            m_PressureUpdateIndex++;
+
+            if (m_PressureUpdateIndex >=
+                kPressureRefreshUpdates)
+            {
+                m_PressureUpdateIndex = 0;
+            }
         }
 
         private void BuildCommercialPressure(
-            ComponentLookup<
-                Game.Companies.ServiceCompanyData>
-                    serviceCompanyDatas,
-            ComponentLookup<
-                IndustrialProcessData>
-                    industrialProcessDatas,
-            ComponentLookup<
-                ResourceData>
-                    resourceDatas)
+            ComponentLookup<Game.Companies.ServiceCompanyData>
+                serviceCompanyDatas,
+            ComponentLookup<IndustrialProcessData>
+                industrialProcessDatas,
+            ComponentLookup<ResourceData>
+                resourceDatas)
         {
             Array.Clear(
                 m_ServiceAvailable,
@@ -167,28 +197,24 @@ namespace NoCustomersFix.Systems
 
             m_TotalExcessService = 0;
 
+            ResetVehiclePressure();
+
             BufferLookup<Game.Economy.Resources>
                 resourcesLookup =
                     SystemAPI.GetBufferLookup<
-                        Game.Economy.Resources>(
-                            true);
+                        Game.Economy.Resources>(true);
 
             foreach ((
-                RefRO<Game.Companies.ServiceAvailable>
-                    serviceRef,
+                RefRO<Game.Companies.ServiceAvailable> serviceRef,
                 RefRO<Game.Companies.CompanyNotifications>
                     notificationsRef,
-                RefRO<PrefabRef>
-                    prefabRef,
+                RefRO<PrefabRef> prefabRef,
                 Entity company) in
                 SystemAPI
                     .Query<
-                        RefRO<
-                            Game.Companies.ServiceAvailable>,
-                        RefRO<
-                            Game.Companies.CompanyNotifications>,
-                        RefRO<
-                            PrefabRef>>()
+                        RefRO<Game.Companies.ServiceAvailable>,
+                        RefRO<Game.Companies.CompanyNotifications>,
+                        RefRO<PrefabRef>>()
                     .WithAll<
                         Game.Companies.CommercialCompany>()
                     .WithNone<
@@ -207,10 +233,8 @@ namespace NoCustomersFix.Systems
                     continue;
                 }
 
-                Game.Companies.ServiceCompanyData
-                    serviceData =
-                        serviceCompanyDatas[
-                            companyPrefab];
+                Game.Companies.ServiceCompanyData serviceData =
+                    serviceCompanyDatas[companyPrefab];
 
                 if (serviceData.m_MaxService <= 0)
                 {
@@ -218,9 +242,42 @@ namespace NoCustomersFix.Systems
                 }
 
                 Resource resource =
-                    industrialProcessDatas[
-                        companyPrefab]
+                    industrialProcessDatas[companyPrefab]
                         .m_Output.m_Resource;
+
+                int available =
+                    math.clamp(
+                        serviceRef.ValueRO.m_ServiceAvailable,
+                        0,
+                        serviceData.m_MaxService);
+
+                int stock = 0;
+
+                if (resourcesLookup.HasBuffer(company))
+                {
+                    stock =
+                        EconomyUtils.GetResources(
+                            resource,
+                            resourcesLookup[company]);
+                }
+
+                bool hasWarning =
+                    notificationsRef.ValueRO
+                        .m_NoCustomersEntity !=
+                    Entity.Null;
+
+                // Vehicles use the same company scan but retain their special
+                // generic-Vehicle purchase handling.
+                if (resource == Resource.Vehicles)
+                {
+                    RecordVehiclePressure(
+                        available,
+                        serviceData.m_MaxService,
+                        stock,
+                        hasWarning);
+
+                    continue;
+                }
 
                 if (!IsPhysicalRetailResource(
                         resource,
@@ -230,58 +287,28 @@ namespace NoCustomersFix.Systems
                 }
 
                 int resourceIndex =
-                    EconomyUtils.GetResourceIndex(
-                        resource);
+                    EconomyUtils.GetResourceIndex(resource);
 
                 if (resourceIndex < 0 ||
-                    resourceIndex >=
-                        m_MaxService.Length)
+                    resourceIndex >= m_MaxService.Length)
                 {
                     continue;
                 }
 
-                int available =
-                    math.clamp(
-                        serviceRef.ValueRO
-                            .m_ServiceAvailable,
-                        0,
-                        serviceData.m_MaxService);
+                m_ServiceAvailable[resourceIndex] +=
+                    available;
 
-                m_ServiceAvailable[
-                    resourceIndex] +=
-                        available;
+                m_MaxService[resourceIndex] +=
+                    serviceData.m_MaxService;
 
-                m_MaxService[
-                    resourceIndex] +=
-                        serviceData.m_MaxService;
+                m_CompanyCount[resourceIndex]++;
 
-                m_CompanyCount[
-                    resourceIndex]++;
-
-                if (notificationsRef.ValueRO
-                        .m_NoCustomersEntity !=
-                    Entity.Null)
+                if (hasWarning)
                 {
-                    m_WarningCount[
-                        resourceIndex]++;
+                    m_WarningCount[resourceIndex]++;
                 }
 
-                // Match the important stock side of vanilla's warning check.
-                // A shop at <=200 output stock cannot currently show the
-                // normal No Customers warning, so do not manufacture extra
-                // demand specifically to clear it.
-                int stock = 0;
-
-                if (resourcesLookup.HasBuffer(
-                        company))
-                {
-                    stock =
-                        EconomyUtils.GetResources(
-                            resource,
-                            resourcesLookup[
-                                company]);
-                }
-
+                // Match the physical-stock side of vanilla NEC.
                 if (stock <= 200)
                 {
                     continue;
@@ -295,17 +322,15 @@ namespace NoCustomersFix.Systems
                 int excess =
                     math.max(
                         0,
-                        available -
-                            targetService);
+                        available - targetService);
 
                 if (excess <= 0)
                 {
                     continue;
                 }
 
-                m_ExcessService[
-                    resourceIndex] +=
-                        excess;
+                m_ExcessService[resourceIndex] +=
+                    excess;
 
                 m_TotalExcessService +=
                     excess;
@@ -327,7 +352,7 @@ namespace NoCustomersFix.Systems
             }
         }
 
-        private void PrepareCorrectionBudget()
+        private void PrepareCorrectionWindow()
         {
             Array.Copy(
                 m_ExcessService,
@@ -337,24 +362,38 @@ namespace NoCustomersFix.Systems
             m_TotalCorrectionUnits =
                 m_TotalExcessService;
 
-            if (m_TotalCorrectionUnits <= 0)
+            m_PerUpdateInjectionBudget =
+                CalculatePerUpdateBudget(
+                    m_TotalCorrectionUnits);
+
+            PrepareVehicleCorrectionWindow();
+        }
+
+        private void BeginCorrectionUpdate()
+        {
+            m_RemainingInjectionBudget =
+                Math.Min(
+                    m_PerUpdateInjectionBudget,
+                    m_TotalCorrectionUnits);
+
+            BeginVehicleCorrectionUpdate();
+        }
+
+        private static long CalculatePerUpdateBudget(
+            long correctionUnits)
+        {
+            if (correctionUnits <= 0)
             {
-                m_RemainingInjectionBudget = 0;
-                return;
+                return 0;
             }
 
-            // Ceiling division so a small remaining problem still receives
-            // some corrective demand.
-            m_RemainingInjectionBudget =
-                (m_TotalCorrectionUnits +
+            long budget =
+                (correctionUnits +
                     kCorrectionHorizonUpdates -
                     1) /
                 kCorrectionHorizonUpdates;
 
-            if (m_RemainingInjectionBudget < 1)
-            {
-                m_RemainingInjectionBudget = 1;
-            }
+            return Math.Max(1, budget);
         }
 
         private bool IsPhysicalRetailResource(
@@ -364,15 +403,13 @@ namespace NoCustomersFix.Systems
         {
             if (resource == Resource.NoResource ||
                 resource == Resource.Vehicles ||
-                EconomyUtils.IsOfficeResource(
-                    resource))
+                EconomyUtils.IsOfficeResource(resource))
             {
                 return false;
             }
 
             Entity resourcePrefab =
-                m_ResourceSystem.GetPrefab(
-                    resource);
+                m_ResourceSystem.GetPrefab(resource);
 
             if (resourcePrefab == Entity.Null ||
                 !resourceDatas.HasComponent(
@@ -387,4 +424,3 @@ namespace NoCustomersFix.Systems
     }
 }
 
-#endif

@@ -6,58 +6,43 @@
 // This notice MUST be kept with copies or substantial portions of this code.
 // ================= </copyright> ======================
 
-// File: Systems/Commercial/CommercialBalancePrepareSystem.cs
-// Purpose: DEBUG-only snapshot immediately before vanilla household shopping.
-
-#if DEBUG
-
-using System.Collections.Generic;
+// File: Systems/CommercialBalancePrepareSystem.cs
+// Purpose: Burst snapshot of households eligible for post-vanilla NEC correction.
 
 using Colossal.Serialization.Entities;
 
 using Game;
-using Game.Economy;
 using Game.Simulation;
 
+using Unity.Burst;
+using Unity.Burst.Intrinsics;
+using Unity.Collections;
 using Unity.Entities;
+using Unity.Jobs;
 
 namespace NoCustomersFix.Systems
 {
     /// <summary>
-    /// Records households that enter vanilla HouseholdBehaviorSystem with no
-    /// existing shopping need and no remaining household-consumption resources.
+    /// Captures resident households that enter vanilla HouseholdBehaviorSystem
+    /// without an existing shopping need.
     ///
-    /// If one of these households still has no need after vanilla runs, V4 may
-    /// use it for controlled corrective physical shopping demand.
+    /// Vanilla runs after this snapshot and gets first chance to consume
+    /// existing household resources or create its own shopping need.
+    /// CommercialBalanceSystem then rechecks the household after vanilla.
+    ///
+    /// The potentially large household-bucket scan runs as a Burst IJobChunk.
     /// </summary>
-    public partial class CommercialBalancePrepareSystem
-        : GameSystemBase
+    public partial class CommercialBalancePrepareSystem : GameSystemBase
     {
-        private readonly HashSet<Entity>
-            m_ReadyHouseholds = new();
+        private EntityQuery m_HouseholdQuery;
+        private NativeList<Entity> m_ReadyHouseholds;
 
-        private SimulationSystem
-            m_SimulationSystem = null!;
+        private SimulationSystem m_SimulationSystem = null!;
 
-        private uint m_CapturedSimulationFrame =
-            uint.MaxValue;
+        private JobHandle m_SnapshotJob;
+        private uint m_CapturedSimulationFrame = uint.MaxValue;
 
-        internal bool HasSnapshotFor(
-            uint simulationFrame)
-        {
-            return m_CapturedSimulationFrame ==
-                simulationFrame;
-        }
-
-        internal bool WasReadyBeforeVanilla(
-            Entity household)
-        {
-            return m_ReadyHouseholds.Contains(
-                household);
-        }
-
-        public override int GetUpdateInterval(
-            SystemUpdatePhase phase)
+        public override int GetUpdateInterval(SystemUpdatePhase phase)
         {
             return 262144 /
                 (HouseholdBehaviorSystem.kUpdatesPerDay * 16);
@@ -67,87 +52,154 @@ namespace NoCustomersFix.Systems
         {
             base.OnCreate();
 
-            m_SimulationSystem =
-                World.GetOrCreateSystemManaged<
-                    SimulationSystem>();
+            m_SimulationSystem = World.GetOrCreateSystemManaged<SimulationSystem>();
+
+            m_HouseholdQuery =
+                GetEntityQuery(
+                    new EntityQueryDesc
+                    {
+                        All =
+                            new ComponentType[]
+                            {
+                                ComponentType.ReadOnly<Game.Citizens.HouseholdNeed>(),
+                                ComponentType.ReadOnly<Game.Citizens.Household>(),
+                                ComponentType.ReadOnly<Game.Citizens.HouseholdCitizen>(),
+                                ComponentType.ReadOnly<Game.Economy.Resources>(),
+                                ComponentType.ReadOnly<Game.Buildings.PropertyRenter>(),
+                                ComponentType.ReadOnly<UpdateFrame>(),
+                            },
+
+                        None =
+                            new ComponentType[]
+                            {
+                                ComponentType.ReadOnly<Game.Citizens.TouristHousehold>(),
+                                ComponentType.ReadOnly<Game.Citizens.HomelessHousehold>(),
+                                ComponentType.ReadOnly<Game.Agents.MovingAway>(),
+                                ComponentType.ReadOnly<Game.Common.Deleted>(),
+                                ComponentType.ReadOnly<Game.Tools.Temp>(),
+                            },
+                    });
+
+            m_ReadyHouseholds = new NativeList<Entity>(1024, Allocator.Persistent);
+
+            RequireForUpdate(m_HouseholdQuery);
         }
 
-        protected override void OnGameLoaded(
-            Context serializationContext)
+        protected override void OnDestroy()
         {
-            base.OnGameLoaded(
-                serializationContext);
+            m_SnapshotJob.Complete();
 
+            if (m_ReadyHouseholds.IsCreated)
+            {
+                m_ReadyHouseholds.Dispose();
+            }
+
+            base.OnDestroy();
+        }
+
+        protected override void OnGameLoaded(Context serializationContext)
+        {
+            base.OnGameLoaded(serializationContext);
+
+            m_SnapshotJob.Complete();
             m_ReadyHouseholds.Clear();
-
-            m_CapturedSimulationFrame =
-                uint.MaxValue;
+            m_CapturedSimulationFrame = uint.MaxValue;
         }
 
         protected override void OnUpdate()
         {
+            m_SnapshotJob.Complete();
             m_ReadyHouseholds.Clear();
 
-            uint simulationFrame =
-                m_SimulationSystem.frameIndex;
+            uint simulationFrame = m_SimulationSystem.frameIndex;
 
             uint updateFrame =
                 SimulationUtils.GetUpdateFrameWithInterval(
                     simulationFrame,
-                    (uint)GetUpdateInterval(
-                        SystemUpdatePhase.GameSimulation),
+                    (uint)GetUpdateInterval(SystemUpdatePhase.GameSimulation),
                     16);
 
-            foreach ((
-                RefRO<Game.Citizens.HouseholdNeed>
-                    needRef,
-                RefRO<Game.Citizens.Household>
-                    householdRef,
-                Entity household) in
-                SystemAPI
-                    .Query<
-                        RefRO<
-                            Game.Citizens.HouseholdNeed>,
-                        RefRO<
-                            Game.Citizens.Household>>()
-                    .WithAll<
-                        Game.Citizens.HouseholdCitizen,
-                        Game.Economy.Resources,
-                        Game.Buildings.PropertyRenter>()
-                    .WithNone<
-                        Game.Citizens.TouristHousehold,
-                        Game.Citizens.HomelessHousehold,
-                        Game.Agents.MovingAway>()
-                    .WithNone<
-                        Game.Common.Deleted,
-                        Game.Tools.Temp>()
-                    .WithSharedComponentFilter(
-                        new UpdateFrame(updateFrame))
-                    .WithEntityAccess())
+            m_HouseholdQuery.SetSharedComponentFilter(new UpdateFrame(updateFrame));
+
+            int candidateCount = m_HouseholdQuery.CalculateEntityCount();
+
+            if (m_ReadyHouseholds.Capacity < candidateCount)
             {
-                if (needRef.ValueRO.m_Resource !=
-                    Resource.NoResource)
-                {
-                    continue;
-                }
-
-                // Vanilla exits early while households still have previously
-                // purchased resources to consume. Do not turn those households
-                // into extra shoppers.
-                if (householdRef.ValueRO.m_Resources >
-                    0)
-                {
-                    continue;
-                }
-
-                m_ReadyHouseholds.Add(
-                    household);
+                m_ReadyHouseholds.Capacity = candidateCount;
             }
 
-            m_CapturedSimulationFrame =
-                simulationFrame;
+            CaptureReadyHouseholdsJob job =
+                new()
+                {
+                    m_EntityType = SystemAPI.GetEntityTypeHandle(),
+
+                    m_HouseholdNeedType =
+                        SystemAPI.GetComponentTypeHandle<Game.Citizens.HouseholdNeed>(
+                            isReadOnly: true),
+
+                    m_ReadyHouseholds = m_ReadyHouseholds,
+                };
+
+            m_SnapshotJob = job.ScheduleByRef(m_HouseholdQuery, Dependency);
+            Dependency = m_SnapshotJob;
+
+            m_CapturedSimulationFrame = simulationFrame;
+        }
+
+        internal NativeArray<Entity> CompleteAndGetSnapshot(uint simulationFrame)
+        {
+            if (m_CapturedSimulationFrame != simulationFrame)
+            {
+                return default;
+            }
+
+            m_SnapshotJob.Complete();
+
+            return m_ReadyHouseholds.AsArray();
+        }
+
+        [BurstCompile]
+        private struct CaptureReadyHouseholdsJob : IJobChunk
+        {
+            [ReadOnly]
+            public EntityTypeHandle m_EntityType;
+
+            [ReadOnly]
+            public ComponentTypeHandle<Game.Citizens.HouseholdNeed> m_HouseholdNeedType;
+
+            public NativeList<Entity> m_ReadyHouseholds;
+
+            public void Execute(
+                in ArchetypeChunk chunk,
+                int unfilteredChunkIndex,
+                bool useEnabledMask,
+                in v128 chunkEnabledMask)
+            {
+                NativeArray<Entity> entities = chunk.GetNativeArray(m_EntityType);
+
+                NativeArray<Game.Citizens.HouseholdNeed> needs =
+                    chunk.GetNativeArray(ref m_HouseholdNeedType);
+
+                ChunkEntityEnumerator enumerator =
+                    new(
+                        useEnabledMask,
+                        chunkEnabledMask,
+                        chunk.Count);
+
+                while (enumerator.NextEntityIndex(out int i))
+                {
+                    // Never compete with a shopping need that already existed
+                    // before vanilla HouseholdBehaviorSystem ran.
+                    if (needs[i].m_Resource != Game.Economy.Resource.NoResource)
+                    {
+                        continue;
+                    }
+
+                    // Do NOT reject households here for existing resources.
+                    // Vanilla runs next and gets first chance to consume them.
+                    m_ReadyHouseholds.AddNoResize(entities[i]);
+                }
+            }
         }
     }
 }
-
-#endif
