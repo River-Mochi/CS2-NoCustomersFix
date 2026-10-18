@@ -1,37 +1,52 @@
 <Publish>
-	<!--Id must be set in order to update existed mod. it is not required for publishing mod for the first time-->
-	<ModId Value="" />
-	<!--Name of the mod to display to players-->
-	<DisplayName Value="NoCustomersFix" />
-	<!--Short description of the mod-->
-	<ShortDescription Value="This is a short description" />
-	<!--Long description of the mod. Single line or multi line. Supports minimal markdown subset-->
-	<!--LongDescription Value="This is a long description" /-->
-	<LongDescription>
-This is a long description
+<!--Id must be set in order to update existed mod. it is not required for publishing mod for the first time-->
+<ModId Value="" />
+<!--Name of the mod to display to players-->
+<DisplayName Value="No Customers Fix" />
+<!--Short description of the mod-->
+<ShortDescription Value="Not Enough Customers fix for cities with 100's of these icons." />
+<!--Long description of the mod. Single line or multi line. Supports minimal markdown subset-->
+<!--LongDescription Value="This is a long description" /-->
+<LongDescription>
+
+
+The problem was not merely too few shoppers. During the low-shopping part of the day, businesses were replenishing Service faster than the available customers could consume it.
+
+The fix helps shops survive low traffic times of day by reducing total "service" production to better match the available customers.
+This is a more realistic of how businesses operate in real life.
+They are going to reduce total workers or send them on long breaks during low traffic times of the day.
+
+This is adaptive and follows what vanilla already does to balance shopping economy:
+Strong recovery when badly out of balance, no intervention once healthy.
+
+I still suggest making sure you don't have 100 vehicle shops and only 1 food shop. having a little of everything is still the best way to keep your city healthy.
+
 </LongDescription>
-	<!--Thumbnail-->
-	<Thumbnail Value="Properties/Thumbnail.png" />
-	<!--Screenshot, can be set multiple times-->
-	<Screenshot Value="" />
-	<!--Tag, can be set multiple times-->
-	<Tag Value="" />
-	<!--Link to the forum post where the mod can be discussed-->
-	<ForumLink Value="" />
-	<!--Version of the mod-->
-	<ModVersion Value="0.5.0" />
-	<!--Recommended version of the base game to use the mod-->
-	<GameVersion Value="1.6.*" />
-	<!--Dependency for the mod, can be set multiple times-->
-	<Dependency Id="" />
-	<!--Required DLC, can be set multiple times. Supported values are "Landmark Buildings", "San Fransisco Set", "Beach Properties", "Urban Promenades", "Modern Architecture"-->
-	<RequiredDLC Value="" />
-	<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
-	<ChangeLog Value="" />
+<!--Thumbnail-->
+<Thumbnail Value="Properties/Thumbnail.png" />
+<!--Screenshot, can be set multiple times-->
+<Screenshot Value="" />
+<!--Tag, can be set multiple times-->
+<Tag Value="" />
+<!--Link to the forum post where the mod can be discussed-->
+<ForumLink Value="" />
+<!--Version of the mod-->
+<ModVersion Value="0.5.0" />
+<!--Recommended version of the base game to use the mod-->
+<GameVersion Value="1.6.*" />
+<!--Dependency for the mod, can be set multiple times-->
+<Dependency Id="" />
+<!--Required DLC, can be set multiple times. Supported values are "Landmark Buildings", "San Fransisco Set", "Beach Properties", "Urban Promenades", "Modern Architecture"-->
+<RequiredDLC Value="" />
+<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
+<ChangeLog Value="" />
 <!--<ChangeLog>
 </ChangeLog>-->
-	<!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
-	<ExternalLink Type="" Url="" />
-	<!--Supported values Public, Private, Unlisted-->
-	<AccessLevel Value="Public" />
+<!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
+<ExternalLink Type="" Url="" />
+<!--Supported values Public, Private, Unlisted-->
+<ExternalLink Type="github" Url="https://github.com/River-Mochi/CS2-NoCustomersFix"/>
+<ExternalLink Type="discord" Url="https://discord.gg/gwXgvtyhjc"/>
+
+<AccessLevel Value="Public" />
 </Publish>
