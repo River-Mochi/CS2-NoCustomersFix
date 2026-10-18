@@ -8,26 +8,36 @@
 <!--Long description of the mod. Single line or multi line. Supports minimal markdown subset-->
 <!--LongDescription Value="This is a long description" /-->
 <LongDescription>
-## Not Enough Customers Fix
+🛒 Tired of "Not Enough Customers" everywhere since recent game updates?
 
-The problem was not merely too few shoppers. During the low-shopping part of the day, businesses were replenishing Service faster than the available customers could consume it.
-
-
-* This is a more realistic of how businesses operate in real life. They are going to reduce total workers or send them on long breaks during low traffic times of the day.
-* Adaptive and follows what vanilla already does to balance shopping economy:
-* Strong recovery when badly out of balance, no intervention once healthy.
-
-* I also suggest making sure you don't have 100 vehicle shops and only 1 food shop. Having a little of everything is still the best way to keep your city healthy as cims look to fill needs.
+Got a city covered in NEC icons? Give this a try!
 
 
+In my 130k city, 165 NEC warnings dropped to just 4 after about 30 minutes. No bulldozing hundreds of shops!
+Other city of 95k with 335 warnings dropped to 21 in 5 minutes, and only 6 in 20 min.
+
+### What it does
+
+* Slows Service production when shops get too full, before NEC gets out of hand.
+* Helps balance shopping demand so excess Service gets used up.
+* Helps Leisure businesses (Meals, Entertainment, Recreation) and hotels too.
+* Adaptive — kicks in when needed and backs off when shops are healthy.
+* Safe to remove anytime. No Harmony patches. Uses the game's existing systems.
+
+### Support and Feedback
+* Easiest way to support is to click the LIKE 👍 button (top right). No donations requested, just a free like for many days of work.
+* Feedback is welcome on Discord (links on the right). PRs are welcome on Github where the source code is.
 
 ### Credits and Thanks
 * RiverMochi: mod author
 * Sunny Scunny - testing
 
+Languages
+English, Français, Deutsch, Español, Italiano, Polski, Português (Brasil), Português (Portugal), Türkçe, ไทย Thai, Tiếng Việt, 日本語, 한국어, 简体中文, 繁體中文
+
 </LongDescription>
 <!--Thumbnail-->
-<Thumbnail Value="Properties/Thumbnail.png" />
+<Thumbnail Value="Properties/Thumbnail01.jpg" />
 <!--Screenshot, can be set multiple times-->
 <Screenshot Value="Properties/10-image-Before.jpg"/>
 <Screenshot Value="Properties/20-image-After.jpg"/>

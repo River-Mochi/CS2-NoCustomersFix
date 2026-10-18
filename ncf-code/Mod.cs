@@ -29,7 +29,7 @@
          public const string ModTag = "[NCF]";
 
          public static readonly string ModVersion =
-             Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.5.0";
+             Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.6.0";
 
          internal static readonly ILog s_Log =
              LogManager.GetLogger(ModId).SetShowsErrorsInUI(
