@@ -14,9 +14,9 @@
 Got 100's of NEC icons? Adding more citizens doesn't always help!
 
 #### Struggling shops don't get enough priority
-* NEC icons appear when a shop goes over 90% unused Service (not the same as stock).
-* Vanilla's shopping formula has a broad **50%–100% unused Service bucket**. A shop at 60% unused Service and one at 95% get no priority difference for worker production rates.
-* So shoppers can keep choosing healthy stores while others could sit ignored at 90%+ and explode with NEC icons.
+* NEC icons appear when a shop goes over 90% unused Service (different from stock).
+* One vanilla shopping score puts **50%–100% full shops in the same bucket**. A shop at 95% full gets no more help from that score than one at 60%.
+* So citizens can keep choosing healthier stores while others still sit ignored above 90% and explode with NEC icons.
 
 ### Why this happens
 
@@ -25,7 +25,7 @@ Got 100's of NEC icons? Adding more citizens doesn't always help!
 * Cims at work/school are not allowed to shop, so peak periods have less eligible shoppers as only elderly and or those not in school/work are available.
 
 **Shops end up making Service faster than shoppers can use it.**
-Adding more citizens doesn't always fix this, when struggling shops aren't getting enough priority. We make cims smarter so they can help balance shopping demand.
+Adding more citizens doesn't always fix this, when struggling shops aren't getting enough priority. Smarter cims help balance shopping demand.
 
 
 ### What this mod does
@@ -64,7 +64,8 @@ Adding more citizens doesn't always fix this, when struggling shops aren't getti
 <!--Thumbnail-->
 <Thumbnail Value="Properties/Thumbnail01.jpg" />
 <!--Screenshot, can be set multiple times-->
-<Screenshot Value="Properties/10-image-Before.jpg"/>
+<Screenshot Value="Properties/10-image-Chart.jpg"/>
+<Screenshot Value="Properties/15-image-Before.jpg"/>
 <Screenshot Value="Properties/20-image-After.jpg"/>
 <!--Tag, can be set multiple times-->
 <Tag Value="" />
@@ -83,7 +84,6 @@ Adding more citizens doesn't always fix this, when struggling shops aren't getti
 <!--<ChangeLog>
 </ChangeLog>-->
 <!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
-<ExternalLink Type="" Url="" />
 <!--Supported values Public, Private, Unlisted-->
 <ExternalLink Type="github" Url="https://github.com/River-Mochi/CS2-NoCustomersFix"/>
 <ExternalLink Type="discord" Url="https://discord.gg/gwXgvtyhjc"/>

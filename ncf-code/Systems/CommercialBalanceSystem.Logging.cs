@@ -51,8 +51,8 @@ namespace NoCustomersFix.Systems
                 $"warnings={totalWarnings} " +
                 $"retailWarnings={retailWarnings} " +
                 $"vehicleWarnings={m_VehicleWarningCount} " +
-                $"retailExcess85={m_TotalExcessService} " +
-                $"vehicleExcess85={m_VehicleExcess} " +
+                $"retailExcess82={m_TotalExcessService} " +
+                $"vehicleExcess82={m_VehicleExcess} " +
                 $"avoidedCarAmount={m_WindowAvoidedCarAmount}");
 
             StringBuilder details = new(4096);
@@ -92,7 +92,7 @@ namespace NoCustomersFix.Systems
                                 "F1",
                                 CultureInfo.InvariantCulture))
                     .Append('%')
-                    .Append(" excess85=")
+                    .Append(" excess82=")
                     .Append(m_ExcessService[i])
                     .Append(" injected=")
                     .Append(m_WindowInjectedNeedsByResource[i])
@@ -128,7 +128,7 @@ namespace NoCustomersFix.Systems
                     .Append('%')
                     .Append(" stock=")
                     .Append(m_VehicleStock)
-                    .Append(" excess85=")
+                    .Append(" excess82=")
                     .Append(m_VehicleExcess)
                     .Append(" injected=")
                     .Append(m_WindowVehicleInjectedNeeds)
