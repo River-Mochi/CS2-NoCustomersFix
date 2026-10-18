@@ -59,9 +59,8 @@ namespace NoCustomersFix.Systems
         private int m_WindowFreshInjected;
         private int m_WindowRepeatInjected;
         private int m_LastRepeatPercent;
-#endif
-
         private bool m_ConfigurationLogged;
+#endif
 
         public override int GetUpdateInterval(SystemUpdatePhase phase)
         {
@@ -104,9 +103,8 @@ namespace NoCustomersFix.Systems
             m_WindowFreshInjected = 0;
             m_WindowRepeatInjected = 0;
             m_LastRepeatPercent = 100;
-#endif
-
             m_ConfigurationLogged = false;
+#endif
         }
 
         protected override void OnUpdate()
