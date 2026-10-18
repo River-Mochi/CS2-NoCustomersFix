@@ -4,33 +4,58 @@
 <!--Name of the mod to display to players-->
 <DisplayName Value="No Customers Fix" />
 <!--Short description of the mod-->
-<ShortDescription Value="Not Enough Customers fix for cities with 100s of these Notification icons." />
+<ShortDescription Value="Fix too many Not Enough Customers icons by balancing shop production and shopping demand." />
 <!--Long description of the mod. Single line or multi line. Supports minimal markdown subset-->
 <!--LongDescription Value="This is a long description" /-->
 <LongDescription>
-🛒 Tired of "Not Enough Customers" everywhere since recent game updates?
+# 🛒
+## Tired of "Not Enough Customers" (NEC) icons everywhere?
 
 Got a city covered in NEC icons? Give this a try!
 
+In a 90k city, **335 NEC warnings dropped to just 20 after ~5 minutes.** No bulldozing hundreds of shops!
 
-In my 130k city, 165 NEC warnings dropped to just 4 after about 30 minutes. No bulldozing hundreds of shops!
-Other city of 95k with 335 warnings dropped to 21 in 5 minutes, and only 6 in 20 min.
+### Why does this happen?
 
-### What it does
+Ironically, **"Not Enough Customers" doesn't count customers!**
 
-* Slows Service production when shops get too full, before NEC gets out of hand.
-* Helps balance shopping demand so excess Service gets used up.
-* Helps Leisure businesses (Meals, Entertainment, Recreation) and hotels too.
-* Adaptive — kicks in when needed and backs off when shops are healthy.
-* Safe to remove anytime. No Harmony patches. Uses the game's existing systems.
+* Normal shops get NEC when **over 90% of their Service is sitting unused**.
+* Shop workers are paid to make Service. It's separate from the goods delivered to the store (food, beverages, etc.).
+* Vanilla already slows Service production when shops get too full, but not enough and too late.
+* This explodes at peak times when lots of cims are at work or school and fewer can shop. Cims are not allowed to shop while at work/school.
+
+
+Even adding more citizens doesn't always solve it.
+
+### What this mod does
+
+* **Starts helping at ~82% unused Service**, before NEC icons appear.
+* **Slows Service production harder** when shops can't sell it fast enough. Backs off when they recover.
+* **Helps balance shopping demand** using real households, not fake shoppers.
+* **Separately helps Leisure** (Meals, Entertainment, Recreation).
+* **Best-effort help for hotels**, using existing tourists. It won't invent thousands of fake guests.
+*  Safe to remove anything. No Harmony patches. Works with the game's existing systems.
+
+### Test results
+
+* **130k city:** 165 NEC → 4 after ~20 min.
+* **95k city:** 335 NEC → 20 after 5 min, 6 after ~20 min.
+
+### What to expect
+
+* Give it a little time; NEC icons can sit at the same number for a while as the city rebalances.
+* If you have only 10–20 after ~30 min, now is a good time prune a few shops. They don't have to be the exact ones showing NEC, but some of the remainder might have path issues making it harder for cims to get to them.
+* This helps realistically balance your city with the citizens you have, but doesn't fix every case of genuinely excess commercial capacity.
 
 ### Support and Feedback
-* Easiest way to support is to click the LIKE 👍 button (top right). No donations requested, just a free like for many days of work.
-* Feedback is welcome on Discord (links on the right). PRs are welcome on Github where the source code is.
+
+* If this helps your city, click the **LIKE 👍** button! No donations needed.
+* Feedback is welcome on Discord, and PRs are welcome on GitHub.
 
 ### Credits and Thanks
+
 * RiverMochi: mod author
-* Sunny Scunny - testing
+* Sunny Scunny: testing
 
 Languages
 English, Français, Deutsch, Español, Italiano, Polski, Português (Brasil), Português (Portugal), Türkçe, ไทย Thai, Tiếng Việt, 日本語, 한국어, 简体中文, 繁體中文
