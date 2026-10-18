@@ -15,7 +15,7 @@ Got 100's of NEC icons? Adding more citizens doesn't always help!
 
 #### Struggling shops don't get enough priority
 * NEC icons appear when a shop goes over 90% unused Service (not the same as stock).
-* Vanilla's shopping formula has a broad **50%–100% unused Service bucket**. A shop at 60% unused Service and one at 95% get no different priority.
+* Vanilla's shopping formula has a broad **50%–100% unused Service bucket**. A shop at 60% unused Service and one at 95% get no priority difference for worker production rates.
 * So shoppers can keep choosing healthy stores while others could sit ignored at 90%+ and explode with NEC icons.
 
 ### Why this happens
