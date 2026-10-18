@@ -4,12 +4,12 @@
 <!--Name of the mod to display to players-->
 <DisplayName Value="No Customers Fix" />
 <!--Short description of the mod-->
-<ShortDescription Value="Fix too many Not Enough Customers icons by balancing shop production and shopping demand." />
+<ShortDescription Value="Fix1 Not Enough Customers icons by balancing shop production and shopping demand." />
 <!--Long description of the mod. Single line or multi line. Supports minimal markdown subset-->
 <!--LongDescription Value="This is a long description" /-->
 <LongDescription>
 # 🛒
-## Tired of "Not Enough Customers" icons everywhere?
+## "Not Enough Customers" icons everywhere?
 
 Got hundreds of NEC icons? Adding more citizens doesn't always help!
 
@@ -50,7 +50,7 @@ More population alone won't necessarily fix that especially because the game's b
 
 ### Support and Feedback
 
-* Best way to support is click the **LIKE 👍** button (top right)! No donations needed, just a free like.
+* Best way to support is to click the **LIKE 👍** button (top right)! No donations needed, just a free like.
 * Feedback is welcome on Discord or GitHub where the source code is (see icon links on the right).
 
 ### Credits and Thanks
