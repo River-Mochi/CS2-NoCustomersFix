@@ -5,6 +5,7 @@
     <File Path=".gitignore" />
     <File Path="LICENSE" />
     <File Path="LICENSE-EXCEPTION" />
+    <File Path="README.md" />
     <File Path="Scripts/add_gpl_headers.py" />
     <File Path="Scripts/check_locales.py" />
     <File Path="Scripts/CRLF2LF.py" />

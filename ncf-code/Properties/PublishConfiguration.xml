@@ -16,7 +16,7 @@ Adding more citizens doesn't always help!
 
 ### Why?
 *  Facts: NEC icons appear when a commercial shop is over **90%+ unused Service** (different from total stock).
-* Vanilla puts **50%–100% full shops in the same bucket**. A shop at critical 91% full doesn't really get prioritized over a shop at 52% and safe from triggering the icon.
+* Vanilla puts **50%–100% full shops in the same bucket**. A shop at critical 91% full doesn't really get prioritized over a shop at lower 52% that is far from triggering an icon.
 * So citizens can keep going to healthier shops while desperate shops are still ignored that are 90% + full. The system seems disconnected to the NEC icon trigger point.
 * Shop workers get paid to produce Service. Service is different from goods (e.g., food, paper...) you see delivered.
 * Vanilla does slow worker production a little starting at 80% full Service to help out. But by 90% critical threshold, it's still producing too much.
@@ -43,7 +43,7 @@ Adding more citizens didn't fix this for many players when the 90%+ shops aren't
 ### Support and Feedback
 
 *   Best way to support is click the **LIKE 👍** button (top right)! No donations, just a free like for the many days of work.
-*   Feedback is welcome on [Discord ](https://discord.gg/gwXgvtyhjc) or GitHub where the source code is (see icon links on the right).
+*   Feedback is welcome [on Discord](https://discord.gg/gwXgvtyhjc) or GitHub where the source code is (see icon links on the right).
 
 ### How does the mod work?
 *   **Starts helping when shop hits ~82% full Service**, before the critical 90% threshold causes an alert icon. Many rates were tested to optimize for good, realistic rate buckets.
@@ -65,9 +65,9 @@ tags: notification icons, no customers
 <!--Thumbnail-->
 <Thumbnail Value="Properties/Thumbnail01.jpg" />
 <!--Screenshot, can be set multiple times-->
-<Screenshot Value="Properties/10-image-Chart.jpg"/>
 <Screenshot Value="Properties/15-image-Before.jpg"/>
 <Screenshot Value="Properties/20-image-After.jpg"/>
+<Screenshot Value="Properties/25-image-Chart.jpg"/>
 <!--Tag, can be set multiple times-->
 <Tag Value="" />
 <!--Link to the forum post where the mod can be discussed-->
@@ -86,8 +86,7 @@ tags: notification icons, no customers
 </ChangeLog>-->
 <!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
 <!--Supported values Public, Private, Unlisted-->
-<ExternalLink Type="github" Url="https://github.com/River-Mochi/CS2-NoCustomersFix"/>
 <ExternalLink Type="discord" Url="https://discord.gg/gwXgvtyhjc"/>
-
+<ExternalLink Type="github" Url="https://github.com/River-Mochi/CS2-NoCustomersFix"/>
 <AccessLevel Value="Public" />
 </Publish>
