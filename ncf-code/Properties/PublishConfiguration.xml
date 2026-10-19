@@ -2,63 +2,64 @@
 <!--Id must be set in order to update existed mod. it is not required for publishing mod for the first time-->
 <ModId Value="" />
 <!--Name of the mod to display to players-->
-<DisplayName Value="No Customers Fix" />
+<DisplayName Value="Not Enough Customers Fix" />
 <!--Short description of the mod-->
 <ShortDescription Value="Fix Not Enough Customers icons by balancing commercial shop production and shopping demand." />
 <!--Long description of the mod. Single line or multi line. Supports minimal markdown subset-->
 <!--LongDescription Value="This is a long description" /-->
 <LongDescription>
 # 🛒
+
 ## "Not Enough Customers" icons everywhere?
 
-Got 100's of NEC icons? Adding more citizens doesn't always help!
-
-#### Struggling shops don't get enough priority
-* NEC icons appear when a shop goes over 90% unused Service (different from stock).
-* One vanilla shopping score puts **50%–100% full shops in the same bucket**. A shop at 95% full gets no more help from that score than one at 60%.
-* So citizens can keep choosing healthier stores while others still sit ignored above 90% and explode with NEC icons.
+Adding more citizens doesn't always help!
 
 ### Why this happens
 
-* Shop workers get paid to produce Service. Service is not stock, it's different from the goods delivered to it (food, paper...).
-* Vanilla starts slowing production a little at 80% unused Service. By 90% critical threshold, it's still producing too much. It doesn't clamp to 0 until the shop hits 100% full Service, way too late.
-* Cims at work/school are not allowed to shop, so peak periods have less eligible shoppers as only elderly and or those not in school/work are available.
+* NEC icons appear when a commercial shop is over **90%+ unused Service** (different from stock).
+* One of the vanilla formulas puts **50%–100% full shops in the same bucket**. A shop at 95% full gets no more help than one at 60%.
+* So citizens can keep going to healthier shops while other desperate shops are still ignored that are 90% + full.
+* Shop workers get paid to produce Service. Service is not stock, it's different from goods (e.g., food, paper...) you see delivered.
+* Vanilla does slow worker production a little starting at 80% full Service to help out. But by 90% critical threshold, it's still producing too much.
+* Vanilla doesn't clamp workers to 0% production until the shop hits full 100%, way too late to prevent NEC icons.
+* In addition, cims at work/school can not shop, so we get peak periods with less eligible shoppers. Only elderly or adults not in school/work are available during that time.
 
-**Shops end up making Service faster than shoppers can use it.**
-Adding more citizens doesn't always fix this, when struggling shops aren't getting enough priority. Smarter cims help balance shopping demand.
+**Shops workers end up making "Service" faster than current available shoppers can use it especially at peak hours.**
+Adding more citizens didn't fix this for many players when the 90%+ shops aren't also getting priority.
 
+### Some mod test results
 
-### What this mod does
+*   **130k city:** 165 NEC -> only 4 after ~30 minutes.
+*   **90k city:** 335 NEC -> only 30 after 10 min., 9 after 20 min.
 
-* Just install the mod and play! No Options menu or settings to configure.
-* **Starts helping at ~82% full Service**, before the critical 90% threshold causes an alert icon. Many rates were heavily tested to optimize for good, realistic rate buckets/balance.
-* **Slows production harder** when shops are too full. Once healthy again (below 82% shop), it goes back to vanilla to handle things normally.
-* **Helps balance shopping demand** using existing households, not fake shoppers.
-* **Separately helps Leisure** businesses (Meals, Entertainment, Recreation).
-* **Best-effort help for hotels**, using existing tourists as Hotels are based on total rooms rented. No fake tourists added.
-* Example, I had 700 tourist and 8 hotels with 9000 rooms, the mod reduced my hotel NEC from 8 to 4 by adaptive priorities. After that I had to delete a couple or switch to static hotels.
+### How does the mod work?
 
-### Some test results
-
-* **130k city:** 165 NEC → 4 after ~30 minutes.
-* **90k city (Sunny Isle):** 335 NEC → 30 after 10 minutes, 9 after 20 minutes.
+*   Just install the mod and play! No Options menu or settings to configure.
+*   **Starts helping when shop hits ~82% full Service**, before the critical 90% threshold causes an alert icon. Many rates were tested to optimize for good, realistic rate buckets.
+*   Once healthy again (below 82%), it goes back to vanilla to handle normally.
+*   Just like real life, shops reduce worker production at times of day when there are not enough shoppers to reduce service levels. No fake shoppers are made.
+*   **Leisure** businesses are also helped (Meals, Entertainment, Recreation).
+*   **Hotels** are best-effort, using existing tourists as Hotels are based on total rooms rented. No fake tourists added. I had 8 hotels, 9000 rooms for 700 tourists.
+The mod got my NEC hotels from all 8 to only 4, after which I had to delete a couple or use static Hotel buildings.
 
 ### What to expect
-
-* **Give heavily affected cities 15–20 minutes** to rebalance; many changes happen within 5 minutes.
-* If you have a small number 15-20 left after ~30 minutes, this is the time to prune a few excess shops. They don't have to be the exact ones showing NEC.
-* It won't fix every case of legit excess commercial zoning or poor access to shops.
-* Safe to remove. Vanilla balancing takes over again. No Harmony patch or invasive system replacement methods used.
+*   Give cities 15–20 minutes to rebalance; many changes happen within 5 minutes.
+*   After 30+ minutes, if you have a small number 10-20 left over, now prune a few excess shops. Don't need to prune the exact left over shops.
+*   It won't fix every case of legit excess commercial zoning or poor access to shops.
+*   Safe to remove, Vanilla takes over again. No Harmony patch or invasive system replacement methods used.
+*   Companion [mod City Watchdog](https://mods.paradoxplaza.com/mods/144908/Windows) recommended to easily see totals go up/down like shown in the screenshot. Make sure to put a "blue star" next to Not Enough Customers.
 
 ### Support and Feedback
 
-* Best way to support is to click the **LIKE 👍** button (top right)! No donations needed, just a free like.
-* Feedback is welcome on Discord or GitHub where the source code is (see icon links on the right).
+*   Best way to support is click the **LIKE 👍** button (top right)! No donations, just a free like for the many days of work.
+*   Feedback is welcome on Discord or GitHub where the source code is (see icon links on the right).
 
 ### Credits and Thanks
 
-* RiverMochi: mod author
-* Sunny Scunny: testing
+*   RiverMochi: mod author
+*   Sunny Scunny: testing
+
+tags: notification icons, no customers
 
 </LongDescription>
 <!--Thumbnail-->
