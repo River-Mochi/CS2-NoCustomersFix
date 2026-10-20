@@ -58,7 +58,7 @@ Adding more citizens doesn't always help!
 #### Notes
 * Problem 4: full commercial demand bar doesn't mean your citizens can support more.
 It means companies are looking for spaces. You don't need to build more just because you see a full bar.
-**Adaptive pricing:** yes, vanilla makes struggling shops slightly more attractive through lower prices.
+* **Adaptive pricing:** yes, vanilla makes struggling shops slightly more attractive through lower prices.
 A shop with 91% unused Service gets a price multiplier of 0.754×, compared with 0.988× at 52%.
 But despite vanilla's price weights, test cities still had hundreds of NEC warnings so slightly lower pricing is not influencing citizens effectively. More important, a separate **shopping-selection score Stops Adjusting beyond 50% unused Service**. That's what I mean by shops 50% - 100% levels being in the same bucket so our 91% shop doesn't get the real **direct** priority it needs.
 
