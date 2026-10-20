@@ -169,7 +169,7 @@ namespace NoCustomersFix.Systems
                     "[NCF-PRODUCTION] " +
                     $"updates=256 preventive={m_WindowPreventiveCompanies} " +
                     $"strong={m_WindowStrongCompanies} " +
-                    "curve=retail 82-89:~50%, hotel 82-89:~30%, >=89:0% workforce");
+                    "curve=retail 82-89:~50%, hotel 82-89:~40%, >=89:0% workforce");
 
                 m_WindowPreventiveCompanies = 0;
                 m_WindowStrongCompanies = 0;
@@ -353,13 +353,14 @@ namespace NoCustomersFix.Systems
 
                     for (int j = 0; j < companyEmployees.Length; j++)
                     {
-                        // Preventive: keep ~30% of hotel workers productive,
+
                         // or ~50% for other commercial companies.
                         // Strong: temporarily hide all productive workers.
                         if (!strong)
                         {
+                           // Hotel Preventive: keep ~40% of workers productive when service above 82%
                             bool keepWorker = isHotel
-                                ? (j % 10) < 3
+                                ? (j % 10) < 4
                                 : (j & 1) == 0;
 
                             if (keepWorker)
