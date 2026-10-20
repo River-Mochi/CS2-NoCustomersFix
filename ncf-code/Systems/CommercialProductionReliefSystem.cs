@@ -42,8 +42,6 @@ namespace NoCustomersFix.Systems
         private const float kPreventiveRatio = 0.82f;
         private const float kStrongRatio = 0.89f;
 
-        private const float kHotelStrongRatio = 0.85f;
-
         private EntityQuery m_CompanyQuery;
         private SimulationSystem m_SimulationSystem = null!;
 
@@ -336,10 +334,8 @@ namespace NoCustomersFix.Systems
                         continue;
                     }
 
-                    bool strong = unusedRatio >
-                        (resource == Resource.Lodging
-                            ? kHotelStrongRatio
-                            : kStrongRatio);
+                    bool isHotel = resource == Resource.Lodging;
+                    bool strong = unusedRatio >= kStrongRatio;
 
                     DynamicBuffer<Game.Companies.Employee> companyEmployees =
                         employees[i];
@@ -353,12 +349,10 @@ namespace NoCustomersFix.Systems
 
                     for (int j = 0; j < companyEmployees.Length; j++)
                     {
-
-                        // or ~50% for other commercial companies.
-                        // Strong: temporarily hide all productive workers.
+                        // Preventive: ~40% hotel workforce, ~50% retail.
+                        // Strong: temporarily stop all Service production.
                         if (!strong)
                         {
-                           // Hotel Preventive: keep ~40% of workers productive when service above 82%
                             bool keepWorker = isHotel
                                 ? (j % 10) < 4
                                 : (j & 1) == 0;
