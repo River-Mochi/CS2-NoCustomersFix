@@ -201,6 +201,15 @@ namespace NoCustomersFix.Systems
                     SystemAPI.GetBufferLookup<
                         Game.Economy.Resources>(
                             true);
+#if DEBUG
+            ComponentLookup<Game.Companies.LodgingProvider> lodgingProviders =
+                SystemAPI.GetComponentLookup<Game.Companies.LodgingProvider>(true);
+
+            BufferLookup<Game.Buildings.Renter> hotelRenters =
+                SystemAPI.GetBufferLookup<Game.Buildings.Renter>(true);
+#endif
+
+
 
             LeisurePressure pressure = default;
 
@@ -279,9 +288,43 @@ namespace NoCustomersFix.Systems
                     }
                 }
 
-                // Lodging is handled separately by HotelBalanceSystem.
+               // Lodging is handled separately by HotelBalanceSystem.
                 if (resource == Resource.Lodging)
                 {
+                #if DEBUG
+                    if (hasWarning)
+                    {
+                        Entity building =
+                            notificationsRef.ValueRO.m_NoCustomersEntity;
+
+                        Game.Companies.ServiceCompanyData data =
+                            serviceCompanyDatas[prefab];
+
+                        float unused = data.m_MaxService > 0
+                            ? 100f * serviceRef.ValueRO.m_ServiceAvailable /
+                              data.m_MaxService
+                            : 0f;
+
+                        int freeRooms = lodgingProviders.HasComponent(company)
+                            ? lodgingProviders[company].m_FreeRooms
+                            : -1;
+
+                        int occupiedRooms = hotelRenters.HasBuffer(company)
+                            ? hotelRenters[company].Length
+                            : -1;
+
+                        int hotelStock = resources.HasBuffer(company)
+                            ? EconomyUtils.GetResources(
+                                Resource.Lodging, resources[company])
+                            : -1;
+
+                        LogUtils.Info(
+                            $"[NCF-HOTEL] building={building.Index}:{building.Version} " +
+                            $"company={company.Index}:{company.Version} " +
+                            $"unusedService={unused:F1}% " +
+                            $"occupied={occupiedRooms} free={freeRooms} stock={hotelStock}");
+                    }
+                #endif
                     continue;
                 }
 

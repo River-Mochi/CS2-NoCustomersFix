@@ -40,7 +40,7 @@ namespace NoCustomersFix.Systems
     public partial class CommercialProductionReliefPrepareSystem : GameSystemBase
     {
         private const float kPreventiveRatio = 0.82f;
-        private const float kStrongRatio = 0.90f;
+        private const float kStrongRatio = 0.89f;
 
         private EntityQuery m_CompanyQuery;
         private SimulationSystem m_SimulationSystem = null!;
@@ -102,7 +102,7 @@ namespace NoCustomersFix.Systems
                     Allocator.Persistent);
 
 #if DEBUG
-            // 0 = preventive 82–90%, 1 = strong >90%.
+            // 0 = preventive 82–89%, 1 = strong >=89%.
             m_Counts = new NativeArray<int>(2, Allocator.Persistent);
 #endif
 
@@ -167,7 +167,7 @@ namespace NoCustomersFix.Systems
                     "[NCF-PRODUCTION] " +
                     $"updates=256 preventive={m_WindowPreventiveCompanies} " +
                     $"strong={m_WindowStrongCompanies} " +
-                    "curve=82-90:~50% workforce, >90:0% workforce");
+                    "curve=retail 82-89:~50%, hotel 82-89:~40%, >=89:0% workforce");
 
                 m_WindowPreventiveCompanies = 0;
                 m_WindowStrongCompanies = 0;
@@ -296,13 +296,14 @@ namespace NoCustomersFix.Systems
                     Resource resource =
                         m_ProcessDatas[prefab].m_Output.m_Resource;
 
-                    // Hotels keep separate occupancy balancing.
+                    // Hotels also receive production relief.
+                    // HotelBalanceSystem separately handles room occupancy.
                     if (resource == Resource.NoResource ||
-                        resource == Resource.Lodging ||
                         EconomyUtils.IsOfficeResource(resource))
                     {
                         continue;
                     }
+
 
                     // Match vanilla's physical-stock side of NEC.
                     if (EconomyUtils.GetResources(resource, resources[i]) <= 200)
@@ -333,7 +334,8 @@ namespace NoCustomersFix.Systems
                         continue;
                     }
 
-                    bool strong = unusedRatio > kStrongRatio;
+                    bool isHotel = resource == Resource.Lodging;
+                    bool strong = unusedRatio >= kStrongRatio;
 
                     DynamicBuffer<Game.Companies.Employee> companyEmployees =
                         employees[i];
@@ -347,11 +349,18 @@ namespace NoCustomersFix.Systems
 
                     for (int j = 0; j < companyEmployees.Length; j++)
                     {
-                        // In the preventive range, vanilla sees roughly half
-                        // the workforce. Strong NEC pressure sees none.
-                        if (!strong && (j & 1) == 0)
+                        // Preventive: ~40% hotel workforce, ~50% retail.
+                        // Strong: temporarily stop all Service production.
+                        if (!strong)
                         {
-                            continue;
+                            bool keepWorker = isHotel
+                                ? (j % 10) < 4
+                                : (j & 1) == 0;
+
+                            if (keepWorker)
+                            {
+                                continue;
+                            }
                         }
 
                         Game.Companies.Employee employee =
