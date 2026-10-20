@@ -10,49 +10,57 @@
 <LongDescription>
 # 🛒
 
-## "Not Enough Customers" icons everywhere?
+## "Not Enough Customers" everywhere?
 
 Adding more citizens doesn't always help!
 
 ### Why?
-*  Facts: NEC icons appear when a commercial shop is over **90%+ unused Service** (different from total stock).
-* Vanilla puts **50%–100% full shops in the same bucket**. A shop at critical 91% full doesn't really get prioritized over a shop at lower 52% that is far from triggering an icon.
-* So citizens can keep going to healthier shops while desperate shops are still ignored that are 90% + full. The system seems disconnected to the NEC icon trigger point.
-* Shop workers get paid to produce Service. Service is different from goods (e.g., food, paper...) you see delivered.
-* Vanilla does slow worker production a little starting at 80% full Service to help out. But by 90% critical threshold, it's still producing too much.
-* Vanilla doesn't clamp production to 0% until the shop hits full 100%, way too late to prevent NEC icons.
-* Also, cims at work/school can not shop, so we get peak periods with a lot less eligible shoppers. Only elderly or adults not in school/work are available during that time.
 
-**Shops workers end up making "Service" faster than current available shoppers can use it.**
-Adding more citizens didn't fix this for many players when the 90%+ shops aren't also getting prioritized.
+*   Facts: NEC icons appear when a commercial shop is over **90%+ unused Service** (different from total stock).
+*   Commercial shop workers get paid to produce Service. Service is different from goods (e.g., food, paper...) you see delivered.
+*   Problem 1: Vanilla puts **50%–100% full shops in the same bucket**. A shop at critical 91% full doesn't really get prioritized over a shop at lower 52% full which is safe from triggering any floating icon.
+*   So citizens can keep going to healthier shops while desperate shops are still ignored that are 90% + full. The system is unaware of the NEC icon trigger point for citizen shop selection.
+*   Problem 2: vanilla does slow worker production a little starting at 80% full Service to help out. But by 90% critical threshold, it's still producing too much.
+*   Vanilla doesn't clamp production to 0% until the shop hits full 100%, way too late to prevent NEC icons.
+*   In real life, commercial work rate is reduced at times when high Service rates are not needed because no shoppers.
+*   Problem 3: cims at work/school can not shop, so we get peak periods with a lot less eligible shoppers. Only elderly or adults not in school/work are available during that time.
 
-### Some mod test results
+**Shops workers end up making excess Service product faster than current available shoppers can use it.** Adding more citizens didn't fix this for many players when the 90%+ shops aren't also getting prioritized for visits.
+
+### Some mod test results (aka stop pulling your hair out)
 
 *   **130k city:** 165 NEC -> only 4 after ~30 minutes.
 *   **90k city:** 335 NEC -> only 30 after 10 min., 9 after 20 min.
 
 ### What to expect
+
 *   Just install the mod and play! No Options menu or settings to configure.
-*   Give cities 15–30 minutes to rebalance; many changes happen within 5 minutes.
-*   After 30+ minutes, if you have a few 10-20 left over,  now is time to prune a few shops. Don't need to prune the exact left over shops.
+*   Give cities 15–30 minutes. Many changes happen within 5 minutes.
+*   After 30+ minutes, if you have a few 10-20 left over, now is time to prune a few shops. Don't need to prune the exact left over shops.
 *   It won't fix every case of legit excess commercial zoning or poor access to shops.
 *   Safe to remove, Vanilla takes over again. No Harmony patch means more compatible with other mods and the game.
 *   Companion [mod City Watchdog](https://mods.paradoxplaza.com/mods/144908/Windows) recommended to easily see totals go up/down like shown in the screenshot. Make sure to put a "blue star" next to Not Enough Customers.
-* This mod is a temp fix until IFS is able to fix/balance/prioritize commercial businesses exploding in Not Enough Customers Icons.
+*   This mod is a temp fix until IFS is able to fix/balance/prioritize commercial businesses exploding in Not Enough Customers Icons.
 
 ### Support and Feedback
 
 *   Best way to support is click the **LIKE 👍** button (top right)! No donations, just a free like for the many days of work.
-*   Feedback is welcome [on Discord](https://discord.gg/gwXgvtyhjc) or GitHub where the source code is (see icon links on the right).
+*   Feedback is welcome on [Discord](https://discord.gg/gwXgvtyhjc) or GitHub where the source code is (see icon links on the right). GPL3 License.
 
 ### How does the mod work?
-*   **Starts helping when shop hits ~82% full Service**, before the critical 90% threshold causes an alert icon. Many rates were tested to optimize for good, realistic rate buckets.
-*   Once healthy again (below 82%), it goes back to vanilla to handle normally.
-*   Just like real life, shops reduce worker production at times of day when there are not enough shoppers to reduce service levels. No fake shoppers are made; balancing your existing cims is often enough.
-*   **Leisure** businesses are also helped (Meals, Entertainment, Recreation).
-*   **Hotels** are best-effort, using existing tourists as Hotels are based on total rooms rented. No fake tourists added. I had 8 hotels, 9000 rooms for 700 tourists.
-The mod got my NEC hotels from all 8 to only 4, after which I had to delete a couple or use static Hotel buildings.
 
+*   **Starts helping when shop hits ~82% full Service**, before the critical 90% threshold causes an alert icon. I tested many rates to optimize for realistic rate buckets and 82%+ worked well to slow production until shoppers naturally reduce service levels.
+*   Once healthy again (below 82%), it goes back to vanilla to handle normally.
+*   Just like real life, shops reduce worker production at times of day when there are not enough shoppers to reduce service levels. No fake shoppers are made; balancing your existing cims is often enough to fix it.
+*   **Leisure** businesses are also helped (Meals, Entertainment, Recreation).
+*   Hotels: best-effort balancing using existing tourists. Hotel NEC icons depends on both excess unused Service and too many empty rooms. NEC-Fix helps struggling hotels hit safer occupancy levels without creating fake tourists.
+
+#### Notes
+* Problem 4: full commercial demand bar doesn't mean your citizens can support more.
+It means companies are looking for spaces. You don't need to build more just because you see a full bar.
+**Adaptive pricing:** yes, vanilla makes struggling shops slightly more attractive through lower prices.
+A shop with 91% unused Service gets a price multiplier of 0.754×, compared with 0.988× at 52%.
+But despite vanilla's price weights, test cities still had hundreds of NEC warnings so slightly lower pricing is not influencing citizens effectively. More important, a separate **shopping-selection score Stops Adjusting beyond 50% unused Service**. That's what I mean by shops 50% - 100% levels being in the same bucket so our 91% shop doesn't get the real **direct** priority it needs.
 
 ### Credits and Thanks
 
@@ -83,8 +91,8 @@ tags: notification icons, no customers
 <!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 <ChangeLog Value="" />
 <ChangeLog>
-* Improved Hotel Service balancing. No fake tourists added.
-* Retail commercial slightly improved, strong clamp at 89% instead of waiting untilk > 90%
+* Improved Hotel Service balancing. Helps struggling hotels without creating fake tourists.
+* Retail commercial improved, strong production pause at 89% instead of waiting untilk > 90% unused service.
 </ChangeLog>
 <!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
 <!--Supported values Public, Private, Unlisted-->
