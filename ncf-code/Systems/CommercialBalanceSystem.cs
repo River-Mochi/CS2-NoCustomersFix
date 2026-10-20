@@ -39,6 +39,7 @@ namespace NoCustomersFix.Systems
         private ResourceSystem m_ResourceSystem = null!;
         private CommercialBalancePrepareSystem m_PrepareSystem = null!;
 
+#if DEBUG
         private int m_UpdateCount;
 
         private int m_WindowReadyHouseholds;
@@ -52,7 +53,6 @@ namespace NoCustomersFix.Systems
         private long m_WindowVehicleInjectedUnits;
         private int m_WindowAvoidedCarAmount;
 
-#if DEBUG
         private int m_WindowFreshCandidates;
         private int m_WindowRepeatCandidates;
         private int m_WindowRepeatAllowed;
@@ -83,6 +83,7 @@ namespace NoCustomersFix.Systems
 
             ResetBalanceState();
 
+#if DEBUG
             m_UpdateCount = 0;
 
             m_WindowReadyHouseholds = 0;
@@ -96,7 +97,6 @@ namespace NoCustomersFix.Systems
             m_WindowVehicleInjectedUnits = 0;
             m_WindowAvoidedCarAmount = 0;
 
-#if DEBUG
             m_WindowFreshCandidates = 0;
             m_WindowRepeatCandidates = 0;
             m_WindowRepeatAllowed = 0;
@@ -152,6 +152,7 @@ namespace NoCustomersFix.Systems
             if (m_RemainingInjectionBudget <= 0 &&
                 m_RemainingVehicleBudget <= 0)
             {
+#if DEBUG
                 FinishUpdate(
                     readyHouseholds.Length,
                     0,
@@ -161,6 +162,7 @@ namespace NoCustomersFix.Systems
                     0,
                     0,
                     0);
+#endif
 
                 return;
             }
@@ -211,6 +213,7 @@ namespace NoCustomersFix.Systems
             BufferLookup<Game.Buildings.Renter> renterBuffers =
                 SystemAPI.GetBufferLookup<Game.Buildings.Renter>(true);
 
+#if DEBUG
             int readyCount = readyHouseholds.Length;
 
             int vanillaCreatedNeeds = 0;
@@ -222,6 +225,7 @@ namespace NoCustomersFix.Systems
             int vehicleInjectedNeeds = 0;
             long vehicleInjectedUnits = 0;
             int avoidedCarAmount = 0;
+#endif
 
             for (int i = 0; i < readyHouseholds.Length; i++)
             {
@@ -248,11 +252,15 @@ namespace NoCustomersFix.Systems
                 // Vanilla always wins. Never overwrite a need vanilla created.
                 if (need.m_Resource != Resource.NoResource)
                 {
+#if DEBUG
                     vanillaCreatedNeeds++;
+#endif
                     continue;
                 }
 
+#if DEBUG
                 emptyAfterVanilla++;
+#endif
 
                 Game.Citizens.Household household =
                     households[householdEntity];
@@ -267,10 +275,10 @@ namespace NoCustomersFix.Systems
                     continue;
                 }
 
+#if DEBUG
                 bool repeatShopper =
                     household.m_ShoppedValuePerDay != 0;
 
-#if DEBUG
                 if (repeatShopper)
                 {
                     m_WindowRepeatCandidates++;
@@ -317,10 +325,10 @@ namespace NoCustomersFix.Systems
 
                     householdNeeds[householdEntity] = need;
 
+#if DEBUG
                     injectedNeeds++;
                     injectedUnits += amount;
 
-#if DEBUG
                     if (repeatShopper)
                     {
                         m_WindowRepeatInjected++;
@@ -331,6 +339,7 @@ namespace NoCustomersFix.Systems
                     }
 #endif
 
+#if DEBUG
                     int resourceIndex =
                         EconomyUtils.GetResourceIndex(targetResource);
 
@@ -340,6 +349,7 @@ namespace NoCustomersFix.Systems
                         m_WindowInjectedNeedsByResource[resourceIndex]++;
                         m_WindowInjectedUnitsByResource[resourceIndex] += amount;
                     }
+#endif
 
                     continue;
                 }
@@ -377,10 +387,10 @@ namespace NoCustomersFix.Systems
 
                 householdNeeds[householdEntity] = need;
 
+#if DEBUG
                 vehicleInjectedNeeds++;
                 vehicleInjectedUnits += vehicleAmount;
 
-#if DEBUG
                 if (repeatShopper)
                 {
                     m_WindowRepeatInjected++;
@@ -391,12 +401,15 @@ namespace NoCustomersFix.Systems
                 }
 #endif
 
+#if DEBUG
                 if (avoidedSpecialCarAmount)
                 {
                     avoidedCarAmount++;
                 }
+#endif
             }
 
+#if DEBUG
             FinishUpdate(
                 readyCount,
                 vanillaCreatedNeeds,
@@ -406,8 +419,10 @@ namespace NoCustomersFix.Systems
                 vehicleInjectedNeeds,
                 vehicleInjectedUnits,
                 avoidedCarAmount);
+#endif
         }
 
+#if DEBUG
         private void FinishUpdate(
             int readyHouseholds,
             int vanillaCreatedNeeds,
@@ -438,5 +453,6 @@ namespace NoCustomersFix.Systems
             }
 #endif
         }
+#endif
     }
 }
