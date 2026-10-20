@@ -82,9 +82,10 @@ tags: notification icons, no customers
 <RequiredDLC Value="" />
 <!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 <ChangeLog Value="" />
-<!--<ChangeLog>
-
-</ChangeLog>-->
+<ChangeLog>
+* Improved Hotel Service balancing. No fake tourists added.
+* Retail commercial slightly improved, strong clamp at 89% instead of waiting untilk > 90%
+</ChangeLog>
 <!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
 <!--Supported values Public, Private, Unlisted-->
 <ExternalLink Type="discord" Url="https://discord.gg/gwXgvtyhjc"/>
