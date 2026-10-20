@@ -40,7 +40,7 @@ namespace NoCustomersFix.Systems
     public partial class CommercialProductionReliefPrepareSystem : GameSystemBase
     {
         private const float kPreventiveRatio = 0.82f;
-        private const float kStrongRatio = 0.90f;
+        private const float kStrongRatio = 0.89f;
 
         private const float kHotelStrongRatio = 0.85f;
 
@@ -104,7 +104,7 @@ namespace NoCustomersFix.Systems
                     Allocator.Persistent);
 
 #if DEBUG
-            // 0 = preventive 82–90%, 1 = strong >90%.
+            // 0 = preventive 82–89%, 1 = strong >=89%.
             m_Counts = new NativeArray<int>(2, Allocator.Persistent);
 #endif
 
@@ -169,7 +169,7 @@ namespace NoCustomersFix.Systems
                     "[NCF-PRODUCTION] " +
                     $"updates=256 preventive={m_WindowPreventiveCompanies} " +
                     $"strong={m_WindowStrongCompanies} " +
-                    "curve=retail 82-90:~50%, >90:0%; hotel 82-85:~50%, >85:0%");
+                    "curve=retail 82-89:~50%, hotel 82-89:~30%, >=89:0% workforce");
 
                 m_WindowPreventiveCompanies = 0;
                 m_WindowStrongCompanies = 0;
@@ -353,11 +353,19 @@ namespace NoCustomersFix.Systems
 
                     for (int j = 0; j < companyEmployees.Length; j++)
                     {
-                        // In the preventive range, vanilla sees roughly half
-                        // the workforce. Strong NEC pressure sees none.
-                        if (!strong && (j & 1) == 0)
+                        // Preventive: keep ~30% of hotel workers productive,
+                        // or ~50% for other commercial companies.
+                        // Strong: temporarily hide all productive workers.
+                        if (!strong)
                         {
-                            continue;
+                            bool keepWorker = isHotel
+                                ? (j % 10) < 3
+                                : (j & 1) == 0;
+
+                            if (keepWorker)
+                            {
+                                continue;
+                            }
                         }
 
                         Game.Companies.Employee employee =
