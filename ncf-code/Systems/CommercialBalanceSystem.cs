@@ -82,6 +82,9 @@ namespace NoCustomersFix.Systems
             base.OnGameLoaded(serializationContext);
 
             ResetBalanceState();
+#if DEBUG || NCF_PERF_TEST
+            ResetPerfCounters();
+#endif
 
 #if DEBUG
             m_UpdateCount = 0;
@@ -109,10 +112,16 @@ namespace NoCustomersFix.Systems
 
         protected override void OnUpdate()
         {
+#if DEBUG || NCF_PERF_TEST
+            long perfStart = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
             uint simulationFrame = m_SimulationSystem.frameIndex;
 
             NativeArray<Entity> readyHouseholds =
                 m_PrepareSystem.CompleteAndGetSnapshot(simulationFrame);
+#if DEBUG || NCF_PERF_TEST
+            long perfAfterSnapshot = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
 
             if (!readyHouseholds.IsCreated)
             {
@@ -132,6 +141,9 @@ namespace NoCustomersFix.Systems
                 serviceCompanyDatas,
                 industrialProcessDatas,
                 resourceDatas);
+#if DEBUG || NCF_PERF_TEST
+            long perfAfterPressure = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
 
 #if DEBUG
             m_LastRepeatPercent = 100;
@@ -152,6 +164,11 @@ namespace NoCustomersFix.Systems
             if (m_RemainingInjectionBudget <= 0 &&
                 m_RemainingVehicleBudget <= 0)
             {
+#if DEBUG || NCF_PERF_TEST
+                RecordPerfUpdate(
+                    perfStart, perfAfterSnapshot, perfAfterPressure,
+                    readyHouseholds.Length, 0, 0);
+#endif
 #if DEBUG
                 FinishUpdate(
                     readyHouseholds.Length,
@@ -227,6 +244,10 @@ namespace NoCustomersFix.Systems
             int avoidedCarAmount = 0;
 #endif
 
+#if DEBUG || NCF_PERF_TEST
+            int perfVisited = 0;
+            int perfInjected = 0;
+#endif
             for (int i = 0; i < readyHouseholds.Length; i++)
             {
                 if (m_RemainingInjectionBudget <= 0 &&
@@ -234,7 +255,9 @@ namespace NoCustomersFix.Systems
                 {
                     break;
                 }
-
+#if DEBUG || NCF_PERF_TEST
+                perfVisited++;
+#endif
                 Entity householdEntity = readyHouseholds[i];
 
                 if (!householdNeeds.HasComponent(householdEntity) ||
@@ -324,6 +347,9 @@ namespace NoCustomersFix.Systems
                     need.m_Amount = amount;
 
                     householdNeeds[householdEntity] = need;
+#if DEBUG || NCF_PERF_TEST
+                    perfInjected++;
+#endif
 
 #if DEBUG
                     injectedNeeds++;
@@ -386,6 +412,9 @@ namespace NoCustomersFix.Systems
                 need.m_Amount = vehicleAmount;
 
                 householdNeeds[householdEntity] = need;
+#if DEBUG || NCF_PERF_TEST
+                perfInjected++;
+#endif
 
 #if DEBUG
                 vehicleInjectedNeeds++;
@@ -409,6 +438,11 @@ namespace NoCustomersFix.Systems
 #endif
             }
 
+#if DEBUG || NCF_PERF_TEST
+            RecordPerfUpdate(
+                perfStart, perfAfterSnapshot, perfAfterPressure,
+                readyHouseholds.Length, perfVisited, perfInjected);
+#endif
 #if DEBUG
             FinishUpdate(
                 readyCount,

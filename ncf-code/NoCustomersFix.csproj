@@ -25,6 +25,11 @@
         <Copyright>Copyright © 2026 River-Mochi</Copyright>
     </PropertyGroup>
 
+    <!-- Opt-in timing build: dotnet build -c Release -p:NCFPerfTest=true -->
+    <PropertyGroup Condition="'$(NCFPerfTest)' == 'true'">
+        <DefineConstants>$(DefineConstants);NCF_PERF_TEST</DefineConstants>
+    </PropertyGroup>
+
     <!-- CS2 toolchain imports must follow PropertyGroup -->
     <Import Project="$([System.Environment]::GetEnvironmentVariable('CSII_TOOLPATH', 'EnvironmentVariableTarget.User'))\Mod.props" />
     <Import Project="$([System.Environment]::GetEnvironmentVariable('CSII_TOOLPATH', 'EnvironmentVariableTarget.User'))\Mod.targets" />

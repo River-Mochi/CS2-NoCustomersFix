@@ -238,41 +238,19 @@ namespace NoCustomersFix.Systems
             float totalScore = 0f;
             int selectionCount = 0;
 
-            ResourceIterator iterator =
-                ResourceIterator.GetIterator();
-
-            while (iterator.Next())
+            for (int cached = 0; cached < m_CachedRetailCount; cached++)
             {
-                Resource resource =
-                    iterator.resource;
+                Resource resource = m_CachedRetailResources[cached];
 
-                int resourceIndex =
-                    EconomyUtils.GetResourceIndex(
-                        resource);
-
+                int resourceIndex = EconomyUtils.GetResourceIndex(resource);
                 if (resourceIndex < 0 ||
-                    resourceIndex >=
-                        m_WorkingCorrectionUnits.Length ||
-                    m_WorkingCorrectionUnits[
-                        resourceIndex] <= 0)
+                    resourceIndex >= m_WorkingCorrectionUnits.Length ||
+                    m_WorkingCorrectionUnits[resourceIndex] <= 0)
                 {
                     continue;
                 }
 
-                if (!IsPhysicalRetailResource(
-                        resource,
-                        ref resourceDatas))
-                {
-                    continue;
-                }
-
-                Entity resourcePrefab =
-                    m_ResourceSystem.GetPrefab(
-                        resource);
-
-                ResourceData resourceData =
-                    resourceDatas[
-                        resourcePrefab];
+                ResourceData resourceData = m_CachedRetailData[cached];
 
                 int vanillaWeight =
                     HouseholdBehaviorSystem

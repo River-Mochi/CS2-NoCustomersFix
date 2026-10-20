@@ -51,6 +51,13 @@ namespace NoCustomersFix.Systems
         private readonly long[] m_WorkingCorrectionUnits =
             new long[EconomyUtils.ResourceCount];
 
+        // Cache unchanged resource prefabs between company-pressure scans.
+        private readonly Resource[] m_CachedRetailResources =
+            new Resource[EconomyUtils.ResourceCount];
+        private readonly ResourceData[] m_CachedRetailData =
+            new ResourceData[EconomyUtils.ResourceCount];
+        private int m_CachedRetailCount;
+
 #if DEBUG
         private readonly float[] m_UnsoldRatio =
             new float[EconomyUtils.ResourceCount];
@@ -134,6 +141,7 @@ namespace NoCustomersFix.Systems
             m_RemainingInjectionBudget = 0;
 
             m_PressureUpdateIndex = 0;
+            m_CachedRetailCount = 0;
 
             ResetVehicleState();
         }
@@ -153,6 +161,7 @@ namespace NoCustomersFix.Systems
                     industrialProcessDatas,
                     resourceDatas);
 
+                RefreshCachedRetailResources(ref resourceDatas);
                 PrepareCorrectionWindow();
             }
 
@@ -164,6 +173,43 @@ namespace NoCustomersFix.Systems
                 kPressureRefreshUpdates)
             {
                 m_PressureUpdateIndex = 0;
+            }
+        }
+
+        // ResourceIterator order is preserved for deterministic selection.
+        // Only the live remaining-correction units change per household.
+        private void RefreshCachedRetailResources(
+            ref ComponentLookup<ResourceData> resourceDatas)
+        {
+            m_CachedRetailCount = 0;
+            ResourceIterator iterator = ResourceIterator.GetIterator();
+
+            while (iterator.Next())
+            {
+                Resource resource = iterator.resource;
+                if (resource == Resource.NoResource ||
+                    resource == Resource.Vehicles ||
+                    EconomyUtils.IsOfficeResource(resource))
+                {
+                    continue;
+                }
+
+                Entity prefab = m_ResourceSystem.GetPrefab(resource);
+                if (prefab == Entity.Null ||
+                    !resourceDatas.HasComponent(prefab))
+                {
+                    continue;
+                }
+
+                ResourceData data = resourceDatas[prefab];
+                if (data.m_IsLeisure)
+                {
+                    continue;
+                }
+
+                m_CachedRetailResources[m_CachedRetailCount] = resource;
+                m_CachedRetailData[m_CachedRetailCount] = data;
+                m_CachedRetailCount++;
             }
         }
 
