@@ -42,6 +42,8 @@ namespace NoCustomersFix.Systems
         private const float kPreventiveRatio = 0.82f;
         private const float kStrongRatio = 0.90f;
 
+        private const float kHotelStrongRatio = 0.85f;
+
         private EntityQuery m_CompanyQuery;
         private SimulationSystem m_SimulationSystem = null!;
 
@@ -167,7 +169,7 @@ namespace NoCustomersFix.Systems
                     "[NCF-PRODUCTION] " +
                     $"updates=256 preventive={m_WindowPreventiveCompanies} " +
                     $"strong={m_WindowStrongCompanies} " +
-                    "curve=82-90:~50% workforce, >90:0% workforce");
+                    "curve=retail 82-90:~50%, >90:0%; hotel 82-85:~50%, >85:0%");
 
                 m_WindowPreventiveCompanies = 0;
                 m_WindowStrongCompanies = 0;
@@ -334,7 +336,10 @@ namespace NoCustomersFix.Systems
                         continue;
                     }
 
-                    bool strong = unusedRatio > kStrongRatio;
+                    bool strong = unusedRatio >
+                        (resource == Resource.Lodging
+                            ? kHotelStrongRatio
+                            : kStrongRatio);
 
                     DynamicBuffer<Game.Companies.Employee> companyEmployees =
                         employees[i];
