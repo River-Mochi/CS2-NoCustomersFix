@@ -313,7 +313,7 @@ namespace NoCustomersFix.Systems
                             ? hotelRenters[company].Length
                             : -1;
 
-                        int stock = resources.HasBuffer(company)
+                        int hotelStock = resources.HasBuffer(company)
                             ? EconomyUtils.GetResources(
                                 Resource.Lodging, resources[company])
                             : -1;
@@ -322,7 +322,7 @@ namespace NoCustomersFix.Systems
                             $"[NCF-HOTEL] building={building.Index}:{building.Version} " +
                             $"company={company.Index}:{company.Version} " +
                             $"unusedService={unused:F1}% " +
-                            $"occupied={occupiedRooms} free={freeRooms} stock={stock}");
+                            $"occupied={occupiedRooms} free={freeRooms} stock={hotelStock}");
                     }
                 #endif
                     continue;
