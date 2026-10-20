@@ -12,6 +12,7 @@
 
 using System;
 
+using Game.Citizens;
 using Game.Economy;
 using Game.Prefabs;
 using Game.Simulation;
@@ -238,6 +239,32 @@ namespace NoCustomersFix.Systems
             float totalScore = 0f;
             int selectionCount = 0;
 
+            // Equivalent to vanilla GetAgeWeight(), but count each household
+            // citizen once rather than once for every retail resource.
+            int childCount = 0;
+            int teenCount = 0;
+            int adultCount = 0;
+            int elderlyCount = 0;
+            for (int i = 0; i < citizens.Length; i++)
+            {
+                CitizenAge age = citizenDatas[citizens[i].m_Citizen].GetAge();
+                switch (age)
+                {
+                    case CitizenAge.Child:
+                        childCount++;
+                        break;
+                    case CitizenAge.Teen:
+                        teenCount++;
+                        break;
+                    case CitizenAge.Elderly:
+                        elderlyCount++;
+                        break;
+                    default:
+                        adultCount++;
+                        break;
+                }
+            }
+
             for (int cached = 0; cached < m_CachedRetailCount; cached++)
             {
                 Resource resource = m_CachedRetailResources[cached];
@@ -252,16 +279,27 @@ namespace NoCustomersFix.Systems
 
                 ResourceData resourceData = m_CachedRetailData[cached];
 
-                int vanillaWeight =
-                    HouseholdBehaviorSystem
-                        .GetResourceShopWeightWithAge(
-                            disposableIncome,
-                            resourceData,
-                            carCount,
-                            leisureIncluded: false,
-                            citizens,
-                            ref citizenDatas,
-                            affluenceIncome);
+                // Exact vanilla non-leisure consumption-weight formula.
+                // All cached resources have m_IsLeisure == false.
+                int ageWeight =
+                    childCount * resourceData.m_ChildWeight +
+                    teenCount * resourceData.m_TeenWeight +
+                    adultCount * resourceData.m_AdultWeight +
+                    elderlyCount * resourceData.m_ElderlyWeight;
+
+                float consumption = resourceData.m_BaseConsumption;
+                consumption += (float)(
+                    carCount * resourceData.m_CarConsumption);
+
+                int vanillaWeight = UnityEngine.Mathf.RoundToInt(
+                    100f * ageWeight * consumption *
+                    math.smoothstep(
+                        resourceData.m_WealthModifier,
+                        1f,
+                        math.max(
+                            0.01f,
+                            (float)disposableIncome /
+                            (float)affluenceIncome)));
 
                 if (vanillaWeight <= 0)
                 {
