@@ -59,6 +59,12 @@ namespace NoCustomersFix.Systems
         private int m_WindowStrongCompanies;
 #endif
 
+#if DEBUG || NCF_PERF_TEST
+        private int m_PerfProductionUpdates;
+        private long m_PerfProductionWaitTicks;
+        private long m_PerfProductionPrepareTicks;
+#endif
+
         internal NativeQueue<CommercialProductionEmployeeRestore> RestoreEntries => m_RestoreEntries;
 
         internal JobHandle AdjustJob => m_AdjustJob;
@@ -147,13 +153,24 @@ namespace NoCustomersFix.Systems
             m_WindowPreventiveCompanies = 0;
             m_WindowStrongCompanies = 0;
 #endif
+#if DEBUG || NCF_PERF_TEST
+            m_PerfProductionUpdates = 0;
+            m_PerfProductionWaitTicks = 0;
+            m_PerfProductionPrepareTicks = 0;
+#endif
         }
 
         protected override void OnUpdate()
         {
+#if DEBUG || NCF_PERF_TEST
+            long perfStarted = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
             // The previous ServiceCompany pass must be completely restored
             // before the shared queue is reused.
             m_RestoreJob.Complete();
+#if DEBUG || NCF_PERF_TEST
+            long perfWaitFinished = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
 
 #if DEBUG
             m_WindowPreventiveCompanies += m_Counts[0];
@@ -220,6 +237,26 @@ namespace NoCustomersFix.Systems
             // The company bucket scan can be large; keep it inside Burst.
             m_AdjustJob = job.ScheduleByRef(m_CompanyQuery, Dependency);
             Dependency = m_AdjustJob;
+
+#if DEBUG || NCF_PERF_TEST
+            long perfFinished = System.Diagnostics.Stopwatch.GetTimestamp();
+            m_PerfProductionUpdates++;
+            m_PerfProductionWaitTicks += perfWaitFinished - perfStarted;
+            m_PerfProductionPrepareTicks += perfFinished - perfWaitFinished;
+
+            if (m_PerfProductionUpdates >= 256)
+            {
+                double ms = 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                LogUtils.Info(
+                    "[NCF-PERF-PRODUCTION] " +
+                    $"updates={m_PerfProductionUpdates} " +
+                    $"restoreWaitMs={(m_PerfProductionWaitTicks * ms):F1} " +
+                    $"prepareScheduleMs={(m_PerfProductionPrepareTicks * ms):F1}");
+                m_PerfProductionUpdates = 0;
+                m_PerfProductionWaitTicks = 0;
+                m_PerfProductionPrepareTicks = 0;
+            }
+#endif
         }
 
         internal void SetRestoreJob(JobHandle restoreJob)
