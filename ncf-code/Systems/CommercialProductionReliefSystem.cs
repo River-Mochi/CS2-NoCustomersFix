@@ -46,7 +46,9 @@ namespace NoCustomersFix.Systems
         private SimulationSystem m_SimulationSystem = null!;
 
         private NativeQueue<CommercialProductionEmployeeRestore> m_RestoreEntries;
+#if DEBUG
         private NativeArray<int> m_Counts;
+#endif
 
         private JobHandle m_AdjustJob;
         private JobHandle m_RestoreJob;
@@ -99,8 +101,10 @@ namespace NoCustomersFix.Systems
                 new NativeQueue<CommercialProductionEmployeeRestore>(
                     Allocator.Persistent);
 
+#if DEBUG
             // 0 = preventive 82–90%, 1 = strong >90%.
             m_Counts = new NativeArray<int>(2, Allocator.Persistent);
+#endif
 
             RequireForUpdate(m_CompanyQuery);
         }
@@ -115,10 +119,12 @@ namespace NoCustomersFix.Systems
                 m_RestoreEntries.Dispose();
             }
 
+#if DEBUG
             if (m_Counts.IsCreated)
             {
                 m_Counts.Dispose();
             }
+#endif
 
             base.OnDestroy();
         }
@@ -131,8 +137,10 @@ namespace NoCustomersFix.Systems
             m_AdjustJob.Complete();
 
             m_RestoreEntries.Clear();
+#if DEBUG
             m_Counts[0] = 0;
             m_Counts[1] = 0;
+#endif
 
 #if DEBUG
             m_UpdateCount = 0;
@@ -167,8 +175,10 @@ namespace NoCustomersFix.Systems
 #endif
 
             m_RestoreEntries.Clear();
+#if DEBUG
             m_Counts[0] = 0;
             m_Counts[1] = 0;
+#endif
 
             uint updateFrame =
                 SimulationUtils.GetUpdateFrameWithInterval(
@@ -202,7 +212,9 @@ namespace NoCustomersFix.Systems
                         SystemAPI.GetComponentLookup<IndustrialProcessData>(true),
 
                     m_RestoreEntries = m_RestoreEntries,
+#if DEBUG
                     m_Counts = m_Counts,
+#endif
                 };
 
             // The company bucket scan can be large; keep it inside Burst.
@@ -240,7 +252,9 @@ namespace NoCustomersFix.Systems
 
             public NativeQueue<CommercialProductionEmployeeRestore> m_RestoreEntries;
 
+#if DEBUG
             public NativeArray<int> m_Counts;
+#endif
 
             public void Execute(
                 in ArchetypeChunk chunk,
@@ -370,6 +384,7 @@ namespace NoCustomersFix.Systems
                         continue;
                     }
 
+#if DEBUG
                     if (strong)
                     {
                         m_Counts[1]++;
@@ -378,6 +393,7 @@ namespace NoCustomersFix.Systems
                     {
                         m_Counts[0]++;
                     }
+#endif
                 }
             }
         }

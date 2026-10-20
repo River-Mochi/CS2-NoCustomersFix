@@ -23,12 +23,14 @@ namespace NoCustomersFix.Systems
 {
     public partial class CommercialBalanceSystem
     {
+#if DEBUG
         private long m_VehicleServiceAvailable;
         private long m_VehicleMaxService;
         private long m_VehicleStock;
 
         private int m_VehicleShopCount;
         private int m_VehicleWarningCount;
+#endif
 
         private long m_VehicleExcess;
         private long m_WorkingVehicleExcess;
@@ -48,12 +50,14 @@ namespace NoCustomersFix.Systems
 
         private void ResetVehiclePressure()
         {
+#if DEBUG
             m_VehicleServiceAvailable = 0;
             m_VehicleMaxService = 0;
             m_VehicleStock = 0;
 
             m_VehicleShopCount = 0;
             m_VehicleWarningCount = 0;
+#endif
 
             m_VehicleExcess = 0;
         }
@@ -64,6 +68,7 @@ namespace NoCustomersFix.Systems
             int stock,
             bool hasWarning)
         {
+#if DEBUG
             m_VehicleShopCount++;
 
             m_VehicleServiceAvailable +=
@@ -79,6 +84,7 @@ namespace NoCustomersFix.Systems
             {
                 m_VehicleWarningCount++;
             }
+#endif
 
             if (stock <= 200)
             {

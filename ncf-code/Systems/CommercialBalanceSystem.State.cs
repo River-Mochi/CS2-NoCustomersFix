@@ -33,13 +33,17 @@ namespace NoCustomersFix.Systems
         // update buckets rather than creating all corrective demand at once.
         private const int kCorrectionHorizonUpdates = 16;
 
+#if DEBUG
         private const int kLogEveryUpdates = 256;
+#endif
 
+#if DEBUG
         private readonly long[] m_ServiceAvailable =
             new long[EconomyUtils.ResourceCount];
 
         private readonly long[] m_MaxService =
             new long[EconomyUtils.ResourceCount];
+#endif
 
         private readonly long[] m_ExcessService =
             new long[EconomyUtils.ResourceCount];
@@ -47,6 +51,7 @@ namespace NoCustomersFix.Systems
         private readonly long[] m_WorkingCorrectionUnits =
             new long[EconomyUtils.ResourceCount];
 
+#if DEBUG
         private readonly float[] m_UnsoldRatio =
             new float[EconomyUtils.ResourceCount];
 
@@ -61,6 +66,7 @@ namespace NoCustomersFix.Systems
 
         private readonly long[] m_WindowInjectedUnitsByResource =
             new long[EconomyUtils.ResourceCount];
+#endif
 
         private long m_TotalExcessService;
         private long m_TotalCorrectionUnits;
@@ -72,6 +78,7 @@ namespace NoCustomersFix.Systems
 
         private void ResetBalanceState()
         {
+#if DEBUG
             Array.Clear(
                 m_ServiceAvailable,
                 0,
@@ -81,6 +88,7 @@ namespace NoCustomersFix.Systems
                 m_MaxService,
                 0,
                 m_MaxService.Length);
+#endif
 
             Array.Clear(
                 m_ExcessService,
@@ -92,6 +100,7 @@ namespace NoCustomersFix.Systems
                 0,
                 m_WorkingCorrectionUnits.Length);
 
+#if DEBUG
             Array.Clear(
                 m_UnsoldRatio,
                 0,
@@ -116,6 +125,7 @@ namespace NoCustomersFix.Systems
                 m_WindowInjectedUnitsByResource,
                 0,
                 m_WindowInjectedUnitsByResource.Length);
+#endif
 
             m_TotalExcessService = 0;
             m_TotalCorrectionUnits = 0;
@@ -165,6 +175,7 @@ namespace NoCustomersFix.Systems
             ComponentLookup<ResourceData>
                 resourceDatas)
         {
+#if DEBUG
             Array.Clear(
                 m_ServiceAvailable,
                 0,
@@ -174,12 +185,14 @@ namespace NoCustomersFix.Systems
                 m_MaxService,
                 0,
                 m_MaxService.Length);
+#endif
 
             Array.Clear(
                 m_ExcessService,
                 0,
                 m_ExcessService.Length);
 
+#if DEBUG
             Array.Clear(
                 m_CompanyCount,
                 0,
@@ -194,6 +207,7 @@ namespace NoCustomersFix.Systems
                 m_UnsoldRatio,
                 0,
                 m_UnsoldRatio.Length);
+#endif
 
             m_TotalExcessService = 0;
 
@@ -261,10 +275,14 @@ namespace NoCustomersFix.Systems
                             resourcesLookup[company]);
                 }
 
+#if DEBUG
                 bool hasWarning =
                     notificationsRef.ValueRO
                         .m_NoCustomersEntity !=
                     Entity.Null;
+#else
+                const bool hasWarning = false;
+#endif
 
                 // Vehicles use the same company scan but retain their special
                 // generic-Vehicle purchase handling.
@@ -290,11 +308,12 @@ namespace NoCustomersFix.Systems
                     EconomyUtils.GetResourceIndex(resource);
 
                 if (resourceIndex < 0 ||
-                    resourceIndex >= m_MaxService.Length)
+                    resourceIndex >= m_ExcessService.Length)
                 {
                     continue;
                 }
 
+#if DEBUG
                 m_ServiceAvailable[resourceIndex] +=
                     available;
 
@@ -307,6 +326,7 @@ namespace NoCustomersFix.Systems
                 {
                     m_WarningCount[resourceIndex]++;
                 }
+#endif
 
                 // Match the physical-stock side of vanilla NEC.
                 if (stock <= 200)
@@ -336,6 +356,7 @@ namespace NoCustomersFix.Systems
                     excess;
             }
 
+#if DEBUG
             for (int i = 0;
                 i < m_UnsoldRatio.Length;
                 i++)
@@ -350,6 +371,7 @@ namespace NoCustomersFix.Systems
                         (float)m_ServiceAvailable[i] /
                         m_MaxService[i]);
             }
+#endif
         }
 
         private void PrepareCorrectionWindow()
