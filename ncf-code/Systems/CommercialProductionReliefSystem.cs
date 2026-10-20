@@ -296,13 +296,14 @@ namespace NoCustomersFix.Systems
                     Resource resource =
                         m_ProcessDatas[prefab].m_Output.m_Resource;
 
-                    // Hotels keep separate occupancy balancing.
+                    // Hotels also receive production relief.
+                    // HotelBalanceSystem separately handles room occupancy.
                     if (resource == Resource.NoResource ||
-                        resource == Resource.Lodging ||
                         EconomyUtils.IsOfficeResource(resource))
                     {
                         continue;
                     }
+
 
                     // Match vanilla's physical-stock side of NEC.
                     if (EconomyUtils.GetResources(resource, resources[i]) <= 200)
