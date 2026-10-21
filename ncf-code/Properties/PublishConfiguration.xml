@@ -29,7 +29,6 @@ This mod helps struggling shops recover by **balancing production and shopping d
 - ✅ **Improves shopping demand** using your existing citizens, no fake shoppers.
 - ✅ Helps Retail and Leisure businesses (Meals, Entertainment, Recreation).
 - ✅ Helps Hotels fill empty rooms using existing tourists.
-- ✅ Performance-friendly: automatically reduces unnecessary work when NEC warnings are low.
 
 ### Real test results 🎉
 
@@ -71,7 +70,7 @@ tags: notification icons, no customers
 <!--Link to the forum post where the mod can be discussed-->
 <ForumLink Value="" />
 <!--Version of the mod-->
-<ModVersion Value="0.6.2" />
+<ModVersion Value="0.6.3" />
 <!--Recommended version of the base game to use the mod-->
 <GameVersion Value="1.6.*" />
 <!--Dependency for the mod, can be set multiple times-->
@@ -81,9 +80,7 @@ tags: notification icons, no customers
 <!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 <ChangeLog Value="" />
 <ChangeLog>
-* Improved performance in large cities, reduced unneeded household scanning.
-* adaptive: scans less when NEC icons already low 0-6.
-* Limits household snapshot size and auto expands when more correction needed.
+* spread work over time.
 </ChangeLog>
 <!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
 <!--Supported values Public, Private, Unlisted-->
