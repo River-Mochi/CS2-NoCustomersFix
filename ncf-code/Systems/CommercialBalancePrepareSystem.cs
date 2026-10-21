@@ -41,6 +41,44 @@ namespace NoCustomersFix.Systems
         private JobHandle m_SnapshotJob;
         private uint m_CapturedSimulationFrame = uint.MaxValue;
 
+#if DEBUG || NCF_PERF_TEST
+        private int m_PerfPrepareUpdates;
+        private int m_PerfPrepareScheduled;
+        private long m_PerfPreviousWaitTicks;
+        private long m_PerfSetupScheduleTicks;
+
+        private void RecordPreparePerf(long started, long afterPrevious, bool scheduled)
+        {
+            long finished = System.Diagnostics.Stopwatch.GetTimestamp();
+            m_PerfPrepareUpdates++;
+            if (scheduled)
+            {
+                m_PerfPrepareScheduled++;
+            }
+
+            m_PerfPreviousWaitTicks += afterPrevious - started;
+            m_PerfSetupScheduleTicks += finished - afterPrevious;
+
+            if (m_PerfPrepareUpdates < 256)
+            {
+                return;
+            }
+
+            double ms = 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+            CS2Shared.RiverMochi.LogUtils.Info(
+                "[NCF-PERF-PREPARE] " +
+                $"updates={m_PerfPrepareUpdates} " +
+                $"scheduled={m_PerfPrepareScheduled} " +
+                $"previousWaitMs={(m_PerfPreviousWaitTicks * ms):F1} " +
+                $"setupScheduleMs={(m_PerfSetupScheduleTicks * ms):F1}");
+
+            m_PerfPrepareUpdates = 0;
+            m_PerfPrepareScheduled = 0;
+            m_PerfPreviousWaitTicks = 0;
+            m_PerfSetupScheduleTicks = 0;
+        }
+#endif
+
         public override int GetUpdateInterval(SystemUpdatePhase phase)
         {
             return 262144 /
@@ -78,7 +116,7 @@ namespace NoCustomersFix.Systems
                             },
                     });
 
-            m_ReadyHouseholds = new NativeList<Entity>(1024, Allocator.Persistent);
+            m_ReadyHouseholds = new NativeList<Entity>(16384, Allocator.Persistent);
 
             RequireForUpdate(m_HouseholdQuery);
         }
@@ -102,11 +140,23 @@ namespace NoCustomersFix.Systems
             m_SnapshotJob.Complete();
             m_ReadyHouseholds.Clear();
             m_CapturedSimulationFrame = uint.MaxValue;
+#if DEBUG || NCF_PERF_TEST
+            m_PerfPrepareUpdates = 0;
+            m_PerfPrepareScheduled = 0;
+            m_PerfPreviousWaitTicks = 0;
+            m_PerfSetupScheduleTicks = 0;
+#endif
         }
 
         protected override void OnUpdate()
         {
+#if DEBUG || NCF_PERF_TEST
+            long perfStart = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
             m_SnapshotJob.Complete();
+#if DEBUG || NCF_PERF_TEST
+            long perfAfterPrevious = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
             m_ReadyHouseholds.Clear();
             m_CapturedSimulationFrame = uint.MaxValue;
 
@@ -121,6 +171,9 @@ namespace NoCustomersFix.Systems
             // Post-vanilla pressure checks still run on skipped updates.
             if (!m_BalanceSystem.ShouldCaptureHouseholds())
             {
+#if DEBUG || NCF_PERF_TEST
+                RecordPreparePerf(perfStart, perfAfterPrevious, false);
+#endif
                 return;
             }
 
@@ -133,13 +186,6 @@ namespace NoCustomersFix.Systems
                     16);
 
             m_HouseholdQuery.SetSharedComponentFilter(new UpdateFrame(updateFrame));
-
-            int candidateCount = m_HouseholdQuery.CalculateEntityCount();
-
-            if (m_ReadyHouseholds.Capacity < candidateCount)
-            {
-                m_ReadyHouseholds.Capacity = candidateCount;
-            }
 
             CaptureReadyHouseholdsJob job =
                 new()
@@ -157,6 +203,9 @@ namespace NoCustomersFix.Systems
             Dependency = m_SnapshotJob;
 
             m_CapturedSimulationFrame = simulationFrame;
+#if DEBUG || NCF_PERF_TEST
+            RecordPreparePerf(perfStart, perfAfterPrevious, true);
+#endif
         }
 
         internal NativeArray<Entity> CompleteAndGetSnapshot(uint simulationFrame)
@@ -210,7 +259,7 @@ namespace NoCustomersFix.Systems
 
                     // Do NOT reject households here for existing resources.
                     // Vanilla runs next and gets first chance to consume them.
-                    m_ReadyHouseholds.AddNoResize(entities[i]);
+                    m_ReadyHouseholds.Add(entities[i]);
                 }
             }
         }

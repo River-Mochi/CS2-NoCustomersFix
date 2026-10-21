@@ -95,6 +95,18 @@ namespace NoCustomersFix.Systems
 
         internal bool ShouldCaptureHouseholds()
         {
+            // When the last pressure refresh found no corrective budget,
+            // there is nothing to inject until the next refresh.
+            // Always permit a snapshot on refresh updates because demand may change.
+            if (m_PressureUpdateIndex != 0 &&
+                (m_PerUpdateInjectionBudget <= 0 ||
+                    m_TotalCorrectionUnits <= 0) &&
+                (m_PerUpdateVehicleBudget <= 0 ||
+                    m_WorkingVehicleExcess <= 0))
+            {
+                return false;
+            }
+
             if (!m_LowWarningThrottle)
             {
                 return true;
