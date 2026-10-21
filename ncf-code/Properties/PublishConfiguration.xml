@@ -19,7 +19,7 @@ This mod helps struggling shops recover by balancing production and shopping. No
 ### Why does vanilla struggle?
 
 *   **90%+ unused Service** is exactly what triggers NEC Icons. But vanilla's shopping-priority score doesn't separate struggling shops of unused Service from 50% - 100%, a big basket that doesn't prioritize the 89% - 100% shops.
-*   Shop workers get paid to produce Service. Service is different from goods (e.g., food, paper...) delivered.
+*   Shop workers get paid to produce Service. Service is different from goods delivered (e.g., food, paper...).
 *   **Shops keep producing** even when they already have too much unsold Service. Vanilla doesn't clamp production to zero until the shop hits 100% full Service which is too late to prevent the NEC icons.
 *   Citizens can't shop while at work or school. Only available adults and elderly can handle normal shopping, making rush hours especially difficult.
 
