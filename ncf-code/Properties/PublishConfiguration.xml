@@ -31,15 +31,15 @@ This mod helps struggling shops recover by balancing production and shopping dem
 
 ### How this mod helps
 
-*   ✅ **Acts early at 82%** unused Service, with stronger production cuts at 89% before the critical 90% threshold.
-*   ✅ **Improves shopping demand** using your existing citizens, no fake shoppers.
+*   ✅ **Slows Service production from 80% unused Service**, with full production relief from 84%, before the critical 90% warning threshold.
+*   ✅ **Limits extra shopping requests** to 24 per active correction update, targeting 87% unused Service rather than oversending shoppers. Uses your existing citizens, no fake shoppers.
 *   ✅ Helps Retail and Leisure businesses (Meals, Entertainment, Recreation).
 *   ✅ Helps Hotels fill empty rooms using existing tourists.
 
 ### Real test results 🎉
 
 *   **130k city:** 165 NEC → just **4** after ~30 minutes.
-*   **90k city:** 335 NEC → **30** after 10 minutes, **7** after 20 minutes
+*   **90k city (6:10 AM test save):** ~50 NEC → **7** after the test. An earlier save, before NCF had time to work, had ~335.
 
 ### What to expect
 
@@ -85,9 +85,9 @@ tags: notification icons, no customers
 
 ### ✅ 本模组能做什么？
 
-*   **提前预防：** 服务闲置达到 82% 时开始减少生产，89% 时进一步加强控制。
+*   **提前预防：** 服务闲置达到 80% 时开始减产，84% 起暂停服务产出，避免触及 90% 的警告阈值。
 
-*   **合理调整购物需求：** 利用城市现有居民，不凭空增加顾客。
+*   **控制额外购物量：** 每次主动调整最多增加 24 个购物需求，以 87% 的服务闲置率为目标。只利用现有居民，不凭空增加顾客。
 
 *   **支持商业和休闲设施：** 包括普通商店、餐饮、娱乐等。
 
@@ -100,7 +100,7 @@ tags: notification icons, no customers
 
 *   **13万人城市：** 165 个警告 → 约30分钟后仅剩 **4 个！**
 
-*   **9万人城市：** 335 个警告 → 10分钟后剩30个，20分钟后仅剩 **7 个！**
+*   **9万人城市（早上 6:10 的测试存档）：** 约 50 个警告 → 测试结束时仅剩 **7 个**。更早的存档曾有约 335 个警告。
 
 
 ### 使用说明
@@ -141,7 +141,9 @@ tags: notification icons, no customers
 <!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 <ChangeLog Value="" />
 <ChangeLog>
-* Improve NEC correction performance with paced shopping
+* Reduce corrective shopping bursts to 24 new needs per active update.
+* Slow excess commercial Service production sooner: 80% preventive, 84% strong.
+* Target 87% unused Service to reduce unnecessary extra shoppers.
 </ChangeLog>
 <!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
 <!--Supported values Public, Private, Unlisted-->
