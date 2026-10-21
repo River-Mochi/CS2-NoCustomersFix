@@ -452,6 +452,10 @@ namespace NoCustomersFix.Systems
 #endif
             }
 
+            m_PrepareSystem.ReportCorrectionResult(
+                m_RemainingInjectionBudget > 0 ||
+                m_RemainingVehicleBudget > 0);
+
 #if DEBUG || NCF_PERF_TEST
             RecordPerfUpdate(
                 perfStart, perfAfterPressure, perfAfterSnapshot,

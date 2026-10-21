@@ -34,8 +34,11 @@ namespace NoCustomersFix.Systems
     {
         // The correction pass normally visits far fewer households than the
         // original snapshot size. Bound the prefix to avoid unnecessary copies.
-        private const int kMaxSnapshotCandidates = 4096;
+        private const int kInitialSnapshotCandidates = 4096;
+        private const int kMaximumSnapshotCandidates = 32768;
 
+        private int m_CandidateLimit = kInitialSnapshotCandidates;
+        private int m_LastCapturedLimit = kInitialSnapshotCandidates;
         private EntityQuery m_HouseholdQuery;
         private NativeList<Entity> m_ReadyHouseholds;
 
@@ -49,6 +52,7 @@ namespace NoCustomersFix.Systems
         private int m_PerfPrepareUpdates;
         private int m_PerfPrepareScheduled;
         private int m_PerfCappedSnapshots;
+        private int m_PerfExpandedLimits;
         private long m_PerfPreviousWaitTicks;
         private long m_PerfSetupScheduleTicks;
 
@@ -75,12 +79,15 @@ namespace NoCustomersFix.Systems
                 $"updates={m_PerfPrepareUpdates} " +
                 $"scheduled={m_PerfPrepareScheduled} " +
                 $"capped={m_PerfCappedSnapshots} " +
+                $"expanded={m_PerfExpandedLimits} " +
+                $"candidateLimit={m_CandidateLimit} " +
                 $"previousWaitMs={(m_PerfPreviousWaitTicks * ms):F1} " +
                 $"setupScheduleMs={(m_PerfSetupScheduleTicks * ms):F1}");
 
             m_PerfPrepareUpdates = 0;
             m_PerfPrepareScheduled = 0;
             m_PerfCappedSnapshots = 0;
+            m_PerfExpandedLimits = 0;
             m_PerfPreviousWaitTicks = 0;
             m_PerfSetupScheduleTicks = 0;
         }
@@ -123,7 +130,7 @@ namespace NoCustomersFix.Systems
                             },
                     });
 
-            m_ReadyHouseholds = new NativeList<Entity>(kMaxSnapshotCandidates, Allocator.Persistent);
+            m_ReadyHouseholds = new NativeList<Entity>(kMaximumSnapshotCandidates, Allocator.Persistent);
 
             RequireForUpdate(m_HouseholdQuery);
         }
@@ -147,10 +154,13 @@ namespace NoCustomersFix.Systems
             m_SnapshotJob.Complete();
             m_ReadyHouseholds.Clear();
             m_CapturedSimulationFrame = uint.MaxValue;
+            m_CandidateLimit = kInitialSnapshotCandidates;
+            m_LastCapturedLimit = kInitialSnapshotCandidates;
 #if DEBUG || NCF_PERF_TEST
             m_PerfPrepareUpdates = 0;
             m_PerfPrepareScheduled = 0;
             m_PerfCappedSnapshots = 0;
+            m_PerfExpandedLimits = 0;
             m_PerfPreviousWaitTicks = 0;
             m_PerfSetupScheduleTicks = 0;
 #endif
@@ -164,7 +174,7 @@ namespace NoCustomersFix.Systems
             m_SnapshotJob.Complete();
 #if DEBUG || NCF_PERF_TEST
             if (m_CapturedSimulationFrame != uint.MaxValue &&
-                m_ReadyHouseholds.Length == kMaxSnapshotCandidates)
+                m_ReadyHouseholds.Length == m_LastCapturedLimit)
             {
                 m_PerfCappedSnapshots++;
             }
@@ -211,14 +221,45 @@ namespace NoCustomersFix.Systems
                             isReadOnly: true),
 
                     m_ReadyHouseholds = m_ReadyHouseholds,
+                    m_MaxCandidates = m_CandidateLimit,
                 };
 
             m_SnapshotJob = job.ScheduleByRef(m_HouseholdQuery, Dependency);
             Dependency = m_SnapshotJob;
 
             m_CapturedSimulationFrame = simulationFrame;
+            m_LastCapturedLimit = m_CandidateLimit;
 #if DEBUG || NCF_PERF_TEST
             RecordPreparePerf(perfStart, perfAfterPrevious, true);
+#endif
+        }
+
+        // When the current candidate prefix cannot meet the correction budget,
+        // examine more households next time. Shrink again once it suffices.
+        // This preserves full-pressure NEC recovery in unusually large cities.
+        internal void ReportCorrectionResult(bool remainingBudget)
+        {
+            if (m_CapturedSimulationFrame == uint.MaxValue)
+            {
+                return;
+            }
+
+            if (!remainingBudget)
+            {
+                m_CandidateLimit = kInitialSnapshotCandidates;
+                return;
+            }
+
+            if (m_ReadyHouseholds.Length < m_LastCapturedLimit ||
+                m_CandidateLimit >= kMaximumSnapshotCandidates)
+            {
+                return;
+            }
+
+            m_CandidateLimit = System.Math.Min(
+                kMaximumSnapshotCandidates, m_CandidateLimit * 2);
+#if DEBUG || NCF_PERF_TEST
+            m_PerfExpandedLimits++;
 #endif
         }
 
@@ -245,6 +286,8 @@ namespace NoCustomersFix.Systems
 
             public NativeList<Entity> m_ReadyHouseholds;
 
+            public int m_MaxCandidates;
+
             public void Execute(
                 in ArchetypeChunk chunk,
                 int unfilteredChunkIndex,
@@ -252,7 +295,7 @@ namespace NoCustomersFix.Systems
                 in v128 chunkEnabledMask)
             {
                 // The job is sequential; once full, skip subsequent chunks.
-                if (m_ReadyHouseholds.Length >= kMaxSnapshotCandidates)
+                if (m_ReadyHouseholds.Length >= m_MaxCandidates)
                 {
                     return;
                 }
@@ -281,7 +324,7 @@ namespace NoCustomersFix.Systems
                     // Vanilla runs next and gets first chance to consume them.
                     m_ReadyHouseholds.AddNoResize(entities[i]);
 
-                    if (m_ReadyHouseholds.Length >= kMaxSnapshotCandidates)
+                    if (m_ReadyHouseholds.Length >= m_MaxCandidates)
                     {
                         return;
                     }
