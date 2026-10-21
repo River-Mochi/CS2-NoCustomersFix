@@ -39,8 +39,8 @@ namespace NoCustomersFix.Systems
     /// </summary>
     public partial class CommercialProductionReliefPrepareSystem : GameSystemBase
     {
-        private const float kPreventiveRatio = 0.82f;
-        private const float kStrongRatio = 0.89f;
+        private const float kPreventiveRatio = 0.80f;
+        private const float kStrongRatio = 0.84f;
 
         private EntityQuery m_CompanyQuery;
         private SimulationSystem m_SimulationSystem = null!;
@@ -108,7 +108,7 @@ namespace NoCustomersFix.Systems
                     Allocator.Persistent);
 
 #if DEBUG
-            // 0 = preventive 82–89%, 1 = strong >=89%.
+            // 0 = preventive 80–84%, 1 = strong >=84%.
             m_Counts = new NativeArray<int>(2, Allocator.Persistent);
 #endif
 
@@ -184,7 +184,7 @@ namespace NoCustomersFix.Systems
                     "[NCF-PRODUCTION] " +
                     $"updates=256 preventive={m_WindowPreventiveCompanies} " +
                     $"strong={m_WindowStrongCompanies} " +
-                    "curve=retail 82-89:~50%, hotel 82-89:~40%, >=89:0% workforce");
+                    "curve=retail 80-84:~50%, hotel 80-84:~40%, >=84:0% workforce");
 
                 m_WindowPreventiveCompanies = 0;
                 m_WindowStrongCompanies = 0;
@@ -251,7 +251,8 @@ namespace NoCustomersFix.Systems
                     "[NCF-PERF-PRODUCTION] " +
                     $"updates={m_PerfProductionUpdates} " +
                     $"restoreWaitMs={(m_PerfProductionWaitTicks * ms):F1} " +
-                    $"prepareScheduleMs={(m_PerfProductionPrepareTicks * ms):F1}");
+                    $"prepareScheduleMs={(m_PerfProductionPrepareTicks * ms):F1} " +
+                    $"preventiveAt={kPreventiveRatio:F2} strongAt={kStrongRatio:F2}");
                 m_PerfProductionUpdates = 0;
                 m_PerfProductionWaitTicks = 0;
                 m_PerfProductionPrepareTicks = 0;
