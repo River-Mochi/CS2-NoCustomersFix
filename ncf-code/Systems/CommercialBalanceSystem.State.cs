@@ -23,7 +23,7 @@ namespace NoCustomersFix.Systems
     {
         // Vanilla NEC appears at roughly >90% unused Service.
         // Keep some safety margin below that threshold.
-        private const float kTargetServiceRatio = 0.82f;
+        private const float kTargetServiceRatio = 0.87f;
 
         // Recheck actual company pressure every four correction updates.
         // removes most full-commercial scans while staying responsive.
@@ -93,9 +93,9 @@ namespace NoCustomersFix.Systems
         private const int kNormalCorrectionActive = 2;
         private const int kLowWarningCorrectionStride = 4;
 
-        // Pace generated shopping trips, not vanilla shopping or production.
+        // Limit newly generated shopping trips; do not limit vanilla shopping.
         // Remaining Service pressure is rechecked on later updates.
-        private const int kMaxCorrectiveNeedsPerUpdate = 48;
+        private const int kMaxCorrectiveNeedsPerUpdate = 24;
 
         private int m_CommercialWarningCount;
         private bool m_LowWarningThrottle;
