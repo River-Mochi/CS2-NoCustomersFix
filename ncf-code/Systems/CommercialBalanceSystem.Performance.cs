@@ -127,6 +127,7 @@ namespace NoCustomersFix.Systems
                 $"visited={m_PerfVisited} " +
                 $"injected={m_PerfInjected} " +
                 $"needCap={kMaxCorrectiveNeedsPerUpdate} " +
+                $"shoppingTarget={kTargetServiceRatio:F2} " +
                 $"cappedCorrectionUpdates={m_PerfCappedCorrectionUpdates} " +
                 $"skippedSnapshots={m_PerfSkippedSnapshots} " +
                 $"commercialWarnings={m_CommercialWarningCount} " +

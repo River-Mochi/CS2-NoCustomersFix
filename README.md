@@ -10,9 +10,9 @@ Vanilla starts slowing production at 80% full Service, but shops can still reach
 
 ## Features
 
-- **Preventive balancing:** Starts helping at 82% full Service.
+- **Preventive balancing:** Starts reducing production at 80% unused Service and applies strong relief at 84%.
 - **Adaptive production:** Slows production when shops are too full.
-- **Shopping demand:** Uses existing households, not fake shoppers.
+- **Shopping demand:** Uses existing households, not fake shoppers; caps added shopping needs at 24 per active update and targets 87% unused Service.
 - **Leisure:** Helps Meals, Entertainment, and Recreation.
 - **Hotels:** Best-effort balancing using existing tourists.
 - **Performance:** Burst-optimized processing and reduced scanning.
@@ -21,7 +21,7 @@ Vanilla starts slowing production at 80% full Service, but shops can still reach
 ## Test Results
 
 - **130k city:** 165 NEC → 4 after ~30 minutes.
-- **90k city:** 335 NEC → 9 after ~20 minutes.
+- **90k city (6:10 AM test save, already partly corrected):** ~50 NEC → 7 in the 0.6.4 test. An earlier save had ~335 NEC before NCF reduced them.
 
 Allow 15–30 minutes for heavily affected cities to rebalance.
 
