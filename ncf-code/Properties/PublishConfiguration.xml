@@ -29,10 +29,10 @@ But vanilla's shopping-priority score doesn't separate struggling shops of unuse
 
 ### How this mod helps
 
-*   ✅ **Slows Service production from 80% unused Service**, with full production relief from 84%, before the critical 90% warning threshold.
-*   ✅ **Limits extra shopping requests** to 24 per active correction update, targeting 87% unused Service rather than oversending shoppers. Uses your existing citizens, no fake shoppers.
-*   ✅ Helps Retail and Leisure businesses (Meals, Entertainment, Recreation).
-*   ✅ Helps Hotels fill empty rooms using existing tourists.
+* ✅ Shops slow production starting at 80% unsold Service, to prevent "Not Enough Customers" caused at critical 90%.
+* ✅ Spreads out extra shopping, helps prevent sudden waves of shoppers to reduce traffic. Uses existing citizens, no fake shoppers.
+* ✅ Helps Retail and Leisure businesses (Meals, Entertainment, Recreation).
+* ✅ Helps Hotels fill empty rooms using existing tourists.
 
 ### Real test results 🎉
 
