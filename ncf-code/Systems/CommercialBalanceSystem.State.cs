@@ -93,6 +93,10 @@ namespace NoCustomersFix.Systems
         private const int kNormalCorrectionActive = 2;
         private const int kLowWarningCorrectionStride = 4;
 
+        // Pace generated shopping trips, not vanilla shopping or production.
+        // Remaining Service pressure is rechecked on later updates.
+        private const int kMaxCorrectiveNeedsPerUpdate = 48;
+
         private int m_CommercialWarningCount;
         private bool m_LowWarningThrottle;
         private int m_CorrectionSnapshotIndex;
