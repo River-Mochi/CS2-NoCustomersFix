@@ -46,7 +46,9 @@ namespace NoCustomersFix.Systems
         private SimulationSystem m_SimulationSystem = null!;
 
         private NativeQueue<CommercialProductionEmployeeRestore> m_RestoreEntries;
-#if DEBUG
+#if DEBUG || NCF_PERF_TEST
+        // Per-pass Burst counters: preventive companies, strong companies,
+        // masked employees, restored employees, skipped restorations.
         private NativeArray<int> m_Counts;
 #endif
 
@@ -63,11 +65,19 @@ namespace NoCustomersFix.Systems
         private int m_PerfProductionUpdates;
         private long m_PerfProductionWaitTicks;
         private long m_PerfProductionPrepareTicks;
+        private long m_PerfPreventiveCompanies;
+        private long m_PerfStrongCompanies;
+        private long m_PerfMaskedEmployees;
+        private long m_PerfRestoredEmployees;
+        private long m_PerfSkippedRestorations;
 #endif
 
         internal NativeQueue<CommercialProductionEmployeeRestore> RestoreEntries => m_RestoreEntries;
 
         internal JobHandle AdjustJob => m_AdjustJob;
+#if DEBUG || NCF_PERF_TEST
+        internal NativeArray<int> PerfCounters => m_Counts;
+#endif
 
         public override int GetUpdateInterval(SystemUpdatePhase phase)
         {
@@ -107,9 +117,10 @@ namespace NoCustomersFix.Systems
                 new NativeQueue<CommercialProductionEmployeeRestore>(
                     Allocator.Persistent);
 
-#if DEBUG
-            // 0 = preventive 80–84%, 1 = strong >=84%.
-            m_Counts = new NativeArray<int>(2, Allocator.Persistent);
+#if DEBUG || NCF_PERF_TEST
+            // 0 = preventive companies; 1 = strong companies;
+            // 2 = masked employees; 3 = restored; 4 = skipped restores.
+            m_Counts = new NativeArray<int>(5, Allocator.Persistent);
 #endif
 
             RequireForUpdate(m_CompanyQuery);
@@ -125,7 +136,7 @@ namespace NoCustomersFix.Systems
                 m_RestoreEntries.Dispose();
             }
 
-#if DEBUG
+#if DEBUG || NCF_PERF_TEST
             if (m_Counts.IsCreated)
             {
                 m_Counts.Dispose();
@@ -143,9 +154,11 @@ namespace NoCustomersFix.Systems
             m_AdjustJob.Complete();
 
             m_RestoreEntries.Clear();
-#if DEBUG
-            m_Counts[0] = 0;
-            m_Counts[1] = 0;
+#if DEBUG || NCF_PERF_TEST
+            for (int index = 0; index < m_Counts.Length; index++)
+            {
+                m_Counts[index] = 0;
+            }
 #endif
 
 #if DEBUG
@@ -157,6 +170,11 @@ namespace NoCustomersFix.Systems
             m_PerfProductionUpdates = 0;
             m_PerfProductionWaitTicks = 0;
             m_PerfProductionPrepareTicks = 0;
+            m_PerfPreventiveCompanies = 0;
+            m_PerfStrongCompanies = 0;
+            m_PerfMaskedEmployees = 0;
+            m_PerfRestoredEmployees = 0;
+            m_PerfSkippedRestorations = 0;
 #endif
         }
 
@@ -170,6 +188,13 @@ namespace NoCustomersFix.Systems
             m_RestoreJob.Complete();
 #if DEBUG || NCF_PERF_TEST
             long perfWaitFinished = System.Diagnostics.Stopwatch.GetTimestamp();
+
+            // Jobs are complete: previous pass counters are safe to read.
+            m_PerfPreventiveCompanies += m_Counts[0];
+            m_PerfStrongCompanies += m_Counts[1];
+            m_PerfMaskedEmployees += m_Counts[2];
+            m_PerfRestoredEmployees += m_Counts[3];
+            m_PerfSkippedRestorations += m_Counts[4];
 #endif
 
 #if DEBUG
@@ -192,9 +217,11 @@ namespace NoCustomersFix.Systems
 #endif
 
             m_RestoreEntries.Clear();
-#if DEBUG
-            m_Counts[0] = 0;
-            m_Counts[1] = 0;
+#if DEBUG || NCF_PERF_TEST
+            for (int index = 0; index < m_Counts.Length; index++)
+            {
+                m_Counts[index] = 0;
+            }
 #endif
 
             uint updateFrame =
@@ -229,7 +256,7 @@ namespace NoCustomersFix.Systems
                         SystemAPI.GetComponentLookup<IndustrialProcessData>(true),
 
                     m_RestoreEntries = m_RestoreEntries,
-#if DEBUG
+#if DEBUG || NCF_PERF_TEST
                     m_Counts = m_Counts,
 #endif
                 };
@@ -252,10 +279,20 @@ namespace NoCustomersFix.Systems
                     $"updates={m_PerfProductionUpdates} " +
                     $"restoreWaitMs={(m_PerfProductionWaitTicks * ms):F1} " +
                     $"prepareScheduleMs={(m_PerfProductionPrepareTicks * ms):F1} " +
-                    $"preventiveAt={kPreventiveRatio:F2} strongAt={kStrongRatio:F2}");
+                    $"preventiveAt={kPreventiveRatio:F2} strongAt={kStrongRatio:F2} " +
+                    $"preventiveCompanies={m_PerfPreventiveCompanies} " +
+                    $"strongCompanies={m_PerfStrongCompanies} " +
+                    $"maskedEmployees={m_PerfMaskedEmployees} " +
+                    $"restoredEmployees={m_PerfRestoredEmployees} " +
+                    $"skippedRestorations={m_PerfSkippedRestorations}");
                 m_PerfProductionUpdates = 0;
                 m_PerfProductionWaitTicks = 0;
                 m_PerfProductionPrepareTicks = 0;
+                m_PerfPreventiveCompanies = 0;
+                m_PerfStrongCompanies = 0;
+                m_PerfMaskedEmployees = 0;
+                m_PerfRestoredEmployees = 0;
+                m_PerfSkippedRestorations = 0;
             }
 #endif
         }
@@ -290,7 +327,7 @@ namespace NoCustomersFix.Systems
 
             public NativeQueue<CommercialProductionEmployeeRestore> m_RestoreEntries;
 
-#if DEBUG
+#if DEBUG || NCF_PERF_TEST
             public NativeArray<int> m_Counts;
 #endif
 
@@ -422,7 +459,9 @@ namespace NoCustomersFix.Systems
                         // after ServiceCompanySystem finishes.
                         employee.m_Worker = Entity.Null;
                         companyEmployees[j] = employee;
-
+#if DEBUG || NCF_PERF_TEST
+                        m_Counts[2]++;
+#endif
                         changed = true;
                     }
 
@@ -431,7 +470,7 @@ namespace NoCustomersFix.Systems
                         continue;
                     }
 
-#if DEBUG
+#if DEBUG || NCF_PERF_TEST
                     if (strong)
                     {
                         m_Counts[1]++;
@@ -473,6 +512,9 @@ namespace NoCustomersFix.Systems
 
                     m_RestoreEntries =
                         m_PrepareSystem.RestoreEntries,
+#if DEBUG || NCF_PERF_TEST
+                    m_Counts = m_PrepareSystem.PerfCounters,
+#endif
                 };
 
             // Dependency also includes vanilla's Employee-buffer reader, so
@@ -496,6 +538,9 @@ namespace NoCustomersFix.Systems
             public BufferLookup<Game.Companies.Employee> m_Employees;
 
             public NativeQueue<CommercialProductionEmployeeRestore> m_RestoreEntries;
+#if DEBUG || NCF_PERF_TEST
+            public NativeArray<int> m_Counts;
+#endif
 
             public void Execute()
             {
@@ -504,6 +549,9 @@ namespace NoCustomersFix.Systems
                 {
                     if (!m_Employees.HasBuffer(restore.m_Company))
                     {
+#if DEBUG || NCF_PERF_TEST
+                        m_Counts[4]++;
+#endif
                         continue;
                     }
 
@@ -513,10 +561,16 @@ namespace NoCustomersFix.Systems
                     if (restore.m_Index < 0 ||
                         restore.m_Index >= employees.Length)
                     {
+#if DEBUG || NCF_PERF_TEST
+                        m_Counts[4]++;
+#endif
                         continue;
                     }
 
                     employees[restore.m_Index] = restore.m_Employee;
+#if DEBUG || NCF_PERF_TEST
+                    m_Counts[3]++;
+#endif
                 }
             }
         }
