@@ -24,14 +24,7 @@ using Unity.Entities;
 namespace NoCustomersFix.Systems
 {
     /// <summary>
-    /// Runs after vanilla HouseholdBehaviorSystem.
-    ///
-    /// Vanilla-created shopping needs always win. NCF examines only the
-    /// Burst-built candidate snapshot captured immediately before vanilla.
-    ///
-    /// NCF does not force additional repeat-shopping throttle. Vanilla
-    /// controls household consumption and citizen availability;
-    /// NCF commercial correction limits how much extra demand is created.
+    /// Adds capped corrective shopping needs after vanilla household updates.
     /// </summary>
     public partial class CommercialBalanceSystem : GameSystemBase
     {
@@ -139,6 +132,7 @@ namespace NoCustomersFix.Systems
             long perfAfterPressure = System.Diagnostics.Stopwatch.GetTimestamp();
 #endif
 
+            // These candidates were captured before vanilla shopping ran.
             NativeArray<Entity> readyHouseholds =
                 m_PrepareSystem.CompleteAndGetSnapshot(simulationFrame);
 #if DEBUG || NCF_PERF_TEST
@@ -304,11 +298,7 @@ namespace NoCustomersFix.Systems
                 Game.Citizens.Household household =
                     households[householdEntity];
 
-                // Check this AFTER vanilla. Vanilla may have consumed the last
-                // of the household's previous purchase during this same update.
-                //
-                // If resources still remain, respect vanilla and do not create
-                // another shopping need yet.
+                // After vanilla, only households out of resources need help.
                 if (household.m_Resources > 0)
                 {
                     continue;
@@ -459,8 +449,7 @@ namespace NoCustomersFix.Systems
             bool hitCorrectionLimit =
                 correctiveNeedsThisUpdate >= kMaxCorrectiveNeedsPerUpdate;
 
-            // Unspent demand is deliberate when pacing caps requests:
-            // do not expand snapshot size just to compensate.
+            // Hitting the 24-need cap must not expand the next snapshot.
             m_PrepareSystem.ReportCorrectionResult(
                 !hitCorrectionLimit &&
                     (m_RemainingInjectionBudget > 0 ||

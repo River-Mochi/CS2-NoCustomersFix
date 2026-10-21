@@ -23,17 +23,11 @@ using Unity.Jobs;
 namespace NoCustomersFix.Systems
 {
     /// <summary>
-    /// Captures resident households that enter vanilla HouseholdBehaviorSystem
-    /// without an existing shopping need.
-    ///
-    /// Vanilla runs after this snapshot and gets first chance to consume existing
-    /// household resources or create its own shopping need.
-    /// CommercialBalanceSystem then rechecks the household after vanilla.
+    /// Captures household candidates before vanilla shopping runs.
     /// </summary>
     public partial class CommercialBalancePrepareSystem : GameSystemBase
     {
-        // The correction pass normally visits far fewer households than the
-        // original snapshot size. Bound the prefix to avoid unnecessary copies.
+        // Start with a small snapshot; expand only when needed.
         private const int kInitialSnapshotCandidates = 4096;
         private const int kMaximumSnapshotCandidates = 32768;
 
@@ -191,8 +185,7 @@ namespace NoCustomersFix.Systems
                 m_BalanceSystem = World.GetOrCreateSystemManaged<CommercialBalanceSystem>();
             }
 
-            // Avoid the full candidate snapshot on quiet commercial days.
-            // Post-vanilla pressure checks still run on skipped updates.
+            // Skip expensive snapshots when corrective demand is low.
             if (!m_BalanceSystem.ShouldCaptureHouseholds())
             {
 #if DEBUG || NCF_PERF_TEST
@@ -211,6 +204,7 @@ namespace NoCustomersFix.Systems
 
             m_HouseholdQuery.SetSharedComponentFilter(new UpdateFrame(updateFrame));
 
+            // Recheck these candidates after vanilla has processed them.
             CaptureReadyHouseholdsJob job =
                 new()
                 {
@@ -234,9 +228,7 @@ namespace NoCustomersFix.Systems
 #endif
         }
 
-        // When the current candidate prefix cannot meet the correction budget,
-        // examine more households next time. Shrink again once it suffices.
-        // This preserves full-pressure NEC recovery in unusually large cities.
+        // Expand the candidate prefix only when a correction needs more.
         internal void ReportCorrectionResult(bool remainingBudget)
         {
             if (m_CapturedSimulationFrame == uint.MaxValue)
@@ -313,15 +305,13 @@ namespace NoCustomersFix.Systems
 
                 while (enumerator.NextEntityIndex(out int i))
                 {
-                    // Never compete with a shopping need that already existed
-                    // before vanilla HouseholdBehaviorSystem ran.
+                    // Only snapshot households without a shopping need.
                     if (needs[i].m_Resource != Game.Economy.Resource.NoResource)
                     {
                         continue;
                     }
 
-                    // Do NOT reject households here for existing resources.
-                    // Vanilla runs next and gets first chance to consume them.
+                    // Vanilla gets first chance to use household resources.
                     m_ReadyHouseholds.AddNoResize(entities[i]);
 
                     if (m_ReadyHouseholds.Length >= m_MaxCandidates)
