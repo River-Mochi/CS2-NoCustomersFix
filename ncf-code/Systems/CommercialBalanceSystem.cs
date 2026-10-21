@@ -151,7 +151,7 @@ namespace NoCustomersFix.Systems
                 RecordSkippedSnapshot();
                 RecordPerfUpdate(
                     perfStart, perfAfterPressure, perfAfterSnapshot,
-                    0, 0, 0);
+                    0, 0, 0, false);
 #endif
 #if DEBUG
                 FinishUpdate(0, 0, 0, 0, 0, 0, 0, 0);
@@ -181,7 +181,7 @@ namespace NoCustomersFix.Systems
 #if DEBUG || NCF_PERF_TEST
                 RecordPerfUpdate(
                     perfStart, perfAfterPressure, perfAfterSnapshot,
-                    readyHouseholds.Length, 0, 0);
+                    readyHouseholds.Length, 0, 0, false);
 #endif
 #if DEBUG
                 FinishUpdate(
@@ -262,10 +262,12 @@ namespace NoCustomersFix.Systems
             int perfVisited = 0;
             int perfInjected = 0;
 #endif
+            int correctiveNeedsThisUpdate = 0;
             for (int i = 0; i < readyHouseholds.Length; i++)
             {
-                if (m_RemainingInjectionBudget <= 0 &&
-                    m_RemainingVehicleBudget <= 0)
+                if (correctiveNeedsThisUpdate >= kMaxCorrectiveNeedsPerUpdate ||
+                    (m_RemainingInjectionBudget <= 0 &&
+                        m_RemainingVehicleBudget <= 0))
                 {
                     break;
                 }
@@ -361,6 +363,7 @@ namespace NoCustomersFix.Systems
                     need.m_Amount = amount;
 
                     householdNeeds[householdEntity] = need;
+                    correctiveNeedsThisUpdate++;
 #if DEBUG || NCF_PERF_TEST
                     perfInjected++;
 #endif
@@ -426,6 +429,7 @@ namespace NoCustomersFix.Systems
                 need.m_Amount = vehicleAmount;
 
                 householdNeeds[householdEntity] = need;
+                correctiveNeedsThisUpdate++;
 #if DEBUG || NCF_PERF_TEST
                 perfInjected++;
 #endif
@@ -452,14 +456,21 @@ namespace NoCustomersFix.Systems
 #endif
             }
 
+            bool hitCorrectionLimit =
+                correctiveNeedsThisUpdate >= kMaxCorrectiveNeedsPerUpdate;
+
+            // Unspent demand is deliberate when pacing caps requests:
+            // do not expand snapshot size just to compensate.
             m_PrepareSystem.ReportCorrectionResult(
-                m_RemainingInjectionBudget > 0 ||
-                m_RemainingVehicleBudget > 0);
+                !hitCorrectionLimit &&
+                    (m_RemainingInjectionBudget > 0 ||
+                        m_RemainingVehicleBudget > 0));
 
 #if DEBUG || NCF_PERF_TEST
             RecordPerfUpdate(
                 perfStart, perfAfterPressure, perfAfterSnapshot,
-                readyHouseholds.Length, perfVisited, perfInjected);
+                readyHouseholds.Length, perfVisited, perfInjected,
+                hitCorrectionLimit);
 #endif
 #if DEBUG
             FinishUpdate(

@@ -87,11 +87,19 @@ namespace NoCustomersFix.Systems
         // healthy. Hysteresis avoids switching modes on each warning change.
         private const int kLowWarningEnter = 6;
         private const int kLowWarningExit = 12;
+        // 2 of every 3 eligible busy-city passes: fewer shopping requests
+        // per game hour, while keeping the full NEC correction rules.
+        private const int kNormalCorrectionCycle = 3;
+        private const int kNormalCorrectionActive = 2;
         private const int kLowWarningCorrectionStride = 4;
+
+        // Pace generated shopping trips, not vanilla shopping or production.
+        // Remaining Service pressure is rechecked on later updates.
+        private const int kMaxCorrectiveNeedsPerUpdate = 48;
 
         private int m_CommercialWarningCount;
         private bool m_LowWarningThrottle;
-        private int m_LowWarningCorrectionIndex;
+        private int m_CorrectionSnapshotIndex;
 
         internal bool ShouldCaptureHouseholds()
         {
@@ -107,13 +115,18 @@ namespace NoCustomersFix.Systems
                 return false;
             }
 
-            if (!m_LowWarningThrottle)
+            int correctionIndex = m_CorrectionSnapshotIndex++;
+
+            // Keep the existing one-in-four cadence in healthy cities.
+            if (m_LowWarningThrottle)
             {
-                return true;
+                return correctionIndex % kLowWarningCorrectionStride == 0;
             }
 
-            return m_LowWarningCorrectionIndex++ %
-                kLowWarningCorrectionStride == 0;
+            // Spread stronger correction over time. Production, hotel,
+            // leisure and pressure updates are unaffected.
+            return correctionIndex % kNormalCorrectionCycle <
+                kNormalCorrectionActive;
         }
 
         private void ResetBalanceState()
@@ -177,7 +190,7 @@ namespace NoCustomersFix.Systems
             m_CachedRetailCount = 0;
             m_CommercialWarningCount = 0;
             m_LowWarningThrottle = false;
-            m_LowWarningCorrectionIndex = 0;
+            m_CorrectionSnapshotIndex = 0;
 
             ResetVehicleState();
         }
@@ -443,13 +456,13 @@ namespace NoCustomersFix.Systems
                 m_CommercialWarningCount <= kLowWarningEnter)
             {
                 m_LowWarningThrottle = true;
-                m_LowWarningCorrectionIndex = 0;
+                m_CorrectionSnapshotIndex = 0;
             }
             else if (m_LowWarningThrottle &&
                 m_CommercialWarningCount >= kLowWarningExit)
             {
                 m_LowWarningThrottle = false;
-                m_LowWarningCorrectionIndex = 0;
+                m_CorrectionSnapshotIndex = 0;
             }
 
 #if DEBUG

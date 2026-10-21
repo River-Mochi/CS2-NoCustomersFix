@@ -10,55 +10,115 @@
 <LongDescription>
 # 🛒 Too many "Not Enough Customers" icons?
 
+**满城都是“顾客不足”警告**
+
 **Adding more citizens doesn't always fix it!**
 
-This mod helps struggling shops recover by **balancing production and shopping demand**. No fake shoppers, no complicated settings!
+This mod helps struggling shops recover by balancing production and shopping demand. No fake shoppers, no complicated settings!
 
 ### Why does vanilla struggle?
 
-- **90%+ unused Service** triggers NEC warnings. But vanilla's shopping-priority score stops distinguishing struggling shops once unused Service exceeds 50%.
-* Shop workers get paid to produce Service. Service is different from goods (e.g., food, paper...) you see delivered.
-* **Shops keep producing** even when they already have too much unsold Service. Vanilla doesn't clamp production to zero until the shop hits 100% full Service which is too late to prevent the NEC icons.
-- Citizens can't shop while at work or school. Only available adults and elderly can handle normal shopping, making rush hours especially difficult.
+*   **90%+ unused Service** triggers NEC warnings. But vanilla's shopping-priority score doesn't differentiate struggling shops of unused Service from 50% - 100%, too wide.
 
-**Result: Too much Service, and shoppers keep visiting healthy shops instead of those desperately needing customers!
+*   Shop workers get paid to produce Service. Service is different from goods (e.g., food, paper...) you see delivered.
+
+*   **Shops keep producing** even when they already have too much unsold Service. Vanilla doesn't clamp production to zero until the shop hits 100% full Service which is too late to prevent the NEC icons.
+
+*   Citizens can't shop while at work or school. Only available adults and elderly can handle normal shopping, making rush hours especially difficult.
+
+
+**Result: Too much Service, and shoppers keep visiting healthy shops instead of those desperately needing customers!**
 
 ### How this mod helps
 
-- ✅ **Acts early at 82%** unused Service, with stronger production cuts at 89% before the critical 90% threshold.
-- ✅ **Improves shopping demand** using your existing citizens, no fake shoppers.
-- ✅ Helps Retail and Leisure businesses (Meals, Entertainment, Recreation).
-- ✅ Helps Hotels fill empty rooms using existing tourists.
-- ✅ Performance-friendly: automatically reduces unnecessary work when NEC warnings are low.
+*   ✅ **Acts early at 82%** unused Service, with stronger production cuts at 89% before the critical 90% threshold.
+*   ✅ **Improves shopping demand** using your existing citizens, no fake shoppers.
+*   ✅ Helps Retail and Leisure businesses (Meals, Entertainment, Recreation).
+*   ✅ Helps Hotels fill empty rooms using existing tourists.
 
 ### Real test results 🎉
 
-- **130k city:** 165 NEC → just **4** after ~30 minutes.
-- **90k city:** 335 NEC → **30** after 10 minutes, **7** after 20 minutes
+*   **130k city:** 165 NEC → just **4** after ~30 minutes.
+*   **90k city:** 335 NEC → **30** after 10 minutes, **7** after 20 minutes
 
 ### What to expect
 
-* **Install and play!** No Options menu settings needed.
-* Some cities improve in 5 minutes. Allow **15–30 minutes**.
-* A few remaining warnings? Prune some if needed or check pathing to the buildings.
-* Safe to remove, Vanilla takes over again. No Harmony patch means more compatible with other mods and the game.
-* Companion [mod City Watchdog](https://mods.paradoxplaza.com/mods/144908/Windows) recommended to easily see totals go up/down like shown in the screenshot.
-Make sure to put a "blue star" next to Not Enough Customers.
-* This mod is a temp fix until IFS improves commercial balancing to stop the flood of "Not Enough Customers" Icons.
+*   **Install and play!** No Options menu settings needed.
+*   Some cities improve in 5 minutes. Allow **15–30 minutes**.
+*   A few remaining warnings? Prune some if needed or check pathing to the buildings.
+*   Companion [mod City Watchdog](https://mods.paradoxplaza.com/mods/144908/Windows) recommended to easily see totals like shown in the screenshot. Make sure to put a "blue star" next to Not Enough Customers.
+*   Safe to remove. No Harmony patch means more compatible with other mods and the game.
+*   This mod is a temp fix until IFS improves commercial balancing to stop the flood of "Not Enough Customers" Icons.
 
-**Tip:** A full commercial demand bar doesn't mean your citizens can support more shops! It means companies are looking for spaces.
+**Tips:** full commercial demand bar doesn't mean your citizens can support more shops! It means companies are looking for spaces.
+
+**Other mods:** that increase commercial workers can make NEC warnings worse! More workers may produce Service faster than customers can use it.
 
 ### Support and Feedback
 
-* Support by clicking the LIKE 👍 button (top right)! No donations, just a free like for the many days of work.
-* Feedback: [Discord](https://discord.gg/gwXgvtyhjc) | [GitHub](https://github.com/River-Mochi/CS2-NoCustomersFix), GPL-3.0 license.
+*   Support by clicking the LIKE 👍 button (top right)! No donations, just a free like for the many days of work.
+*   Feedback: [Discord](https://discord.gg/gwXgvtyhjc) | [GitHub](https://github.com/River-Mochi/CS2-NoCustomersFix), GPL-3.0 license.
 
 ### Credits and Thanks
-**RiverMochi:** Mod author
-**Sunny Scunny:** Testing
+
+*   RiverMochi: mod author
+*   Sunny Scunny: testing
 
 tags: notification icons, no customers
 
+**增加人口也不一定能解决！**
+
+本模组通过**减少商店过剩产出、优化居民购物需求**，帮助商业区摆脱大量“顾客不足”警告。
+
+**不制造虚假顾客，无需复杂设置，安装即用！**
+
+### 为什么原版会出现这个问题？
+
+*   商店闲置服务量超过 **90%** 时，就会出现“顾客不足”警告。
+
+*   原版对闲置服务量在 **50%–100%** 之间的商店缺乏足够的购物优先级区分。
+
+*   商店即使顾客不足，员工仍会继续生产服务，导致供过于求。
+
+*   上班、上学期间，很多市民无法购物，问题更加明显。
+
+
+### ✅ 本模组能做什么？
+
+*   **提前预防：** 服务闲置达到 82% 时开始减少生产，89% 时进一步加强控制。
+
+*   **合理调整购物需求：** 利用城市现有居民，不凭空增加顾客。
+
+*   **支持商业和休闲设施：** 包括普通商店、餐饮、娱乐等。
+
+*   **改善酒店经营：** 帮助现有游客入住空房间。
+
+*   **注重性能：** 警告较少时自动减少不必要的扫描。
+
+
+### 🎉 实际测试效果
+
+*   **13万人城市：** 165 个警告 → 约30分钟后仅剩 **4 个！**
+
+*   **9万人城市：** 335 个警告 → 10分钟后剩30个，20分钟后仅剩 **7 个！**
+
+
+### 使用说明
+
+*   **安装后直接游玩，无需设置！**
+
+*   部分城市5分钟内就有改善，建议运行 **15–30分钟**。
+
+*   如果还有少量警告，可检查道路连接，或适当减少过剩商业区。
+
+*   **可以安全卸载，不使用 Harmony 补丁。**
+
+*   注意：其他模组如果大幅增加商业员工数量，可能让服务生产过剩的问题更加严重。
+
+
+**💡 提示：** 商业需求条满了，不代表居民有足够的购买力支持更多商店！
+
+**喜欢这个模组？欢迎点个赞 👍！感谢支持！**
 </LongDescription>
 <!--Thumbnail-->
 <Thumbnail Value="Properties/Thumbnail01.jpg" />
@@ -71,7 +131,7 @@ tags: notification icons, no customers
 <!--Link to the forum post where the mod can be discussed-->
 <ForumLink Value="" />
 <!--Version of the mod-->
-<ModVersion Value="0.6.2" />
+<ModVersion Value="0.6.3" />
 <!--Recommended version of the base game to use the mod-->
 <GameVersion Value="1.6.*" />
 <!--Dependency for the mod, can be set multiple times-->
@@ -81,9 +141,7 @@ tags: notification icons, no customers
 <!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 <ChangeLog Value="" />
 <ChangeLog>
-* Improved performance in large cities, reduced unneeded household scanning.
-* adaptive: scans less when NEC icons already low 0-6.
-* Limits household snapshot size and auto expands when more correction needed.
+* Improve NEC correction performance with paced shopping
 </ChangeLog>
 <!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
 <!--Supported values Public, Private, Unlisted-->

@@ -29,6 +29,7 @@ namespace NoCustomersFix.Systems
         private long m_PerfVisited;
         private long m_PerfInjected;
         private int m_PerfSkippedSnapshots;
+        private int m_PerfCappedCorrectionUpdates;
 
         private void RecordSkippedSnapshot()
         {
@@ -85,11 +86,12 @@ namespace NoCustomersFix.Systems
             m_PerfVisited = 0;
             m_PerfInjected = 0;
             m_PerfSkippedSnapshots = 0;
+            m_PerfCappedCorrectionUpdates = 0;
         }
 
         private void RecordPerfUpdate(
             long start, long afterPressure, long afterSnapshot,
-            int candidates, int visited, int injected)
+            int candidates, int visited, int injected, bool cappedCorrection)
         {
             long finished = Stopwatch.GetTimestamp();
             long correction = finished - afterSnapshot;
@@ -103,6 +105,10 @@ namespace NoCustomersFix.Systems
             m_PerfCandidates += candidates;
             m_PerfVisited += visited;
             m_PerfInjected += injected;
+            if (cappedCorrection)
+            {
+                m_PerfCappedCorrectionUpdates++;
+            }
 
             if (m_PerfUpdates < kPerfLogUpdates)
             {
@@ -120,8 +126,11 @@ namespace NoCustomersFix.Systems
                 $"candidates={m_PerfCandidates} " +
                 $"visited={m_PerfVisited} " +
                 $"injected={m_PerfInjected} " +
+                $"needCap={kMaxCorrectiveNeedsPerUpdate} " +
+                $"cappedCorrectionUpdates={m_PerfCappedCorrectionUpdates} " +
                 $"skippedSnapshots={m_PerfSkippedSnapshots} " +
                 $"commercialWarnings={m_CommercialWarningCount} " +
+                $"normalCorrectionCadence={kNormalCorrectionActive}/{kNormalCorrectionCycle} " +
                 $"lowWarningThrottle={m_LowWarningThrottle}");
             ResetPerfCounters();
         }
