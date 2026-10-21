@@ -85,7 +85,7 @@ namespace NoCustomersFix.Systems
 
         // Continue preventive correction at reduced frequency when the city is
         // healthy. Hysteresis avoids switching modes on each warning change.
-        private const int kLowWarningEnter = 5;
+        private const int kLowWarningEnter = 6;
         private const int kLowWarningExit = 12;
         private const int kLowWarningCorrectionStride = 4;
 
