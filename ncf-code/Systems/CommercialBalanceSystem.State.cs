@@ -51,6 +51,13 @@ namespace NoCustomersFix.Systems
         private readonly long[] m_WorkingCorrectionUnits =
             new long[EconomyUtils.ResourceCount];
 
+        // Cache unchanged resource prefabs between company-pressure scans.
+        private readonly Resource[] m_CachedRetailResources =
+            new Resource[EconomyUtils.ResourceCount];
+        private readonly ResourceData[] m_CachedRetailData =
+            new ResourceData[EconomyUtils.ResourceCount];
+        private int m_CachedRetailCount;
+
 #if DEBUG
         private readonly float[] m_UnsoldRatio =
             new float[EconomyUtils.ResourceCount];
@@ -75,6 +82,39 @@ namespace NoCustomersFix.Systems
         private long m_RemainingInjectionBudget;
 
         private int m_PressureUpdateIndex;
+
+        // Continue preventive correction at reduced frequency when the city is
+        // healthy. Hysteresis avoids switching modes on each warning change.
+        private const int kLowWarningEnter = 6;
+        private const int kLowWarningExit = 12;
+        private const int kLowWarningCorrectionStride = 4;
+
+        private int m_CommercialWarningCount;
+        private bool m_LowWarningThrottle;
+        private int m_LowWarningCorrectionIndex;
+
+        internal bool ShouldCaptureHouseholds()
+        {
+            // When the last pressure refresh found no corrective budget,
+            // there is nothing to inject until the next refresh.
+            // Always permit a snapshot on refresh updates because demand may change.
+            if (m_PressureUpdateIndex != 0 &&
+                (m_PerUpdateInjectionBudget <= 0 ||
+                    m_TotalCorrectionUnits <= 0) &&
+                (m_PerUpdateVehicleBudget <= 0 ||
+                    m_WorkingVehicleExcess <= 0))
+            {
+                return false;
+            }
+
+            if (!m_LowWarningThrottle)
+            {
+                return true;
+            }
+
+            return m_LowWarningCorrectionIndex++ %
+                kLowWarningCorrectionStride == 0;
+        }
 
         private void ResetBalanceState()
         {
@@ -134,6 +174,10 @@ namespace NoCustomersFix.Systems
             m_RemainingInjectionBudget = 0;
 
             m_PressureUpdateIndex = 0;
+            m_CachedRetailCount = 0;
+            m_CommercialWarningCount = 0;
+            m_LowWarningThrottle = false;
+            m_LowWarningCorrectionIndex = 0;
 
             ResetVehicleState();
         }
@@ -153,6 +197,7 @@ namespace NoCustomersFix.Systems
                     industrialProcessDatas,
                     resourceDatas);
 
+                RefreshCachedRetailResources(ref resourceDatas);
                 PrepareCorrectionWindow();
             }
 
@@ -164,6 +209,43 @@ namespace NoCustomersFix.Systems
                 kPressureRefreshUpdates)
             {
                 m_PressureUpdateIndex = 0;
+            }
+        }
+
+        // ResourceIterator order is preserved for deterministic selection.
+        // Only the live remaining-correction units change per household.
+        private void RefreshCachedRetailResources(
+            ref ComponentLookup<ResourceData> resourceDatas)
+        {
+            m_CachedRetailCount = 0;
+            ResourceIterator iterator = ResourceIterator.GetIterator();
+
+            while (iterator.Next())
+            {
+                Resource resource = iterator.resource;
+                if (resource == Resource.NoResource ||
+                    resource == Resource.Vehicles ||
+                    EconomyUtils.IsOfficeResource(resource))
+                {
+                    continue;
+                }
+
+                Entity prefab = m_ResourceSystem.GetPrefab(resource);
+                if (prefab == Entity.Null ||
+                    !resourceDatas.HasComponent(prefab))
+                {
+                    continue;
+                }
+
+                ResourceData data = resourceDatas[prefab];
+                if (data.m_IsLeisure)
+                {
+                    continue;
+                }
+
+                m_CachedRetailResources[m_CachedRetailCount] = resource;
+                m_CachedRetailData[m_CachedRetailCount] = data;
+                m_CachedRetailCount++;
             }
         }
 
@@ -210,6 +292,7 @@ namespace NoCustomersFix.Systems
 #endif
 
             m_TotalExcessService = 0;
+            m_CommercialWarningCount = 0;
 
             ResetVehiclePressure();
 
@@ -236,6 +319,15 @@ namespace NoCustomersFix.Systems
                         Game.Tools.Temp>()
                     .WithEntityAccess())
             {
+                bool hasWarning =
+                    notificationsRef.ValueRO.m_NoCustomersEntity !=
+                    Entity.Null;
+
+                if (hasWarning)
+                {
+                    m_CommercialWarningCount++;
+                }
+
                 Entity companyPrefab =
                     prefabRef.ValueRO.m_Prefab;
 
@@ -274,15 +366,6 @@ namespace NoCustomersFix.Systems
                             resource,
                             resourcesLookup[company]);
                 }
-
-#if DEBUG
-                bool hasWarning =
-                    notificationsRef.ValueRO
-                        .m_NoCustomersEntity !=
-                    Entity.Null;
-#else
-                const bool hasWarning = false;
-#endif
 
                 // Vehicles use the same company scan but retain their special
                 // generic-Vehicle purchase handling.
@@ -354,6 +437,19 @@ namespace NoCustomersFix.Systems
 
                 m_TotalExcessService +=
                     excess;
+            }
+
+            if (!m_LowWarningThrottle &&
+                m_CommercialWarningCount <= kLowWarningEnter)
+            {
+                m_LowWarningThrottle = true;
+                m_LowWarningCorrectionIndex = 0;
+            }
+            else if (m_LowWarningThrottle &&
+                m_CommercialWarningCount >= kLowWarningExit)
+            {
+                m_LowWarningThrottle = false;
+                m_LowWarningCorrectionIndex = 0;
             }
 
 #if DEBUG

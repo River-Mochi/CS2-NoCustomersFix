@@ -32,13 +32,66 @@ namespace NoCustomersFix.Systems
     /// </summary>
     public partial class CommercialBalancePrepareSystem : GameSystemBase
     {
+        // The correction pass normally visits far fewer households than the
+        // original snapshot size. Bound the prefix to avoid unnecessary copies.
+        private const int kInitialSnapshotCandidates = 4096;
+        private const int kMaximumSnapshotCandidates = 32768;
+
+        private int m_CandidateLimit = kInitialSnapshotCandidates;
+        private int m_LastCapturedLimit = kInitialSnapshotCandidates;
         private EntityQuery m_HouseholdQuery;
         private NativeList<Entity> m_ReadyHouseholds;
 
         private SimulationSystem m_SimulationSystem = null!;
+        private CommercialBalanceSystem m_BalanceSystem = null!;
 
         private JobHandle m_SnapshotJob;
         private uint m_CapturedSimulationFrame = uint.MaxValue;
+
+#if DEBUG || NCF_PERF_TEST
+        private int m_PerfPrepareUpdates;
+        private int m_PerfPrepareScheduled;
+        private int m_PerfCappedSnapshots;
+        private int m_PerfExpandedLimits;
+        private long m_PerfPreviousWaitTicks;
+        private long m_PerfSetupScheduleTicks;
+
+        private void RecordPreparePerf(long started, long afterPrevious, bool scheduled)
+        {
+            long finished = System.Diagnostics.Stopwatch.GetTimestamp();
+            m_PerfPrepareUpdates++;
+            if (scheduled)
+            {
+                m_PerfPrepareScheduled++;
+            }
+
+            m_PerfPreviousWaitTicks += afterPrevious - started;
+            m_PerfSetupScheduleTicks += finished - afterPrevious;
+
+            if (m_PerfPrepareUpdates < 256)
+            {
+                return;
+            }
+
+            double ms = 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+            CS2Shared.RiverMochi.LogUtils.Info(
+                "[NCF-PERF-PREPARE] " +
+                $"updates={m_PerfPrepareUpdates} " +
+                $"scheduled={m_PerfPrepareScheduled} " +
+                $"capped={m_PerfCappedSnapshots} " +
+                $"expanded={m_PerfExpandedLimits} " +
+                $"candidateLimit={m_CandidateLimit} " +
+                $"previousWaitMs={(m_PerfPreviousWaitTicks * ms):F1} " +
+                $"setupScheduleMs={(m_PerfSetupScheduleTicks * ms):F1}");
+
+            m_PerfPrepareUpdates = 0;
+            m_PerfPrepareScheduled = 0;
+            m_PerfCappedSnapshots = 0;
+            m_PerfExpandedLimits = 0;
+            m_PerfPreviousWaitTicks = 0;
+            m_PerfSetupScheduleTicks = 0;
+        }
+#endif
 
         public override int GetUpdateInterval(SystemUpdatePhase phase)
         {
@@ -51,7 +104,6 @@ namespace NoCustomersFix.Systems
             base.OnCreate();
 
             m_SimulationSystem = World.GetOrCreateSystemManaged<SimulationSystem>();
-
             m_HouseholdQuery =
                 GetEntityQuery(
                     new EntityQueryDesc
@@ -78,7 +130,7 @@ namespace NoCustomersFix.Systems
                             },
                     });
 
-            m_ReadyHouseholds = new NativeList<Entity>(1024, Allocator.Persistent);
+            m_ReadyHouseholds = new NativeList<Entity>(kMaximumSnapshotCandidates, Allocator.Persistent);
 
             RequireForUpdate(m_HouseholdQuery);
         }
@@ -102,12 +154,52 @@ namespace NoCustomersFix.Systems
             m_SnapshotJob.Complete();
             m_ReadyHouseholds.Clear();
             m_CapturedSimulationFrame = uint.MaxValue;
+            m_CandidateLimit = kInitialSnapshotCandidates;
+            m_LastCapturedLimit = kInitialSnapshotCandidates;
+#if DEBUG || NCF_PERF_TEST
+            m_PerfPrepareUpdates = 0;
+            m_PerfPrepareScheduled = 0;
+            m_PerfCappedSnapshots = 0;
+            m_PerfExpandedLimits = 0;
+            m_PerfPreviousWaitTicks = 0;
+            m_PerfSetupScheduleTicks = 0;
+#endif
         }
 
         protected override void OnUpdate()
         {
+#if DEBUG || NCF_PERF_TEST
+            long perfStart = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
             m_SnapshotJob.Complete();
+#if DEBUG || NCF_PERF_TEST
+            if (m_CapturedSimulationFrame != uint.MaxValue &&
+                m_ReadyHouseholds.Length == m_LastCapturedLimit)
+            {
+                m_PerfCappedSnapshots++;
+            }
+
+            long perfAfterPrevious = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
             m_ReadyHouseholds.Clear();
+            m_CapturedSimulationFrame = uint.MaxValue;
+
+            // Resolve lazily: both systems are initialized before simulation,
+            // avoiding recursive creation during OnCreate.
+            if (m_BalanceSystem == null)
+            {
+                m_BalanceSystem = World.GetOrCreateSystemManaged<CommercialBalanceSystem>();
+            }
+
+            // Avoid the full candidate snapshot on quiet commercial days.
+            // Post-vanilla pressure checks still run on skipped updates.
+            if (!m_BalanceSystem.ShouldCaptureHouseholds())
+            {
+#if DEBUG || NCF_PERF_TEST
+                RecordPreparePerf(perfStart, perfAfterPrevious, false);
+#endif
+                return;
+            }
 
             uint simulationFrame = m_SimulationSystem.frameIndex;
 
@@ -119,13 +211,6 @@ namespace NoCustomersFix.Systems
 
             m_HouseholdQuery.SetSharedComponentFilter(new UpdateFrame(updateFrame));
 
-            int candidateCount = m_HouseholdQuery.CalculateEntityCount();
-
-            if (m_ReadyHouseholds.Capacity < candidateCount)
-            {
-                m_ReadyHouseholds.Capacity = candidateCount;
-            }
-
             CaptureReadyHouseholdsJob job =
                 new()
                 {
@@ -136,12 +221,46 @@ namespace NoCustomersFix.Systems
                             isReadOnly: true),
 
                     m_ReadyHouseholds = m_ReadyHouseholds,
+                    m_MaxCandidates = m_CandidateLimit,
                 };
 
             m_SnapshotJob = job.ScheduleByRef(m_HouseholdQuery, Dependency);
             Dependency = m_SnapshotJob;
 
             m_CapturedSimulationFrame = simulationFrame;
+            m_LastCapturedLimit = m_CandidateLimit;
+#if DEBUG || NCF_PERF_TEST
+            RecordPreparePerf(perfStart, perfAfterPrevious, true);
+#endif
+        }
+
+        // When the current candidate prefix cannot meet the correction budget,
+        // examine more households next time. Shrink again once it suffices.
+        // This preserves full-pressure NEC recovery in unusually large cities.
+        internal void ReportCorrectionResult(bool remainingBudget)
+        {
+            if (m_CapturedSimulationFrame == uint.MaxValue)
+            {
+                return;
+            }
+
+            if (!remainingBudget)
+            {
+                m_CandidateLimit = kInitialSnapshotCandidates;
+                return;
+            }
+
+            if (m_ReadyHouseholds.Length < m_LastCapturedLimit ||
+                m_CandidateLimit >= kMaximumSnapshotCandidates)
+            {
+                return;
+            }
+
+            m_CandidateLimit = System.Math.Min(
+                kMaximumSnapshotCandidates, m_CandidateLimit * 2);
+#if DEBUG || NCF_PERF_TEST
+            m_PerfExpandedLimits++;
+#endif
         }
 
         internal NativeArray<Entity> CompleteAndGetSnapshot(uint simulationFrame)
@@ -167,12 +286,20 @@ namespace NoCustomersFix.Systems
 
             public NativeList<Entity> m_ReadyHouseholds;
 
+            public int m_MaxCandidates;
+
             public void Execute(
                 in ArchetypeChunk chunk,
                 int unfilteredChunkIndex,
                 bool useEnabledMask,
                 in v128 chunkEnabledMask)
             {
+                // The job is sequential; once full, skip subsequent chunks.
+                if (m_ReadyHouseholds.Length >= m_MaxCandidates)
+                {
+                    return;
+                }
+
                 NativeArray<Entity> entities = chunk.GetNativeArray(m_EntityType);
 
                 NativeArray<Game.Citizens.HouseholdNeed> needs =
@@ -196,6 +323,11 @@ namespace NoCustomersFix.Systems
                     // Do NOT reject households here for existing resources.
                     // Vanilla runs next and gets first chance to consume them.
                     m_ReadyHouseholds.AddNoResize(entities[i]);
+
+                    if (m_ReadyHouseholds.Length >= m_MaxCandidates)
+                    {
+                        return;
+                    }
                 }
             }
         }

@@ -45,6 +45,8 @@
 
 #if DEBUG
             LogUtils.Info($"{ModName} v{ModVersion} DEBUG loaded");
+#elif NCF_PERF_TEST
+            LogUtils.Info($"{ModName} v{ModVersion} RELEASE PERF TEST loaded");
 #else
             LogUtils.Info($"{ModName} v{ModVersion} RELEASE loaded");
 #endif

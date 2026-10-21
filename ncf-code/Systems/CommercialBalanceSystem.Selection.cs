@@ -12,6 +12,7 @@
 
 using System;
 
+using Game.Citizens;
 using Game.Economy;
 using Game.Prefabs;
 using Game.Simulation;
@@ -23,6 +24,14 @@ namespace NoCustomersFix.Systems
 {
     public partial class CommercialBalanceSystem
     {
+        // Reuse storage instead of recalculating every resource weight twice.
+        // Selection executes sequentially on the simulation thread.
+        private readonly Resource[] m_SelectionResources =
+            new Resource[EconomyUtils.ResourceCount];
+
+        private readonly float[] m_SelectionScores =
+            new float[EconomyUtils.ResourceCount];
+
         private bool TryCreateCorrectiveNeed(
             Entity householdEntity,
             uint simulationFrame,
@@ -228,53 +237,69 @@ namespace NoCustomersFix.Systems
                 resourceDatas)
         {
             float totalScore = 0f;
+            int selectionCount = 0;
 
-            ResourceIterator iterator =
-                ResourceIterator.GetIterator();
-
-            while (iterator.Next())
+            // Equivalent to vanilla GetAgeWeight(), but count each household
+            // citizen once rather than once for every retail resource.
+            int childCount = 0;
+            int teenCount = 0;
+            int adultCount = 0;
+            int elderlyCount = 0;
+            for (int i = 0; i < citizens.Length; i++)
             {
-                Resource resource =
-                    iterator.resource;
+                CitizenAge age = citizenDatas[citizens[i].m_Citizen].GetAge();
+                switch (age)
+                {
+                    case CitizenAge.Child:
+                        childCount++;
+                        break;
+                    case CitizenAge.Teen:
+                        teenCount++;
+                        break;
+                    case CitizenAge.Elderly:
+                        elderlyCount++;
+                        break;
+                    default:
+                        adultCount++;
+                        break;
+                }
+            }
 
-                int resourceIndex =
-                    EconomyUtils.GetResourceIndex(
-                        resource);
+            for (int cached = 0; cached < m_CachedRetailCount; cached++)
+            {
+                Resource resource = m_CachedRetailResources[cached];
 
+                int resourceIndex = EconomyUtils.GetResourceIndex(resource);
                 if (resourceIndex < 0 ||
-                    resourceIndex >=
-                        m_WorkingCorrectionUnits.Length ||
-                    m_WorkingCorrectionUnits[
-                        resourceIndex] <= 0)
+                    resourceIndex >= m_WorkingCorrectionUnits.Length ||
+                    m_WorkingCorrectionUnits[resourceIndex] <= 0)
                 {
                     continue;
                 }
 
-                if (!IsPhysicalRetailResource(
-                        resource,
-                        ref resourceDatas))
-                {
-                    continue;
-                }
+                ResourceData resourceData = m_CachedRetailData[cached];
 
-                Entity resourcePrefab =
-                    m_ResourceSystem.GetPrefab(
-                        resource);
+                // Exact vanilla non-leisure consumption-weight formula.
+                // All cached resources have m_IsLeisure == false.
+                int ageWeight =
+                    childCount * resourceData.m_ChildWeight +
+                    teenCount * resourceData.m_TeenWeight +
+                    adultCount * resourceData.m_AdultWeight +
+                    elderlyCount * resourceData.m_ElderlyWeight;
 
-                ResourceData resourceData =
-                    resourceDatas[
-                        resourcePrefab];
+                float consumption = resourceData.m_BaseConsumption;
+                consumption += (float)(
+                    carCount * resourceData.m_CarConsumption);
 
-                int vanillaWeight =
-                    HouseholdBehaviorSystem
-                        .GetResourceShopWeightWithAge(
-                            disposableIncome,
-                            resourceData,
-                            carCount,
-                            leisureIncluded: false,
-                            citizens,
-                            ref citizenDatas,
-                            affluenceIncome);
+                int vanillaWeight = UnityEngine.Mathf.RoundToInt(
+                    100f * ageWeight * consumption *
+                    math.smoothstep(
+                        resourceData.m_WealthModifier,
+                        1f,
+                        math.max(
+                            0.01f,
+                            (float)disposableIncome /
+                            (float)affluenceIncome)));
 
                 if (vanillaWeight <= 0)
                 {
@@ -289,6 +314,10 @@ namespace NoCustomersFix.Systems
                     m_WorkingCorrectionUnits[
                         resourceIndex] *
                     preference;
+
+                m_SelectionResources[selectionCount] = resource;
+                m_SelectionScores[selectionCount] = score;
+                selectionCount++;
 
                 totalScore +=
                     score;
@@ -323,74 +352,18 @@ namespace NoCustomersFix.Systems
                     0f,
                     totalScore);
 
-            iterator =
-                ResourceIterator.GetIterator();
-
-            while (iterator.Next())
+            // Same random draw and weights as before, without the second
+            // expensive resource-prefab and citizen-preference pass.
+            for (int i = 0; i < selectionCount; i++)
             {
-                Resource resource =
-                    iterator.resource;
-
-                int resourceIndex =
-                    EconomyUtils.GetResourceIndex(
-                        resource);
-
-                if (resourceIndex < 0 ||
-                    resourceIndex >=
-                        m_WorkingCorrectionUnits.Length ||
-                    m_WorkingCorrectionUnits[
-                        resourceIndex] <= 0)
-                {
-                    continue;
-                }
-
-                if (!IsPhysicalRetailResource(
-                        resource,
-                        ref resourceDatas))
-                {
-                    continue;
-                }
-
-                Entity resourcePrefab =
-                    m_ResourceSystem.GetPrefab(
-                        resource);
-
-                ResourceData resourceData =
-                    resourceDatas[
-                        resourcePrefab];
-
-                int vanillaWeight =
-                    HouseholdBehaviorSystem
-                        .GetResourceShopWeightWithAge(
-                            disposableIncome,
-                            resourceData,
-                            carCount,
-                            leisureIncluded: false,
-                            citizens,
-                            ref citizenDatas,
-                            affluenceIncome);
-
-                if (vanillaWeight <= 0)
-                {
-                    continue;
-                }
-
-                float preference =
-                    math.sqrt(
-                        (float)vanillaWeight);
-
-                float score =
-                    m_WorkingCorrectionUnits[
-                        resourceIndex] *
-                    preference;
+                float score = m_SelectionScores[i];
 
                 if (selection < score)
                 {
-                    return resource;
+                    return m_SelectionResources[i];
                 }
 
-                selection -=
-                    score;
+                selection -= score;
             }
 
             return Resource.NoResource;

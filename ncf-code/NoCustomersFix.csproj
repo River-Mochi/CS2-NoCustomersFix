@@ -15,7 +15,7 @@
         <PublishConfigScript>$(MSBuildProjectDirectory)\..\Scripts\Update-PublishConfig.ps1</PublishConfigScript>
 
         <!-- Versioning -->
-        <Version>0.6.1</Version>
+        <Version>0.6.2</Version>
         <GameVersion>1.6.*</GameVersion>
 
         <!-- Assembly identity -->
@@ -23,6 +23,11 @@
         <RootNamespace>NoCustomersFix</RootNamespace>
         <AssemblyTitle>No Customers Fix</AssemblyTitle>
         <Copyright>Copyright © 2026 River-Mochi</Copyright>
+    </PropertyGroup>
+
+    <!-- Opt-in timing build: dotnet build -c Release -p:NCFPerfTest=true -->
+    <PropertyGroup Condition="'$(NCFPerfTest)' == 'true'">
+        <DefineConstants>$(DefineConstants);NCF_PERF_TEST</DefineConstants>
     </PropertyGroup>
 
     <!-- CS2 toolchain imports must follow PropertyGroup -->

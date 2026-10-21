@@ -81,7 +81,7 @@ tags: notification icons, no customers
 <!--Link to the forum post where the mod can be discussed-->
 <ForumLink Value="" />
 <!--Version of the mod-->
-<ModVersion Value="0.6.1" />
+<ModVersion Value="0.6.2" />
 <!--Recommended version of the base game to use the mod-->
 <GameVersion Value="1.6.*" />
 <!--Dependency for the mod, can be set multiple times-->
@@ -91,8 +91,9 @@ tags: notification icons, no customers
 <!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 <ChangeLog Value="" />
 <ChangeLog>
-* Improved Hotel Service balancing. Helps struggling hotels without creating fake tourists.
-* Retail commercial improved, strong production pause at 89% instead of waiting untilk > 90% unused service.
+* Improved performance in large cities by reducing unnecessary household scanning.
+* Automatically scans less often when Not Enough Customers warnings are low, and restores full activity when they rise.
+* Limits household snapshot sizes and expands automatically when more correction is needed.
 </ChangeLog>
 <!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
 <!--Supported values Public, Private, Unlisted-->
