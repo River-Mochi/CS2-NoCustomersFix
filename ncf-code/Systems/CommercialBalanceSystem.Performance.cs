@@ -29,6 +29,45 @@ namespace NoCustomersFix.Systems
         private long m_PerfVisited;
         private long m_PerfInjected;
 
+#if NCF_PERF_TEST
+        // This is the same game value Advanced Simulation Speed displays.
+        // Sample at real-time intervals, not simulation-frame intervals.
+        private const int kSpeedSampleSeconds = 10;
+        private long m_NextSpeedSampleTick;
+
+        private void LogSpeedSample()
+        {
+            long now = Stopwatch.GetTimestamp();
+            if (m_NextSpeedSampleTick == 0)
+            {
+                m_NextSpeedSampleTick = now +
+                    (kSpeedSampleSeconds * Stopwatch.Frequency);
+                return;
+            }
+
+            if (now < m_NextSpeedSampleTick)
+            {
+                return;
+            }
+
+            m_NextSpeedSampleTick = now +
+                (kSpeedSampleSeconds * Stopwatch.Frequency);
+
+            Game.Simulation.TimeSystem timeSystem =
+                World.GetOrCreateSystemManaged<Game.Simulation.TimeSystem>();
+            int minuteOfDay = (int)(timeSystem.normalizedTime * 1440f);
+            int hour = (minuteOfDay / 60) % 24;
+            int minute = minuteOfDay % 60;
+
+            LogUtils.Info(
+                "[NCF-SPEED] " +
+                $"cityTime={hour:D2}:{minute:D2} " +
+                $"selected={m_SimulationSystem.selectedSpeed:F2} " +
+                $"actual={m_SimulationSystem.smoothSpeed:F3} " +
+                $"frame={m_SimulationSystem.frameIndex}");
+        }
+#endif
+
         private void ResetPerfCounters()
         {
             m_PerfUpdates = 0;
@@ -39,6 +78,9 @@ namespace NoCustomersFix.Systems
             m_PerfCandidates = 0;
             m_PerfVisited = 0;
             m_PerfInjected = 0;
+#if NCF_PERF_TEST
+            m_NextSpeedSampleTick = 0;
+#endif
         }
 
         private void RecordPerfUpdate(

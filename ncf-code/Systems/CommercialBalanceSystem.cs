@@ -112,6 +112,9 @@ namespace NoCustomersFix.Systems
 
         protected override void OnUpdate()
         {
+#if NCF_PERF_TEST
+            LogSpeedSample();
+#endif
 #if DEBUG || NCF_PERF_TEST
             long perfStart = System.Diagnostics.Stopwatch.GetTimestamp();
 #endif
