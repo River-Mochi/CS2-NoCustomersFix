@@ -14,20 +14,18 @@
 
 **Adding more citizens doesn't always fix it!**
 
-This mod helps struggling shops recover by balancing production and shopping demand. No fake shoppers, no complicated settings!
+This mod helps struggling shops recover by balancing production and shopping. No fake shoppers, no complicated settings!
 
 ### Why does vanilla struggle?
 
-*   **90%+ unused Service** triggers NEC warnings. But vanilla's shopping-priority score doesn't differentiate struggling shops of unused Service from 50% - 100%, too wide.
-
-*   Shop workers get paid to produce Service. Service is different from goods (e.g., food, paper...) you see delivered.
-
+*   **90%+ unused Service** is exactly what triggers NEC Icons.
+But vanilla's shopping-priority score doesn't separate struggling shops of unused Service from 50% - 100%, too wide.
+*   Shop workers get paid to produce Service. Service is different from goods (e.g., food, paper...) delivered.
 *   **Shops keep producing** even when they already have too much unsold Service. Vanilla doesn't clamp production to zero until the shop hits 100% full Service which is too late to prevent the NEC icons.
-
 *   Citizens can't shop while at work or school. Only available adults and elderly can handle normal shopping, making rush hours especially difficult.
 
 
-**Result: Too much Service, and shoppers keep visiting healthy shops instead of those desperately needing customers!**
+**Result: Too much Service, and shoppers keep visiting healthy shops instead of desperate shops with NEC icons!**
 
 ### How this mod helps
 
@@ -66,6 +64,8 @@ This mod helps struggling shops recover by balancing production and shopping dem
 
 tags: notification icons, no customers
 
+---
+
 **增加人口也不一定能解决！**
 
 本模组通过**减少商店过剩产出、优化居民购物需求**，帮助商业区摆脱大量“顾客不足”警告。
@@ -75,44 +75,32 @@ tags: notification icons, no customers
 ### 为什么原版会出现这个问题？
 
 *   商店闲置服务量超过 **90%** 时，就会出现“顾客不足”警告。
-
 *   原版对闲置服务量在 **50%–100%** 之间的商店缺乏足够的购物优先级区分。
-
 *   商店即使顾客不足，员工仍会继续生产服务，导致供过于求。
-
 *   上班、上学期间，很多市民无法购物，问题更加明显。
 
 
 ### ✅ 本模组能做什么？
 
 *   **提前预防：** 服务闲置达到 80% 时开始减产，84% 起暂停服务产出，避免触及 90% 的警告阈值。
-
 *   **控制额外购物量：** 每次主动调整最多增加 24 个购物需求，以 87% 的服务闲置率为目标。只利用现有居民，不凭空增加顾客。
-
 *   **支持商业和休闲设施：** 包括普通商店、餐饮、娱乐等。
-
 *   **改善酒店经营：** 帮助现有游客入住空房间。
-
 *   **注重性能：** 警告较少时自动减少不必要的扫描。
 
 
 ### 🎉 实际测试效果
 
 *   **13万人城市：** 165 个警告 → 约30分钟后仅剩 **4 个！**
-
 *   **9万人城市（早上 6:10 的测试存档）：** 约 50 个警告 → 测试结束时仅剩 **7 个**。更早的存档曾有约 335 个警告。
 
 
 ### 使用说明
 
 *   **安装后直接游玩，无需设置！**
-
 *   部分城市5分钟内就有改善，建议运行 **15–30分钟**。
-
 *   如果还有少量警告，可检查道路连接，或适当减少过剩商业区。
-
 *   **可以安全卸载，不使用 Harmony 补丁。**
-
 *   注意：其他模组如果大幅增加商业员工数量，可能让服务生产过剩的问题更加严重。
 
 
@@ -141,9 +129,10 @@ tags: notification icons, no customers
 <!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 <ChangeLog Value="" />
 <ChangeLog>
-* Reduce corrective shopping bursts to 24 new needs per active update.
+* Reduced extra shopping traffic and improved performance.
 * Slow excess commercial Service production sooner: 80% preventive, 84% strong.
-* Target 87% unused Service to reduce unnecessary extra shoppers.
+* Shopping correction spread over time with lower limits.
+* Target 87% unused Service to reduce unnecessary extra shopping trips.
 </ChangeLog>
 <!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
 <!--Supported values Public, Private, Unlisted-->
