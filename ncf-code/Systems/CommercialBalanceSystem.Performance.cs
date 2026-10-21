@@ -122,6 +122,7 @@ namespace NoCustomersFix.Systems
                 $"injected={m_PerfInjected} " +
                 $"skippedSnapshots={m_PerfSkippedSnapshots} " +
                 $"commercialWarnings={m_CommercialWarningCount} " +
+                $"normalCorrectionCadence={kNormalCorrectionActive}/{kNormalCorrectionCycle} " +
                 $"lowWarningThrottle={m_LowWarningThrottle}");
             ResetPerfCounters();
         }
