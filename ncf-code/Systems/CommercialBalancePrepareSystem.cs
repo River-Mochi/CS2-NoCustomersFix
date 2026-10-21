@@ -52,8 +52,6 @@ namespace NoCustomersFix.Systems
             base.OnCreate();
 
             m_SimulationSystem = World.GetOrCreateSystemManaged<SimulationSystem>();
-            m_BalanceSystem = World.GetOrCreateSystemManaged<CommercialBalanceSystem>();
-
             m_HouseholdQuery =
                 GetEntityQuery(
                     new EntityQueryDesc
@@ -111,6 +109,13 @@ namespace NoCustomersFix.Systems
             m_SnapshotJob.Complete();
             m_ReadyHouseholds.Clear();
             m_CapturedSimulationFrame = uint.MaxValue;
+
+            // Resolve lazily: both systems are initialized before simulation,
+            // avoiding recursive creation during OnCreate.
+            if (m_BalanceSystem == null)
+            {
+                m_BalanceSystem = World.GetOrCreateSystemManaged<CommercialBalanceSystem>();
+            }
 
             // Avoid the full candidate snapshot on quiet commercial days.
             // Post-vanilla pressure checks still run on skipped updates.
