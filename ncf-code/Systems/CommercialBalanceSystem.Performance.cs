@@ -28,6 +28,12 @@ namespace NoCustomersFix.Systems
         private long m_PerfCandidates;
         private long m_PerfVisited;
         private long m_PerfInjected;
+        private int m_PerfSkippedSnapshots;
+
+        private void RecordSkippedSnapshot()
+        {
+            m_PerfSkippedSnapshots++;
+        }
 
 #if NCF_PERF_TEST
         // This is the same game value Advanced Simulation Speed displays.
@@ -78,6 +84,7 @@ namespace NoCustomersFix.Systems
             m_PerfCandidates = 0;
             m_PerfVisited = 0;
             m_PerfInjected = 0;
+            m_PerfSkippedSnapshots = 0;
         }
 
         private void RecordPerfUpdate(
@@ -112,7 +119,10 @@ namespace NoCustomersFix.Systems
                 $"maxCorrectionMs={(m_PerfLongestCorrection * millisecondsPerTick):F2} " +
                 $"candidates={m_PerfCandidates} " +
                 $"visited={m_PerfVisited} " +
-                $"injected={m_PerfInjected}");
+                $"injected={m_PerfInjected} " +
+                $"skippedSnapshots={m_PerfSkippedSnapshots} " +
+                $"commercialWarnings={m_CommercialWarningCount} " +
+                $"lowWarningThrottle={m_LowWarningThrottle}");
             ResetPerfCounters();
         }
     }

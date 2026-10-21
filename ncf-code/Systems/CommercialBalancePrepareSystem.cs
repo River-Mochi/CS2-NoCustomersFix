@@ -36,6 +36,7 @@ namespace NoCustomersFix.Systems
         private NativeList<Entity> m_ReadyHouseholds;
 
         private SimulationSystem m_SimulationSystem = null!;
+        private CommercialBalanceSystem m_BalanceSystem = null!;
 
         private JobHandle m_SnapshotJob;
         private uint m_CapturedSimulationFrame = uint.MaxValue;
@@ -51,6 +52,7 @@ namespace NoCustomersFix.Systems
             base.OnCreate();
 
             m_SimulationSystem = World.GetOrCreateSystemManaged<SimulationSystem>();
+            m_BalanceSystem = World.GetOrCreateSystemManaged<CommercialBalanceSystem>();
 
             m_HouseholdQuery =
                 GetEntityQuery(
@@ -108,6 +110,14 @@ namespace NoCustomersFix.Systems
         {
             m_SnapshotJob.Complete();
             m_ReadyHouseholds.Clear();
+            m_CapturedSimulationFrame = uint.MaxValue;
+
+            // Avoid the full candidate snapshot on quiet commercial days.
+            // Post-vanilla pressure checks still run on skipped updates.
+            if (!m_BalanceSystem.ShouldCaptureHouseholds())
+            {
+                return;
+            }
 
             uint simulationFrame = m_SimulationSystem.frameIndex;
 

@@ -83,6 +83,27 @@ namespace NoCustomersFix.Systems
 
         private int m_PressureUpdateIndex;
 
+        // Continue preventive correction at reduced frequency when the city is
+        // healthy. Hysteresis avoids switching modes on each warning change.
+        private const int kLowWarningEnter = 5;
+        private const int kLowWarningExit = 12;
+        private const int kLowWarningCorrectionStride = 4;
+
+        private int m_CommercialWarningCount;
+        private bool m_LowWarningThrottle;
+        private int m_LowWarningCorrectionIndex;
+
+        internal bool ShouldCaptureHouseholds()
+        {
+            if (!m_LowWarningThrottle)
+            {
+                return true;
+            }
+
+            return m_LowWarningCorrectionIndex++ %
+                kLowWarningCorrectionStride == 0;
+        }
+
         private void ResetBalanceState()
         {
 #if DEBUG
@@ -142,6 +163,9 @@ namespace NoCustomersFix.Systems
 
             m_PressureUpdateIndex = 0;
             m_CachedRetailCount = 0;
+            m_CommercialWarningCount = 0;
+            m_LowWarningThrottle = false;
+            m_LowWarningCorrectionIndex = 0;
 
             ResetVehicleState();
         }
@@ -256,6 +280,7 @@ namespace NoCustomersFix.Systems
 #endif
 
             m_TotalExcessService = 0;
+            m_CommercialWarningCount = 0;
 
             ResetVehiclePressure();
 
@@ -282,6 +307,15 @@ namespace NoCustomersFix.Systems
                         Game.Tools.Temp>()
                     .WithEntityAccess())
             {
+                bool hasWarning =
+                    notificationsRef.ValueRO.m_NoCustomersEntity !=
+                    Entity.Null;
+
+                if (hasWarning)
+                {
+                    m_CommercialWarningCount++;
+                }
+
                 Entity companyPrefab =
                     prefabRef.ValueRO.m_Prefab;
 
@@ -320,15 +354,6 @@ namespace NoCustomersFix.Systems
                             resource,
                             resourcesLookup[company]);
                 }
-
-#if DEBUG
-                bool hasWarning =
-                    notificationsRef.ValueRO
-                        .m_NoCustomersEntity !=
-                    Entity.Null;
-#else
-                const bool hasWarning = false;
-#endif
 
                 // Vehicles use the same company scan but retain their special
                 // generic-Vehicle purchase handling.
@@ -400,6 +425,19 @@ namespace NoCustomersFix.Systems
 
                 m_TotalExcessService +=
                     excess;
+            }
+
+            if (!m_LowWarningThrottle &&
+                m_CommercialWarningCount <= kLowWarningEnter)
+            {
+                m_LowWarningThrottle = true;
+                m_LowWarningCorrectionIndex = 0;
+            }
+            else if (m_LowWarningThrottle &&
+                m_CommercialWarningCount >= kLowWarningExit)
+            {
+                m_LowWarningThrottle = false;
+                m_LowWarningCorrectionIndex = 0;
             }
 
 #if DEBUG

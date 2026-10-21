@@ -126,11 +126,6 @@ namespace NoCustomersFix.Systems
             long perfAfterSnapshot = System.Diagnostics.Stopwatch.GetTimestamp();
 #endif
 
-            if (!readyHouseholds.IsCreated)
-            {
-                return;
-            }
-
             ComponentLookup<Game.Companies.ServiceCompanyData> serviceCompanyDatas =
                 SystemAPI.GetComponentLookup<Game.Companies.ServiceCompanyData>(true);
 
@@ -147,6 +142,20 @@ namespace NoCustomersFix.Systems
 #if DEBUG || NCF_PERF_TEST
             long perfAfterPressure = System.Diagnostics.Stopwatch.GetTimestamp();
 #endif
+
+            if (!readyHouseholds.IsCreated)
+            {
+#if DEBUG || NCF_PERF_TEST
+                RecordSkippedSnapshot();
+                RecordPerfUpdate(
+                    perfStart, perfAfterSnapshot, perfAfterPressure,
+                    0, 0, 0);
+#endif
+#if DEBUG
+                FinishUpdate(0, 0, 0, 0, 0, 0, 0, 0);
+#endif
+                return;
+            }
 
 #if DEBUG
             m_LastRepeatPercent = 100;
