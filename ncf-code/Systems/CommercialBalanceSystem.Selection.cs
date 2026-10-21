@@ -112,8 +112,7 @@ namespace NoCustomersFix.Systems
                     affluenceIncome,
                     carCount,
                     citizens,
-                    ref citizenDatas,
-                    ref resourceDatas);
+                    ref citizenDatas);
 
             if (targetResource ==
                 Resource.NoResource)
@@ -215,13 +214,7 @@ namespace NoCustomersFix.Systems
         }
 
         /// <summary>
-        /// Selects only among physical retail resources that currently have
-        /// actual Service units above the 82% target.
-        ///
-        /// Pressure comes mainly from excess Service units. Vanilla
-        /// household preference is retained as a soft weighting with sqrt().
-        /// Stops huge vanilla preference differences from completely
-        /// overwhelming the commercial correction.
+        /// Chooses physical retail using excess Service and household preference.
         /// </summary>
         private Resource SelectCorrectiveResource(
             Entity household,
@@ -232,9 +225,7 @@ namespace NoCustomersFix.Systems
             DynamicBuffer<Game.Citizens.HouseholdCitizen>
                 citizens,
             ref ComponentLookup<Game.Citizens.Citizen>
-                citizenDatas,
-            ref ComponentLookup<ResourceData>
-                resourceDatas)
+                citizenDatas)
         {
             float totalScore = 0f;
             int selectionCount = 0;
@@ -306,6 +297,7 @@ namespace NoCustomersFix.Systems
                     continue;
                 }
 
+                // Soften vanilla preference; excess Service drives correction.
                 float preference =
                     math.sqrt(
                         (float)vanillaWeight);
