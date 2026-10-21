@@ -92,8 +92,8 @@ tags: notification icons, no customers
 <ChangeLog Value="" />
 <ChangeLog>
 * Improved performance in large cities by reducing unnecessary household scanning.
-* Automatically scans less often when Not Enough Customers warnings are low, and restores full activity when they rise.
-* Limits household snapshot sizes and expands automatically when more correction is needed.
+* adaptive: scans less when NEC icons already low 0-6, and restores full active if they rise.
+* Limit household snapshot size and auto expand when more correction needed.
 </ChangeLog>
 <!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
 <!--Supported values Public, Private, Unlisted-->
