@@ -92,7 +92,7 @@ namespace NoCustomersFix.Systems
             int candidates, int visited, int injected)
         {
             long finished = Stopwatch.GetTimestamp();
-            long correction = finished - afterPressure;
+            long correction = finished - afterSnapshot;
 
             m_PerfUpdates++;
             m_PerfPressureTicks += afterPressure - start;
