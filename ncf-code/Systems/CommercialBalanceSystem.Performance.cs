@@ -78,9 +78,6 @@ namespace NoCustomersFix.Systems
             m_PerfCandidates = 0;
             m_PerfVisited = 0;
             m_PerfInjected = 0;
-#if NCF_PERF_TEST
-            m_NextSpeedSampleTick = 0;
-#endif
         }
 
         private void RecordPerfUpdate(
