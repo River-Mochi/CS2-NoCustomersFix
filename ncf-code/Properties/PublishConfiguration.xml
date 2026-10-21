@@ -21,14 +21,14 @@ This mod helps struggling shops recover by **balancing production and shopping d
 * **Shops keep producing** even when they already have too much unsold Service. Vanilla doesn't clamp production to zero until the shop hits 100% full Service which is too late to prevent the NEC icons.
 - Citizens can't shop while at work or school. Only available adults and elderly can handle normal shopping, making rush hours especially difficult.
 
-**Result: Too much Service, shoppers going to random shops that are not prioritized and don't need help!**
+**Result: Too much Service, and shoppers keep visiting healthy shops instead of those desperately needing customers!
 
 ### How this mod helps
 
 - ✅ **Acts early at 82%** unused Service, with stronger production cuts at 89% before the critical 90% threshold.
 - ✅ **Improves shopping demand** using your existing citizens, no fake shoppers.
 - ✅ Helps Retail and Leisure businesses (Meals, Entertainment, Recreation).
-- ✅ Helps **Hotels** attract existing tourists and reduce empty rooms.
+- ✅ Helps Hotels fill empty rooms using existing tourists.
 - ✅ Performance-friendly: automatically reduces unnecessary work when NEC warnings are low.
 
 ### Real test results 🎉
@@ -39,12 +39,12 @@ This mod helps struggling shops recover by **balancing production and shopping d
 ### What to expect
 
 * **Install and play!** No Options menu settings needed.
-* Some cities improve within 5 minutes. Allow **15–30 minutes** for more changes.
+* Some cities improve in 5 minutes. Allow **15–30 minutes**.
 * A few remaining warnings? Prune some if needed or check pathing to the buildings.
 * Safe to remove, Vanilla takes over again. No Harmony patch means more compatible with other mods and the game.
 * Companion [mod City Watchdog](https://mods.paradoxplaza.com/mods/144908/Windows) recommended to easily see totals go up/down like shown in the screenshot.
 Make sure to put a "blue star" next to Not Enough Customers.
-* This mod is a temp fix until IFS is able to fix/prioritize commercial businesses exploding in Not Enough Customers Icons.
+* This mod is a temp fix until IFS improves commercial balancing to stop the flood of "Not Enough Customers" Icons.
 
 **Tip:** A full commercial demand bar doesn't mean your citizens can support more shops! It means companies are looking for spaces.
 
