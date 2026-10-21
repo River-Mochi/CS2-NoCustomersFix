@@ -120,12 +120,8 @@ namespace NoCustomersFix.Systems
 #endif
             uint simulationFrame = m_SimulationSystem.frameIndex;
 
-            NativeArray<Entity> readyHouseholds =
-                m_PrepareSystem.CompleteAndGetSnapshot(simulationFrame);
-#if DEBUG || NCF_PERF_TEST
-            long perfAfterSnapshot = System.Diagnostics.Stopwatch.GetTimestamp();
-#endif
-
+            // Work on independent commercial pressure before waiting for
+            // vanilla household processing to finish.
             ComponentLookup<Game.Companies.ServiceCompanyData> serviceCompanyDatas =
                 SystemAPI.GetComponentLookup<Game.Companies.ServiceCompanyData>(true);
 
@@ -143,12 +139,18 @@ namespace NoCustomersFix.Systems
             long perfAfterPressure = System.Diagnostics.Stopwatch.GetTimestamp();
 #endif
 
+            NativeArray<Entity> readyHouseholds =
+                m_PrepareSystem.CompleteAndGetSnapshot(simulationFrame);
+#if DEBUG || NCF_PERF_TEST
+            long perfAfterSnapshot = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
+
             if (!readyHouseholds.IsCreated)
             {
 #if DEBUG || NCF_PERF_TEST
                 RecordSkippedSnapshot();
                 RecordPerfUpdate(
-                    perfStart, perfAfterSnapshot, perfAfterPressure,
+                    perfStart, perfAfterPressure, perfAfterSnapshot,
                     0, 0, 0);
 #endif
 #if DEBUG
@@ -178,7 +180,7 @@ namespace NoCustomersFix.Systems
             {
 #if DEBUG || NCF_PERF_TEST
                 RecordPerfUpdate(
-                    perfStart, perfAfterSnapshot, perfAfterPressure,
+                    perfStart, perfAfterPressure, perfAfterSnapshot,
                     readyHouseholds.Length, 0, 0);
 #endif
 #if DEBUG
@@ -452,7 +454,7 @@ namespace NoCustomersFix.Systems
 
 #if DEBUG || NCF_PERF_TEST
             RecordPerfUpdate(
-                perfStart, perfAfterSnapshot, perfAfterPressure,
+                perfStart, perfAfterPressure, perfAfterSnapshot,
                 readyHouseholds.Length, perfVisited, perfInjected);
 #endif
 #if DEBUG

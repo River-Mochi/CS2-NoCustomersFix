@@ -88,15 +88,15 @@ namespace NoCustomersFix.Systems
         }
 
         private void RecordPerfUpdate(
-            long start, long afterSnapshot, long afterPressure,
+            long start, long afterPressure, long afterSnapshot,
             int candidates, int visited, int injected)
         {
             long finished = Stopwatch.GetTimestamp();
             long correction = finished - afterPressure;
 
             m_PerfUpdates++;
-            m_PerfSnapshotTicks += afterSnapshot - start;
-            m_PerfPressureTicks += afterPressure - afterSnapshot;
+            m_PerfPressureTicks += afterPressure - start;
+            m_PerfSnapshotTicks += afterSnapshot - afterPressure;
             m_PerfCorrectionTicks += correction;
             m_PerfLongestCorrection = Math.Max(
                 m_PerfLongestCorrection, correction);
