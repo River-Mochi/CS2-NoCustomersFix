@@ -99,6 +99,7 @@ namespace NoCustomersFix.Systems
 
         private int m_CommercialWarningCount;
         private bool m_LowWarningThrottle;
+        internal bool IsLowWarningMode => m_LowWarningThrottle;
         private int m_CorrectionSnapshotIndex;
 
         internal bool ShouldCaptureHouseholds()
