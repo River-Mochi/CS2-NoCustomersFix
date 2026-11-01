@@ -208,6 +208,11 @@ namespace NoCustomersFix.Systems
                     modeSetting.m_ResourceDemandPerCitizenMultiplier;
             }
 
+            // Vanilla's household job may still be running after its system update.
+            // Complete only HouseholdNeed writers before checking leftover needs.
+            // No sync is needed on updates without corrective work.
+            EntityManager.CompleteDependencyBeforeRW<Game.Citizens.HouseholdNeed>();
+
             ComponentLookup<Game.Citizens.HouseholdNeed> householdNeeds =
                 SystemAPI.GetComponentLookup<Game.Citizens.HouseholdNeed>();
 
