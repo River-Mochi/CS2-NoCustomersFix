@@ -23,7 +23,7 @@ namespace NoCustomersFix.Systems
     {
         // Vanilla NEC appears at roughly >90% unused Service.
         // Keep some safety margin below that threshold.
-        private const float kTargetServiceRatio = 0.87f;
+        private const float kTargetServiceRatio = 0.88f;
 
         // Recheck actual company pressure every four correction updates.
         // removes most full-commercial scans while staying responsive.
