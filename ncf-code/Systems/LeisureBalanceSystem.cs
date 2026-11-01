@@ -51,6 +51,14 @@ namespace NoCustomersFix.Systems
         private bool m_HasBaseline;
         private bool m_AppliedByUs;
 
+#if NCF_PERF_TEST
+        private const int kPerfLeisureLogScans = 64;
+        private int m_PerfLeisureScans;
+        private int m_PerfMediumScans;
+        private int m_PerfStrongScans;
+        private long m_PerfLeisureScanTicks;
+#endif
+
 #if DEBUG
         private int m_LastLoggedMedium = -1;
         private int m_LastLoggedStrong = -1;
@@ -99,6 +107,12 @@ namespace NoCustomersFix.Systems
 
             RestoreBaselineIfOwned();
             ResetState();
+#if NCF_PERF_TEST
+            m_PerfLeisureScans = 0;
+            m_PerfMediumScans = 0;
+            m_PerfStrongScans = 0;
+            m_PerfLeisureScanTicks = 0;
+#endif
         }
 
         protected override void OnDestroy()
@@ -131,7 +145,13 @@ namespace NoCustomersFix.Systems
                 return;
             }
 
+#if NCF_PERF_TEST
+            long scanStart = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
             LeisurePressure pressure = ScanLeisurePressure();
+#if NCF_PERF_TEST
+            RecordLeisureScan(System.Diagnostics.Stopwatch.GetTimestamp() - scanStart, pressure);
+#endif
 
             int desiredFactor = CalculateDesiredFactor(pressure);
 
@@ -163,6 +183,39 @@ namespace NoCustomersFix.Systems
             m_LastAppliedFactor = desiredFactor;
             m_AppliedByUs = desiredFactor != m_BaselineFactor;
         }
+
+#if NCF_PERF_TEST
+        private void RecordLeisureScan(long elapsedTicks, LeisurePressure pressure)
+        {
+            m_PerfLeisureScans++;
+            m_PerfLeisureScanTicks += elapsedTicks;
+            if (pressure.StrongCount > 0)
+            {
+                m_PerfStrongScans++;
+            }
+            else if (pressure.MediumCount > 0)
+            {
+                m_PerfMediumScans++;
+            }
+
+            if (m_PerfLeisureScans < kPerfLeisureLogScans)
+            {
+                return;
+            }
+
+            double ms = 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+            LogUtils.Info(
+                "[NCF-PERF-LEISURE] " +
+                $"scans={m_PerfLeisureScans} " +
+                $"scanMs={(m_PerfLeisureScanTicks * ms):F1} " +
+                $"mediumScans={m_PerfMediumScans} " +
+                $"strongScans={m_PerfStrongScans}");
+            m_PerfLeisureScans = 0;
+            m_PerfLeisureScanTicks = 0;
+            m_PerfMediumScans = 0;
+            m_PerfStrongScans = 0;
+        }
+#endif
 
         private int CalculateDesiredFactor(LeisurePressure pressure)
         {
