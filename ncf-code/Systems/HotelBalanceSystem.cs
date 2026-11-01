@@ -53,6 +53,42 @@ namespace NoCustomersFix.Systems
         private readonly List<HotelPressure> m_Hotels = new();
         private readonly List<HotelAssignment> m_Assignments = new();
 
+#if NCF_PERF_TEST
+        private const int kPerfHotelLogUpdates = 256;
+        private int m_PerfHotelUpdates;
+        private long m_PerfHotelScanTicks;
+        private long m_PerfHotelBookingTicks;
+        private long m_PerfHotelCandidates;
+        private long m_PerfHotelBookings;
+
+        private void RecordHotelPerf(long scanTicks, long bookingTicks, int hotelCandidates, int bookings)
+        {
+            m_PerfHotelUpdates++;
+            m_PerfHotelScanTicks += scanTicks;
+            m_PerfHotelBookingTicks += bookingTicks;
+            m_PerfHotelCandidates += hotelCandidates;
+            m_PerfHotelBookings += bookings;
+            if (m_PerfHotelUpdates < kPerfHotelLogUpdates)
+            {
+                return;
+            }
+
+            double ms = 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+            LogUtils.Info(
+                "[NCF-PERF-HOTEL] " +
+                $"updates={m_PerfHotelUpdates} " +
+                $"scanMs={(m_PerfHotelScanTicks * ms):F1} " +
+                $"bookingMs={(m_PerfHotelBookingTicks * ms):F1} " +
+                $"candidateHotels={m_PerfHotelCandidates} " +
+                $"bookings={m_PerfHotelBookings}");
+            m_PerfHotelUpdates = 0;
+            m_PerfHotelScanTicks = 0;
+            m_PerfHotelBookingTicks = 0;
+            m_PerfHotelCandidates = 0;
+            m_PerfHotelBookings = 0;
+        }
+#endif
+
 
         protected override void OnCreate()
         {
@@ -91,6 +127,9 @@ namespace NoCustomersFix.Systems
 
         protected override void OnUpdate()
         {
+#if NCF_PERF_TEST
+            long scanStart = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
             ComponentLookup<ServiceCompanyData> serviceCompanyDatas =
                 SystemAPI.GetComponentLookup<ServiceCompanyData>(true);
 
@@ -213,8 +252,14 @@ namespace NoCustomersFix.Systems
                 });
             }
 
+#if NCF_PERF_TEST
+            long scanFinished = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
             if (m_Hotels.Count == 0)
             {
+#if NCF_PERF_TEST
+                RecordHotelPerf(scanFinished - scanStart, 0, 0, 0);
+#endif
                 return;
             }
 
@@ -320,6 +365,13 @@ namespace NoCustomersFix.Systems
                         });
                 }
             }
+#if NCF_PERF_TEST
+            RecordHotelPerf(
+                scanFinished - scanStart,
+                System.Diagnostics.Stopwatch.GetTimestamp() - scanFinished,
+                m_Hotels.Count,
+                assignments);
+#endif
         }
 
         private int SelectHotel()
