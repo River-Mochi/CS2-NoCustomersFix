@@ -12,6 +12,8 @@
 
 using System.Collections.Generic;
 
+using Unity.Collections;
+
 using Game;
 using Game.Agents;
 using Game.Buildings;
@@ -58,14 +60,16 @@ namespace NoCustomersFix.Systems
         private int m_PerfHotelUpdates;
         private long m_PerfHotelScanTicks;
         private long m_PerfHotelBookingTicks;
+        private long m_PerfHotelPlaybackTicks;
         private long m_PerfHotelCandidates;
         private long m_PerfHotelBookings;
 
-        private void RecordHotelPerf(long scanTicks, long bookingTicks, int hotelCandidates, int bookings)
+        private void RecordHotelPerf(long scanTicks, long bookingTicks, long playbackTicks, int hotelCandidates, int bookings)
         {
             m_PerfHotelUpdates++;
             m_PerfHotelScanTicks += scanTicks;
             m_PerfHotelBookingTicks += bookingTicks;
+            m_PerfHotelPlaybackTicks += playbackTicks;
             m_PerfHotelCandidates += hotelCandidates;
             m_PerfHotelBookings += bookings;
             if (m_PerfHotelUpdates < kPerfHotelLogUpdates)
@@ -79,11 +83,13 @@ namespace NoCustomersFix.Systems
                 $"updates={m_PerfHotelUpdates} " +
                 $"scanMs={(m_PerfHotelScanTicks * ms):F1} " +
                 $"bookingMs={(m_PerfHotelBookingTicks * ms):F1} " +
+                $"playbackMs={(m_PerfHotelPlaybackTicks * ms):F1} " +
                 $"candidateHotels={m_PerfHotelCandidates} " +
                 $"bookings={m_PerfHotelBookings}");
             m_PerfHotelUpdates = 0;
             m_PerfHotelScanTicks = 0;
             m_PerfHotelBookingTicks = 0;
+            m_PerfHotelPlaybackTicks = 0;
             m_PerfHotelCandidates = 0;
             m_PerfHotelBookings = 0;
         }
@@ -258,7 +264,7 @@ namespace NoCustomersFix.Systems
             if (m_Hotels.Count == 0)
             {
 #if NCF_PERF_TEST
-                RecordHotelPerf(scanFinished - scanStart, 0, 0, 0);
+                RecordHotelPerf(scanFinished - scanStart, 0, 0, 0, 0);
 #endif
                 return;
             }
@@ -343,32 +349,49 @@ namespace NoCustomersFix.Systems
                 assignments++;
             }
 
-            // Do structural changes after the SystemAPI.Query iteration.
-            // Vanilla successful reservation removes LodgingSeeker and leaves
-            // the household targeted at the selected physical hotel building.
-            for (int i = 0; i < m_Assignments.Count; i++)
+            // Queue structural changes after the query and play them back
+            // immediately. This keeps same-update behavior before vanilla's
+            // TouristFindTargetSystem while batching individual sync points.
+#if NCF_PERF_TEST
+            long playbackTicks = 0;
+#endif
+            if (m_Assignments.Count > 0)
             {
-                HotelAssignment assignment = m_Assignments[i];
-
-                if (EntityManager.HasComponent<LodgingSeeker>(assignment.Household))
+                using (EntityCommandBuffer commandBuffer = new(Allocator.Temp))
                 {
-                    EntityManager.RemoveComponent<LodgingSeeker>(assignment.Household);
-                }
+                    for (int i = 0; i < m_Assignments.Count; i++)
+                    {
+                        HotelAssignment assignment = m_Assignments[i];
 
-                if (!EntityManager.HasComponent<Target>(assignment.Household))
-                {
-                    EntityManager.AddComponentData(
-                        assignment.Household,
-                        new Target
+                        if (EntityManager.HasComponent<LodgingSeeker>(assignment.Household))
                         {
-                            m_Target = assignment.Building,
-                        });
+                            commandBuffer.RemoveComponent<LodgingSeeker>(assignment.Household);
+                        }
+
+                        if (!EntityManager.HasComponent<Target>(assignment.Household))
+                        {
+                            commandBuffer.AddComponent(
+                                assignment.Household,
+                                new Target
+                                {
+                                    m_Target = assignment.Building,
+                                });
+                        }
+                    }
+#if NCF_PERF_TEST
+                    long playbackStart = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
+                    commandBuffer.Playback(EntityManager);
+#if NCF_PERF_TEST
+                    playbackTicks = System.Diagnostics.Stopwatch.GetTimestamp() - playbackStart;
+#endif
                 }
             }
 #if NCF_PERF_TEST
             RecordHotelPerf(
                 scanFinished - scanStart,
                 System.Diagnostics.Stopwatch.GetTimestamp() - scanFinished,
+                playbackTicks,
                 m_Hotels.Count,
                 assignments);
 #endif
