@@ -97,6 +97,7 @@ namespace NoCustomersFix.Systems
         {
             base.OnGameLoaded(serializationContext);
 
+            RestoreBaselineIfOwned();
             ResetState();
         }
 
