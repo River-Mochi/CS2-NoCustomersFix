@@ -74,7 +74,7 @@ namespace NoCustomersFix.Systems
             }
 
             double ms = 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-            LogUtils.Info(
+            CS2Shared.RiverMochi.LogUtils.Info(
                 "[NCF-PERF-HOTEL] " +
                 $"updates={m_PerfHotelUpdates} " +
                 $"scanMs={(m_PerfHotelScanTicks * ms):F1} " +
