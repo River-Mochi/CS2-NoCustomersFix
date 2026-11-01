@@ -29,10 +29,12 @@ namespace NoCustomersFix.Systems
     {
         // Start with a small snapshot; expand only when needed.
         private const int kInitialSnapshotCandidates = 4096;
+        private const int kLowWarningSnapshotCandidates = 1024;
         private const int kMaximumSnapshotCandidates = 32768;
 
         private int m_CandidateLimit = kInitialSnapshotCandidates;
         private int m_LastCapturedLimit = kInitialSnapshotCandidates;
+        private bool m_WasLowWarningMode;
         private EntityQuery m_HouseholdQuery;
         private NativeList<Entity> m_ReadyHouseholds;
 
@@ -150,6 +152,7 @@ namespace NoCustomersFix.Systems
             m_CapturedSimulationFrame = uint.MaxValue;
             m_CandidateLimit = kInitialSnapshotCandidates;
             m_LastCapturedLimit = kInitialSnapshotCandidates;
+            m_WasLowWarningMode = false;
 #if DEBUG || NCF_PERF_TEST
             m_PerfPrepareUpdates = 0;
             m_PerfPrepareScheduled = 0;
@@ -192,6 +195,18 @@ namespace NoCustomersFix.Systems
                 RecordPreparePerf(perfStart, perfAfterPrevious, false);
 #endif
                 return;
+            }
+
+            // In healthy cities, use a smaller initial candidate prefix.
+            // If this cannot use the available correction budget, the
+            // existing ReportCorrectionResult logic expands it automatically.
+            bool lowWarningMode = m_BalanceSystem.IsLowWarningMode;
+            if (lowWarningMode != m_WasLowWarningMode)
+            {
+                m_WasLowWarningMode = lowWarningMode;
+                m_CandidateLimit = lowWarningMode
+                    ? kLowWarningSnapshotCandidates
+                    : kInitialSnapshotCandidates;
             }
 
             uint simulationFrame = m_SimulationSystem.frameIndex;
@@ -238,7 +253,9 @@ namespace NoCustomersFix.Systems
 
             if (!remainingBudget)
             {
-                m_CandidateLimit = kInitialSnapshotCandidates;
+                m_CandidateLimit = m_WasLowWarningMode
+                    ? kLowWarningSnapshotCandidates
+                    : kInitialSnapshotCandidates;
                 return;
             }
 
