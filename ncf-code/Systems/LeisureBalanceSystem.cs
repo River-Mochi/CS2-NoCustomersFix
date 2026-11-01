@@ -57,6 +57,9 @@ namespace NoCustomersFix.Systems
         private int m_PerfMediumScans;
         private int m_PerfStrongScans;
         private long m_PerfLeisureScanTicks;
+        private long m_PerfEligibleLeisureShops;
+        private long m_PerfMediumLeisureShops;
+        private long m_PerfStrongLeisureShops;
 #endif
 
 #if DEBUG
@@ -68,6 +71,9 @@ namespace NoCustomersFix.Systems
 
         private struct LeisurePressure
         {
+#if NCF_PERF_TEST
+            public int EligibleCount;
+#endif
             public int MediumCount;
             public int StrongCount;
 
@@ -119,6 +125,9 @@ namespace NoCustomersFix.Systems
             m_PerfMediumScans = 0;
             m_PerfStrongScans = 0;
             m_PerfLeisureScanTicks = 0;
+            m_PerfEligibleLeisureShops = 0;
+            m_PerfMediumLeisureShops = 0;
+            m_PerfStrongLeisureShops = 0;
 #endif
         }
 
@@ -196,6 +205,9 @@ namespace NoCustomersFix.Systems
         {
             m_PerfLeisureScans++;
             m_PerfLeisureScanTicks += elapsedTicks;
+            m_PerfEligibleLeisureShops += pressure.EligibleCount;
+            m_PerfMediumLeisureShops += pressure.MediumCount;
+            m_PerfStrongLeisureShops += pressure.StrongCount;
             if (pressure.StrongCount > 0)
             {
                 m_PerfStrongScans++;
@@ -215,10 +227,16 @@ namespace NoCustomersFix.Systems
                 "[NCF-PERF-LEISURE] " +
                 $"scans={m_PerfLeisureScans} " +
                 $"scanMs={(m_PerfLeisureScanTicks * ms):F1} " +
+                $"avgEligibleShops={m_PerfEligibleLeisureShops / m_PerfLeisureScans} " +
+                $"avgMediumShops={m_PerfMediumLeisureShops / m_PerfLeisureScans} " +
+                $"avgStrongShops={m_PerfStrongLeisureShops / m_PerfLeisureScans} " +
                 $"mediumScans={m_PerfMediumScans} " +
                 $"strongScans={m_PerfStrongScans}");
             m_PerfLeisureScans = 0;
             m_PerfLeisureScanTicks = 0;
+            m_PerfEligibleLeisureShops = 0;
+            m_PerfMediumLeisureShops = 0;
+            m_PerfStrongLeisureShops = 0;
             m_PerfMediumScans = 0;
             m_PerfStrongScans = 0;
         }
@@ -422,6 +440,11 @@ namespace NoCustomersFix.Systems
                     continue;
                 }
 
+                // Record the citywide share of struggling Leisure businesses
+                // without adding another company scan.
+#if NCF_PERF_TEST
+                pressure.EligibleCount++;
+#endif
                 float unusedRatio =
                     math.saturate(
                         (float)serviceRef.ValueRO.m_ServiceAvailable /
