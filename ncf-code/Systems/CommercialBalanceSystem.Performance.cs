@@ -25,6 +25,9 @@ namespace NoCustomersFix.Systems
         private long m_PerfPressureTicks;
         private long m_PerfCorrectionTicks;
         private long m_PerfLongestCorrection;
+        private long m_PerfHouseholdSyncTicks;
+        private long m_PerfLongestHouseholdSyncTicks;
+        private int m_PerfHouseholdSyncCalls;
         private long m_PerfCandidates;
         private long m_PerfVisited;
         private long m_PerfInjected;
@@ -34,6 +37,14 @@ namespace NoCustomersFix.Systems
         private void RecordSkippedSnapshot()
         {
             m_PerfSkippedSnapshots++;
+        }
+
+        private void RecordHouseholdSync(long elapsedTicks)
+        {
+            m_PerfHouseholdSyncTicks += elapsedTicks;
+            m_PerfLongestHouseholdSyncTicks = Math.Max(
+                m_PerfLongestHouseholdSyncTicks, elapsedTicks);
+            m_PerfHouseholdSyncCalls++;
         }
 
 #if NCF_PERF_TEST
@@ -82,6 +93,9 @@ namespace NoCustomersFix.Systems
             m_PerfPressureTicks = 0;
             m_PerfCorrectionTicks = 0;
             m_PerfLongestCorrection = 0;
+            m_PerfHouseholdSyncTicks = 0;
+            m_PerfLongestHouseholdSyncTicks = 0;
+            m_PerfHouseholdSyncCalls = 0;
             m_PerfCandidates = 0;
             m_PerfVisited = 0;
             m_PerfInjected = 0;
@@ -123,6 +137,9 @@ namespace NoCustomersFix.Systems
                 $"pressureMs={(m_PerfPressureTicks * millisecondsPerTick):F1} " +
                 $"correctionMs={(m_PerfCorrectionTicks * millisecondsPerTick):F1} " +
                 $"maxCorrectionMs={(m_PerfLongestCorrection * millisecondsPerTick):F2} " +
+                $"householdSyncMs={(m_PerfHouseholdSyncTicks * millisecondsPerTick):F2} " +
+                $"maxHouseholdSyncMs={(m_PerfLongestHouseholdSyncTicks * millisecondsPerTick):F3} " +
+                $"householdSyncCalls={m_PerfHouseholdSyncCalls} " +
                 $"candidates={m_PerfCandidates} " +
                 $"visited={m_PerfVisited} " +
                 $"injected={m_PerfInjected} " +
