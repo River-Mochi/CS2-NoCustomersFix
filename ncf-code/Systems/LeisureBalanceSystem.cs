@@ -105,6 +105,13 @@ namespace NoCustomersFix.Systems
         {
             base.OnGameLoaded(serializationContext);
 
+#if NCF_PERF_TEST
+            LogUtils.Info(
+                "[NCF-LEISURE-RELOAD] " +
+                $"ownedBeforeLoad={m_AppliedByUs} " +
+                $"baselineBeforeLoad={m_BaselineFactor} " +
+                $"lastAppliedBeforeLoad={m_LastAppliedFactor}");
+#endif
             RestoreBaselineIfOwned();
             ResetState();
 #if NCF_PERF_TEST
