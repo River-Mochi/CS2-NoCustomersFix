@@ -12,6 +12,8 @@
 
 using System.Collections.Generic;
 
+using Colossal.Serialization.Entities;
+
 using Unity.Collections;
 
 using Game;
@@ -51,6 +53,11 @@ namespace NoCustomersFix.Systems
         private const float kTargetServiceRatio = 0.85f;
         private const float kTargetOccupiedRatio = 0.11f;
         private const int kMaxAssignmentsPerUpdate = 16;
+        // Once no hotel needs correction, check every fourth eligible update.
+        // Each update is 64 simulation frames, so the longest extra delay
+        // before seeing new pressure is only 192 simulation frames.
+        private const int kEmptyHotelRescanStride = 4;
+        private int m_EmptyHotelSkipsRemaining;
 
         private readonly List<HotelPressure> m_Hotels = new();
         private readonly List<HotelAssignment> m_Assignments = new();
@@ -63,6 +70,7 @@ namespace NoCustomersFix.Systems
         private long m_PerfHotelPlaybackTicks;
         private long m_PerfHotelCandidates;
         private long m_PerfHotelBookings;
+        private int m_PerfHotelSkippedScans;
 
         private void RecordHotelPerf(long scanTicks, long bookingTicks, long playbackTicks, int hotelCandidates, int bookings)
         {
@@ -85,13 +93,15 @@ namespace NoCustomersFix.Systems
                 $"bookingMs={(m_PerfHotelBookingTicks * ms):F1} " +
                 $"playbackMs={(m_PerfHotelPlaybackTicks * ms):F1} " +
                 $"candidateHotels={m_PerfHotelCandidates} " +
-                $"bookings={m_PerfHotelBookings}");
+                $"bookings={m_PerfHotelBookings} " +
+                $"skippedEmptyScans={m_PerfHotelSkippedScans}");
             m_PerfHotelUpdates = 0;
             m_PerfHotelScanTicks = 0;
             m_PerfHotelBookingTicks = 0;
             m_PerfHotelPlaybackTicks = 0;
             m_PerfHotelCandidates = 0;
             m_PerfHotelBookings = 0;
+            m_PerfHotelSkippedScans = 0;
         }
 #endif
 
@@ -131,8 +141,32 @@ namespace NoCustomersFix.Systems
             return 64;
         }
 
+        protected override void OnGameLoaded(Context serializationContext)
+        {
+            base.OnGameLoaded(serializationContext);
+            m_EmptyHotelSkipsRemaining = 0;
+#if NCF_PERF_TEST
+            m_PerfHotelUpdates = 0;
+            m_PerfHotelScanTicks = 0;
+            m_PerfHotelBookingTicks = 0;
+            m_PerfHotelPlaybackTicks = 0;
+            m_PerfHotelCandidates = 0;
+            m_PerfHotelBookings = 0;
+            m_PerfHotelSkippedScans = 0;
+#endif
+        }
+
         protected override void OnUpdate()
         {
+            if (m_EmptyHotelSkipsRemaining > 0)
+            {
+                m_EmptyHotelSkipsRemaining--;
+#if NCF_PERF_TEST
+                m_PerfHotelSkippedScans++;
+                RecordHotelPerf(0, 0, 0, 0, 0);
+#endif
+                return;
+            }
 #if NCF_PERF_TEST
             long scanStart = System.Diagnostics.Stopwatch.GetTimestamp();
 #endif
@@ -263,6 +297,7 @@ namespace NoCustomersFix.Systems
 #endif
             if (m_Hotels.Count == 0)
             {
+                m_EmptyHotelSkipsRemaining = kEmptyHotelRescanStride - 1;
 #if NCF_PERF_TEST
                 RecordHotelPerf(scanFinished - scanStart, 0, 0, 0, 0);
 #endif
