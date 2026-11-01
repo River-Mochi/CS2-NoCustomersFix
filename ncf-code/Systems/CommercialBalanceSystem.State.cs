@@ -23,7 +23,7 @@ namespace NoCustomersFix.Systems
     {
         // Vanilla NEC appears at roughly >90% unused Service.
         // Keep some safety margin below that threshold.
-        private const float kTargetServiceRatio = 0.87f;
+        private const float kTargetServiceRatio = 0.88f;
 
         // Recheck actual company pressure every four correction updates.
         // removes most full-commercial scans while staying responsive.
@@ -99,15 +99,16 @@ namespace NoCustomersFix.Systems
 
         private int m_CommercialWarningCount;
         private bool m_LowWarningThrottle;
+        internal bool IsLowWarningMode => m_LowWarningThrottle;
         private int m_CorrectionSnapshotIndex;
 
         internal bool ShouldCaptureHouseholds()
         {
-            // When the last pressure refresh found no corrective budget,
-            // there is nothing to inject until the next refresh.
-            // Always permit a snapshot on refresh updates because demand may change.
-            if (m_PressureUpdateIndex != 0 &&
-                (m_PerUpdateInjectionBudget <= 0 ||
+            // Skip snapshots entirely when the last pressure scan found
+            // no excess Service to correct. The next pressure scan still
+            // runs normally; newly detected pressure can be handled on
+            // the following update, without a wasted speculative snapshot.
+            if ((m_PerUpdateInjectionBudget <= 0 ||
                     m_TotalCorrectionUnits <= 0) &&
                 (m_PerUpdateVehicleBudget <= 0 ||
                     m_WorkingVehicleExcess <= 0))
