@@ -87,10 +87,11 @@ namespace NoCustomersFix.Systems
         // healthy. Hysteresis avoids switching modes on each warning change.
         private const int kLowWarningEnter = 6;
         private const int kLowWarningExit = 12;
-        // 2 of every 3 eligible busy-city passes: fewer shopping requests
-        // per game hour, while keeping the full NEC correction rules.
-        private const int kNormalCorrectionCycle = 3;
-        private const int kNormalCorrectionActive = 2;
+        // 1 of every 2 eligible busy-city passes: fewer extra shopping
+        // requests and household snapshots, prioritizing simulation speed.
+        // Low-warning mode retains its separate one-in-four cadence.
+        private const int kNormalCorrectionCycle = 2;
+        private const int kNormalCorrectionActive = 1;
         private const int kLowWarningCorrectionStride = 4;
 
         // Limit newly generated shopping trips; do not limit vanilla shopping.
