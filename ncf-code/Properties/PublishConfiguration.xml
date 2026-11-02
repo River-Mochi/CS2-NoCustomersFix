@@ -113,10 +113,7 @@ tags: notification icons, no customers
 <!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 <ChangeLog Value="" />
 <ChangeLog>
-- Fine tuned balancing, reduce extra shopping trips.
-- Better performance: reduces background work when only a few NEC icons remain.
-- Smarter hotel balancing: skips unnecessary hotel checks when no help needed.
-- Better handling of Leisure settings when switching between cities.
+- add perf test build option.
 </ChangeLog>
 <!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
 <!--Supported values Public, Private, Unlisted-->
