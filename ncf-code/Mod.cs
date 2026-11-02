@@ -12,6 +12,7 @@
 
  namespace NoCustomersFix
  {
+     using System;
      using System.Reflection;
      using Colossal.Logging;
      using CS2Shared.RiverMochi;
@@ -21,6 +22,12 @@
      using Game.Simulation;
 
      using NoCustomersFix.Systems;
+#if NCF_PERF_TEST
+     using NoCustomersFix.Localization;
+     using NoCustomersFix.Settings;
+     using Colossal.IO.AssetDatabase;
+     using Game.SceneFlow;
+#endif
 
      public sealed class Mod : IMod
      {
@@ -39,6 +46,23 @@
  #endif
              );
 
+#if NCF_PERF_TEST
+         private static BenchmarkSettings? s_BenchmarkSettings;
+
+         // Set once when a city loads. Changes made in Options during
+         // a running city are deferred until the next city load.
+         internal static bool BalancingEnabled { get; private set; } = true;
+
+         internal static void ApplyBenchmarkModeOnCityLoad()
+         {
+             BalancingEnabled = s_BenchmarkSettings?.EnableBalancing ?? true;
+             LogUtils.Info(
+                 "[NCF-BENCHMARK] city load mode=" +
+                 (BalancingEnabled ? "ON (normal fixes + logging)" :
+                     "OFF (logging only; all NCF balancing disabled)"));
+         }
+#endif
+
          public void OnLoad(UpdateSystem updateSystem)
          {
              LogUtils.Configure(ModId, s_Log);
@@ -49,6 +73,34 @@
             LogUtils.Info($"{ModName} v{ModVersion} RELEASE PERF TEST loaded");
 #else
             LogUtils.Info($"{ModName} v{ModVersion} RELEASE loaded");
+#endif
+
+#if NCF_PERF_TEST
+             BenchmarkSettings benchmarkSettings = new(this);
+             s_BenchmarkSettings = benchmarkSettings;
+             try
+             {
+                 if (GameManager.instance?.localizationManager != null)
+                 {
+                     GameManager.instance.localizationManager.AddSource(
+                         "en-US", new BenchmarkLocaleEN(benchmarkSettings));
+                 }
+
+                 AssetDatabase.global.LoadSettings(
+                     ModId, benchmarkSettings, new BenchmarkSettings(this),
+                     userSetting: true);
+                 benchmarkSettings.RegisterInOptionsUI();
+             }
+             catch (Exception ex)
+             {
+                 LogUtils.Warn(
+                     "[NCF-BENCHMARK] Options registration failed; " +
+                     "benchmark defaults to balancing ON.", ex);
+                 s_BenchmarkSettings = null;
+             }
+
+             updateSystem.UpdateBefore<BenchmarkSpeedSystem, CitizenBehaviorSystem>(
+                 SystemUpdatePhase.GameSimulation);
 #endif
 
              updateSystem.UpdateBefore<CommercialBalancePrepareSystem,HouseholdBehaviorSystem>(SystemUpdatePhase.GameSimulation);
