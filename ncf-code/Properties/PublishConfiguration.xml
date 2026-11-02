@@ -116,9 +116,9 @@ tags: notification icons, no customers
 <!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 <ChangeLog Value="" />
 <ChangeLog>
-- Gentler Leisure balancing: strong citywide demand boosts now require widespread Leisure pressure.
-- Reduced extra Hotel balancing work when the city has few Not Enough Customers warnings.
-- Kept the proven retail shopping recovery and low-warning performance throttling.
+- Gentler Leisure balancing: strong citywide demand boosts now require wider Leisure pressure.
+- Reduced extra Hotel balance work when the city has few warnings.
+- Kept the proven retail recovery and low-warning performance throttling.
 </ChangeLog>
 <!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
 <!--Supported values Public, Private, Unlisted-->
