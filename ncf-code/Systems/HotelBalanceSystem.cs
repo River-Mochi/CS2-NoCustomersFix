@@ -52,10 +52,11 @@ namespace NoCustomersFix.Systems
 
         private const float kTargetServiceRatio = 0.85f;
         private const float kTargetOccupiedRatio = 0.11f;
-        private const int kMaxAssignmentsPerUpdate = 16;
-        // Once no hotel needs correction, check every fourth eligible update.
-        // Each update is 64 simulation frames, so the longest extra delay
-        // before seeing new pressure is only 192 simulation frames.
+        // Hotel booking is preventive, not urgent: keep added tourist
+        // activity modest rather than forcing occupancy to rise quickly.
+        private const int kMaxAssignmentsPerUpdate = 8;
+        // When no hotel needs help, only scan every fourth eligible update.
+        // With 256-frame updates, this is one scan per 1024 frames.
         private const int kEmptyHotelRescanStride = 4;
         private int m_EmptyHotelSkipsRemaining;
 
@@ -63,7 +64,9 @@ namespace NoCustomersFix.Systems
         private readonly List<HotelAssignment> m_Assignments = new();
 
 #if NCF_PERF_TEST
-        private const int kPerfHotelLogUpdates = 256;
+        // 64 x 256 frames matches the old 256 x 64-frame logging window.
+        // This keeps performance totals comparable by simulation progress.
+        private const int kPerfHotelLogUpdates = 64;
         private int m_PerfHotelUpdates;
         private long m_PerfHotelScanTicks;
         private long m_PerfHotelBookingTicks;
@@ -88,7 +91,8 @@ namespace NoCustomersFix.Systems
             double ms = 1000.0 / System.Diagnostics.Stopwatch.Frequency;
             CS2Shared.RiverMochi.LogUtils.Info(
                 "[NCF-PERF-HOTEL] " +
-                $"updates={m_PerfHotelUpdates} " +
+                $"updates={m_PerfHotelUpdates} intervalFrames=256 " +
+                $"maxAssignments={kMaxAssignmentsPerUpdate} " +
                 $"scanMs={(m_PerfHotelScanTicks * ms):F1} " +
                 $"bookingMs={(m_PerfHotelBookingTicks * ms):F1} " +
                 $"playbackMs={(m_PerfHotelPlaybackTicks * ms):F1} " +
@@ -138,7 +142,9 @@ namespace NoCustomersFix.Systems
 
         public override int GetUpdateInterval(SystemUpdatePhase phase)
         {
-            return 64;
+            // Scan hotels and assign existing tourists four times less often.
+            // Vanilla's hotel systems still operate at their normal cadence.
+            return 256;
         }
 
         protected override void OnGameLoaded(Context serializationContext)
