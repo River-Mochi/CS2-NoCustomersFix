@@ -9,15 +9,15 @@ dotnet build ncf-code/NoCustomersFix.csproj -c Release -p:NCFPerfTest=true -t:Re
 The PERF TEST DLL includes an **Options > No Customers Fix (Perf Test) > Benchmark > NCF balancing enabled** switch.
 
 - **ON** (default): NCF balances Commercial, Leisure, Hotels and production, and logs simulation speed.
-- **OFF**: The balancing systems are **not registered**; only the lightweight speed logger runs.
+- **OFF**: The balancing systems are present but immediately skip their updates, making no NCF corrections; only the speed logger does active work.
 
-**Restart the game after changing the switch.** This avoids changing simulation behavior in the middle of a running city. Always reload the **same original save** between trials; do not overwrite that save.
+**Load a city after changing the switch; no game restart is needed to change modes.** The selected mode is latched at city load, not applied mid-simulation. Always reload the **same original save** between trials; do not overwrite that save.
 
-Suggested procedure: Set AdvancedSimulationSpeed to 8x, load the same 6 AM save and run past 9 AM. Repeat with the other mode using the same DLL, same playset, and a fresh game restart. No manual speed tracking needed.
+Suggested procedure: Set AdvancedSimulationSpeed to 8x, load the same 6 AM save and run past 9 AM. Repeat with the other mode using the same DLL, same playset, and a fresh load of that save. No manual speed tracking needed.
 
 Log records:
 
-- `[NCF-BENCHMARK]`: confirmed mode at startup/city load
+- `[NCF-BENCHMARK]`: confirmed mode at city load
 - `[NCF-SPEED]`: mode, city time, selected 8x target, actual smooth speed, frame every ~10 real seconds
 - `[NCF-SPEED-HOUR]`: for each completed game hour, 8x-only sample count, mean, median, min and max
 - `[NCF-PERF-*]`: detailed workload timing when balancing is ON
