@@ -106,7 +106,10 @@ namespace NoCustomersFix.Systems
         protected override void OnUpdate()
         {
 #if NCF_PERF_TEST
-            LogSpeedSample();
+            if (!Mod.BalancingEnabled)
+            {
+                return;
+            }
 #endif
 #if DEBUG || NCF_PERF_TEST
             long perfStart = System.Diagnostics.Stopwatch.GetTimestamp();

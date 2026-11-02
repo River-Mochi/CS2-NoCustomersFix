@@ -53,6 +53,10 @@
             <Private>false</Private>
         </Reference>
 
+        <Reference Include="Colossal.Localization">
+            <Private>false</Private>
+        </Reference>
+
         <Reference Include="Colossal.IO.AssetDatabase">
             <Private>false</Private>
         </Reference>

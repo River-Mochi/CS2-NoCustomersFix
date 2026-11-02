@@ -140,6 +140,12 @@ namespace NoCustomersFix.Systems
 
         protected override void OnUpdate()
         {
+#if NCF_PERF_TEST
+            if (!Mod.BalancingEnabled)
+            {
+                return;
+            }
+#endif
             if (m_LeisureParametersQuery.CalculateEntityCount() != 1)
             {
                 return;
