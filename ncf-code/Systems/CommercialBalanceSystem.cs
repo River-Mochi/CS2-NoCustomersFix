@@ -463,7 +463,7 @@ namespace NoCustomersFix.Systems
             bool hitCorrectionLimit =
                 correctiveNeedsThisUpdate >= kMaxCorrectiveNeedsPerUpdate;
 
-            // Hitting the 24-need cap must not expand the next snapshot.
+            // Reaching the per-update need cap must not expand the next snapshot.
             m_PrepareSystem.ReportCorrectionResult(
                 !hitCorrectionLimit &&
                     (m_RemainingInjectionBudget > 0 ||
