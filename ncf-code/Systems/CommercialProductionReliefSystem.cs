@@ -180,6 +180,12 @@ namespace NoCustomersFix.Systems
 
         protected override void OnUpdate()
         {
+#if NCF_PERF_TEST
+            if (!Mod.BalancingEnabled)
+            {
+                return;
+            }
+#endif
 #if DEBUG || NCF_PERF_TEST
             long perfStarted = System.Diagnostics.Stopwatch.GetTimestamp();
 #endif
@@ -504,6 +510,12 @@ namespace NoCustomersFix.Systems
 
         protected override void OnUpdate()
         {
+#if NCF_PERF_TEST
+            if (!Mod.BalancingEnabled)
+            {
+                return;
+            }
+#endif
             RestoreProductionReliefJob job =
                 new()
                 {
