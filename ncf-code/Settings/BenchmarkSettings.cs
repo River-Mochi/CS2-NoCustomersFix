@@ -17,7 +17,7 @@ namespace NoCustomersFix.Settings
     [FileLocation("ModsSettings/NoCustomersFix/Benchmark")]
     [SettingsUITabOrder("Benchmark")]
     [SettingsUIGroupOrder("Mode")]
-    public sealed class BenchmarkSettings : ModSetting
+    public class BenchmarkSettings : ModSetting
     {
         public BenchmarkSettings(IMod mod)
             : base(mod)
