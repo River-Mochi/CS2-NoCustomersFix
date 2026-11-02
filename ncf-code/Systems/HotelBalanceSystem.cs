@@ -142,9 +142,6 @@ namespace NoCustomersFix.Systems
 
             RequireForUpdate(
                 m_LodgingSeekerQuery);
-
-            // Resolve lazily, after the commercial system has initialized.
-            // Reuse its warning count rather than scanning companies again.
         }
 
         public override int GetUpdateInterval(SystemUpdatePhase phase)
@@ -178,6 +175,7 @@ namespace NoCustomersFix.Systems
                 return;
             }
 #endif
+            // Resolve lazily and reuse the existing company-pressure scan.
             if (m_CommercialBalanceSystem == null)
             {
                 m_CommercialBalanceSystem =
