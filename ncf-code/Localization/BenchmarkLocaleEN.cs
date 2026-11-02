@@ -13,7 +13,7 @@ using NoCustomersFix.Settings;
 
 namespace NoCustomersFix.Localization
 {
-    public sealed class BenchmarkLocaleEN : IDictionarySource
+    public class BenchmarkLocaleEN : IDictionarySource
     {
         private readonly BenchmarkSettings m_Settings;
 
