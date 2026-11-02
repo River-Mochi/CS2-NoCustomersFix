@@ -248,7 +248,18 @@ namespace NoCustomersFix.Systems
                 $"avgStrongShops={m_PerfStrongLeisureShops / m_PerfLeisureScans} " +
                 $"mediumScans={m_PerfMediumScans} " +
                 $"strongScans={m_PerfStrongScans} " +
-                $"strongPressureScans={m_PerfStrongPressureScans}");
+                $"strongPressureScans={m_PerfStrongPressureScans} " +
+                // Last scan in this window, not an average or extra scan.
+                $"warningsSample={pressure.TotalCommercialWarnings} " +
+                $"leisureWarnings={pressure.LeisureWarnings} " +
+                $"entertainmentWarnings={pressure.EntertainmentWarnings} " +
+                $"mealsWarnings={pressure.MealsWarnings} " +
+                $"recreationWarnings={pressure.RecreationWarnings} " +
+                $"hotelWarnings={pressure.LodgingWarnings} " +
+                $"retailWarnings={pressure.RetailWarnings} " +
+                $"vehicleWarnings={pressure.VehicleWarnings} " +
+                $"officeWarnings={pressure.OfficeWarnings} " +
+                $"otherWarnings={pressure.OtherWarnings}");
             m_PerfLeisureScans = 0;
             m_PerfLeisureScanTicks = 0;
             m_PerfEligibleLeisureShops = 0;
