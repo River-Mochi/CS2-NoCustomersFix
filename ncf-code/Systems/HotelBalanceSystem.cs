@@ -35,6 +35,8 @@ namespace NoCustomersFix.Systems
     public partial class HotelBalanceSystem : GameSystemBase
     {
         private EntityQuery m_LodgingSeekerQuery;
+        private CommercialBalanceSystem m_CommercialBalanceSystem = null!;
+        private int m_HotelUpdateIndex;
         private struct HotelPressure
         {
             public Entity Hotel;
@@ -71,6 +73,8 @@ namespace NoCustomersFix.Systems
         private long m_PerfHotelCandidates;
         private long m_PerfHotelBookings;
         private int m_PerfHotelSkippedScans;
+        private int m_PerfHotelCadenceSkips;
+        private int m_PerfHotelLowWarningSkips;
 
         private void RecordHotelPerf(long scanTicks, long bookingTicks, long playbackTicks, int hotelCandidates, int bookings)
         {
@@ -94,7 +98,9 @@ namespace NoCustomersFix.Systems
                 $"playbackMs={(m_PerfHotelPlaybackTicks * ms):F1} " +
                 $"candidateHotels={m_PerfHotelCandidates} " +
                 $"bookings={m_PerfHotelBookings} " +
-                $"skippedEmptyScans={m_PerfHotelSkippedScans}");
+                $"skippedEmptyScans={m_PerfHotelSkippedScans} " +
+                $"skippedCadence={m_PerfHotelCadenceSkips} " +
+                $"skippedLowWarning={m_PerfHotelLowWarningSkips}");
             m_PerfHotelUpdates = 0;
             m_PerfHotelScanTicks = 0;
             m_PerfHotelBookingTicks = 0;
@@ -102,6 +108,8 @@ namespace NoCustomersFix.Systems
             m_PerfHotelCandidates = 0;
             m_PerfHotelBookings = 0;
             m_PerfHotelSkippedScans = 0;
+            m_PerfHotelCadenceSkips = 0;
+            m_PerfHotelLowWarningSkips = 0;
         }
 #endif
 
@@ -134,6 +142,9 @@ namespace NoCustomersFix.Systems
 
             RequireForUpdate(
                 m_LodgingSeekerQuery);
+
+            // Resolve lazily, after the commercial system has initialized.
+            // Reuse its warning count rather than scanning companies again.
         }
 
         public override int GetUpdateInterval(SystemUpdatePhase phase)
@@ -145,6 +156,7 @@ namespace NoCustomersFix.Systems
         {
             base.OnGameLoaded(serializationContext);
             m_EmptyHotelSkipsRemaining = 0;
+            m_HotelUpdateIndex = 0;
 #if NCF_PERF_TEST
             m_PerfHotelUpdates = 0;
             m_PerfHotelScanTicks = 0;
@@ -153,6 +165,8 @@ namespace NoCustomersFix.Systems
             m_PerfHotelCandidates = 0;
             m_PerfHotelBookings = 0;
             m_PerfHotelSkippedScans = 0;
+            m_PerfHotelCadenceSkips = 0;
+            m_PerfHotelLowWarningSkips = 0;
 #endif
         }
 
@@ -164,6 +178,33 @@ namespace NoCustomersFix.Systems
                 return;
             }
 #endif
+            if (m_CommercialBalanceSystem == null)
+            {
+                m_CommercialBalanceSystem =
+                    World.GetOrCreateSystemManaged<CommercialBalanceSystem>();
+            }
+
+            // Hotel placement is optional help. Avoid repeatedly assigning
+            // tourists for the last few warnings at the cost of sim speed.
+            // Vanilla hotel booking continues at its normal frequency.
+            bool lowWarning = m_CommercialBalanceSystem.IsLowWarningMode;
+            int cadence = lowWarning ? 4 : 2;
+
+            if (m_HotelUpdateIndex++ % cadence != 0)
+            {
+#if NCF_PERF_TEST
+                m_PerfHotelCadenceSkips++;
+
+                if (lowWarning)
+                {
+                    m_PerfHotelLowWarningSkips++;
+                }
+
+                RecordHotelPerf(0, 0, 0, 0, 0);
+#endif
+                return;
+            }
+
             if (m_EmptyHotelSkipsRemaining > 0)
             {
                 m_EmptyHotelSkipsRemaining--;
