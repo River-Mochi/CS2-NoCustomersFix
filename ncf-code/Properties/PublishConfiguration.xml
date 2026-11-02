@@ -18,17 +18,18 @@ This mod helps struggling shops recover by balancing production and shopping. No
 
 ### Why does vanilla struggle?
 
-*   **90%+ unused Service** is exactly what triggers NEC Icons. But vanilla's shopping-priority score doesn't separate struggling shops of unused Service from 50% - 100%, a big basket that doesn't prioritize the 89% - 100% shops.
+*   **90%+ unused Service** is exactly what triggers NEC Icons. But vanilla's shopping-priority score doesn't separate struggling shops of unused Service from 50% - 100%. It's a big basket that doesn't prioritize the 89% - 100%.
 *   Shop workers get paid to produce Service. Service is different from goods delivered (e.g., food, paper...).
 *   **Shops keep producing** even when they already have too much unsold Service. Vanilla doesn't clamp production to zero until the shop hits 100% full Service which is too late to prevent the NEC icons.
-*   Citizens can't shop while at work or school. Only available adults and elderly can handle normal shopping, making rush hours especially difficult.
+*   Citizens can't shop while at work, school, or sleeping. Only available adults and elderly can shop, making rush hours especially difficult.
 
 **Result: Too much Service, and shoppers keep visiting healthy shops instead of desperate shops with NEC icons!**
 
 ### How this mod helps
 
 *   ✅ Shops slow production starting at 80% unsold Service, to prevent "Not Enough Customers" caused at critical 90%.
-*   ✅ **Spreads out extra shopping**, helps prevent sudden waves of shoppers to reduce traffic. Uses existing citizens, no fake shoppers.
+This is realistic as real life shops reduce workers or production during slower periods.
+*   ✅ Spreads out extra shopping, helps prevent sudden waves of shoppers to reduce traffic. Uses existing citizens, no fake shoppers.
 *   ✅ Helps Retail and Leisure businesses (Meals, Entertainment, Recreation).
 *   ✅ Helps Hotels fill empty rooms using existing tourists.
 
@@ -45,11 +46,13 @@ This mod helps struggling shops recover by balancing production and shopping. No
 *   Companion [mod City Watchdog](https://mods.paradoxplaza.com/mods/144908/Windows) recommended to easily see totals like shown in the screenshot. Make sure to put a "blue star" next to Not Enough Customers.
 *   Safe to remove, goes back to vanilla. No Harmony patch means more compatible with other mods/the game.
 *   This mod is a temp fix until IFS improves commercial balancing to stop the flood of "Not Enough Customers" Icons.
+*   This is a **realistic** balance and does not magically turn off the problem. It does not fix legit problems with excess commercial or access to buildings. Players report it's just a few compared to 100's before the mod.
+The idea is to be as aligned with the game as possible.
 
 **Tips:** full commercial demand bar doesn't mean your citizens can support more shops! It means companies are looking for spaces which is optional to build.
 
-**Other mods:** that increase commercial workers can make NEC warnings worse! More workers may produce Service faster than customers can use it.
-
+**Other mods:** that increase commercial workers can make NEC warnings worse! More workers or output may produce Service faster than customers can use it.
+It's recommended to avoid these type of mods/functions if you have issues with icons or balance.
 ### Support and Feedback
 
 *   Support by clicking the LIKE 👍 button (top right)! No donations, just a free like for the many days of work.
@@ -113,7 +116,10 @@ tags: notification icons, no customers
 <!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 <ChangeLog Value="" />
 <ChangeLog>
-- add perf test build option.
+- Fine tuning: reduce extra shopping trips.
+- Better performance: reduced background work when only a few NEC icons remain.
+- Smarter hotel balance: skips unnecessary hotel checks when no help needed.
+- Better handling of Leisure settings when switching between cities.
 </ChangeLog>
 <!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
 <!--Supported values Public, Private, Unlisted-->
