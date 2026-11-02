@@ -36,6 +36,11 @@ namespace NoCustomersFix.Systems
         private const float kMediumPressureRatio = 0.82f;
         private const float kStrongPressureRatio = 0.89f;
 
+        // One struggling shop should not trigger the strongest citywide boost.
+        // Require at least two shops and 25% of eligible Leisure businesses.
+        private const int kMinimumStrongShops = 2;
+        private const int kStrongShareDivisor = 4;
+
         // Match vanilla's physical-stock requirement for NEC.
         private const int kMinimumStock = 200;
 
@@ -56,6 +61,7 @@ namespace NoCustomersFix.Systems
         private int m_PerfLeisureScans;
         private int m_PerfMediumScans;
         private int m_PerfStrongScans;
+        private int m_PerfStrongPressureScans;
         private long m_PerfLeisureScanTicks;
         private long m_PerfEligibleLeisureShops;
         private long m_PerfMediumLeisureShops;
@@ -71,9 +77,7 @@ namespace NoCustomersFix.Systems
 
         private struct LeisurePressure
         {
-#if NCF_PERF_TEST
             public int EligibleCount;
-#endif
             public int MediumCount;
             public int StrongCount;
 
@@ -124,6 +128,7 @@ namespace NoCustomersFix.Systems
             m_PerfLeisureScans = 0;
             m_PerfMediumScans = 0;
             m_PerfStrongScans = 0;
+            m_PerfStrongPressureScans = 0;
             m_PerfLeisureScanTicks = 0;
             m_PerfEligibleLeisureShops = 0;
             m_PerfMediumLeisureShops = 0;
@@ -216,9 +221,14 @@ namespace NoCustomersFix.Systems
             m_PerfStrongLeisureShops += pressure.StrongCount;
             if (pressure.StrongCount > 0)
             {
+                m_PerfStrongPressureScans++;
+            }
+
+            if (ShouldUseStrongMode(pressure))
+            {
                 m_PerfStrongScans++;
             }
-            else if (pressure.MediumCount > 0)
+            else if (pressure.StrongCount > 0 || pressure.MediumCount > 0)
             {
                 m_PerfMediumScans++;
             }
@@ -237,7 +247,19 @@ namespace NoCustomersFix.Systems
                 $"avgMediumShops={m_PerfMediumLeisureShops / m_PerfLeisureScans} " +
                 $"avgStrongShops={m_PerfStrongLeisureShops / m_PerfLeisureScans} " +
                 $"mediumScans={m_PerfMediumScans} " +
-                $"strongScans={m_PerfStrongScans}");
+                $"strongScans={m_PerfStrongScans} " +
+                $"strongPressureScans={m_PerfStrongPressureScans} " +
+                // Last scan in this window, not an average or extra scan.
+                $"warningsSample={pressure.TotalCommercialWarnings} " +
+                $"leisureWarnings={pressure.LeisureWarnings} " +
+                $"entertainmentWarnings={pressure.EntertainmentWarnings} " +
+                $"mealsWarnings={pressure.MealsWarnings} " +
+                $"recreationWarnings={pressure.RecreationWarnings} " +
+                $"hotelWarnings={pressure.LodgingWarnings} " +
+                $"retailWarnings={pressure.RetailWarnings} " +
+                $"vehicleWarnings={pressure.VehicleWarnings} " +
+                $"officeWarnings={pressure.OfficeWarnings} " +
+                $"otherWarnings={pressure.OtherWarnings}");
             m_PerfLeisureScans = 0;
             m_PerfLeisureScanTicks = 0;
             m_PerfEligibleLeisureShops = 0;
@@ -245,21 +267,28 @@ namespace NoCustomersFix.Systems
             m_PerfStrongLeisureShops = 0;
             m_PerfMediumScans = 0;
             m_PerfStrongScans = 0;
+            m_PerfStrongPressureScans = 0;
         }
 #endif
 
+        private static bool ShouldUseStrongMode(LeisurePressure pressure)
+        {
+            return pressure.StrongCount >= kMinimumStrongShops &&
+                pressure.StrongCount * kStrongShareDivisor >= pressure.EligibleCount;
+        }
+
         private int CalculateDesiredFactor(LeisurePressure pressure)
         {
-            // Keep Strong fixed at 37.5% of the vanilla factor for now.
+            // Strong (37.5% of baseline) only for widespread Leisure pressure.
             // With vanilla 512 this is 192.
-            if (pressure.StrongCount > 0)
+            if (ShouldUseStrongMode(pressure))
             {
                 return math.max(1, (m_BaselineFactor * 3) / 8);
             }
 
-            // Medium uses 75% of the vanilla factor.
-            // With vanilla 512 this is 384.
-            if (pressure.MediumCount > 0)
+            // Any struggling Leisure company still gets preventive help.
+            // Medium uses 75% of the vanilla factor (384 with baseline 512).
+            if (pressure.StrongCount > 0 || pressure.MediumCount > 0)
             {
                 return math.max(1, (m_BaselineFactor * 3) / 4);
             }
@@ -446,11 +475,9 @@ namespace NoCustomersFix.Systems
                     continue;
                 }
 
-                // Record the citywide share of struggling Leisure businesses
-                // without adding another company scan.
-#if NCF_PERF_TEST
+                // Count eligible businesses for the citywide pressure share.
+                // This uses the existing scan; no second company pass.
                 pressure.EligibleCount++;
-#endif
                 float unusedRatio =
                     math.saturate(
                         (float)serviceRef.ValueRO.m_ServiceAvailable /
@@ -569,9 +596,9 @@ namespace NoCustomersFix.Systems
                 pressure.TotalCommercialWarnings;
 
             string mode =
-                pressure.StrongCount > 0
+                ShouldUseStrongMode(pressure)
                     ? "strong"
-                    : pressure.MediumCount > 0
+                    : pressure.StrongCount > 0 || pressure.MediumCount > 0
                         ? "medium"
                         : "vanilla";
 
@@ -580,6 +607,7 @@ namespace NoCustomersFix.Systems
                 $"mode={mode} " +
                 $"medium={pressure.MediumCount} " +
                 $"strong={pressure.StrongCount} " +
+                $"eligible={pressure.EligibleCount} " +
                 $"commercialWarnings={pressure.TotalCommercialWarnings} " +
                 $"leisureWarnings={pressure.LeisureWarnings} " +
                 $"ent={pressure.EntertainmentWarnings} " +
