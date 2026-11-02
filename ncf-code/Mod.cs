@@ -49,15 +49,16 @@
 #if NCF_PERF_TEST
          private static BenchmarkSettings? s_BenchmarkSettings;
 
-         // Read once when the mod loads. Options changes require a game restart.
+         // Benchmark choice is latched when a city loads.
          internal static bool BalancingEnabled { get; private set; } = true;
 
          internal static void ApplyBenchmarkModeOnCityLoad()
          {
+             BalancingEnabled = s_BenchmarkSettings?.EnableBalancing ?? true;
              LogUtils.Info(
                  "[NCF-BENCHMARK] city load mode=" +
                  (BalancingEnabled ? "ON (normal fixes + logging)" :
-                     "OFF (logging only; all NCF balancing disabled)"));
+                     "OFF (logging only; all balancing updates skipped)"));
          }
 #endif
 
@@ -97,18 +98,12 @@
                  s_BenchmarkSettings = null;
              }
 
+             LogUtils.Info(
+                 "[NCF-BENCHMARK] Options loaded. Mode applies on next city load.");
              updateSystem.UpdateBefore<BenchmarkSpeedSystem, CitizenBehaviorSystem>(
                  SystemUpdatePhase.GameSimulation);
 #endif
 
-#if NCF_PERF_TEST
-             BalancingEnabled = s_BenchmarkSettings?.EnableBalancing ?? true;
-             LogUtils.Info("[NCF-BENCHMARK] startup mode=" +
-                 (BalancingEnabled ? "ON" : "OFF") +
-                 " (restart game after changing Options)");
-             if (BalancingEnabled)
-             {
-#endif
              updateSystem.UpdateBefore<CommercialBalancePrepareSystem,HouseholdBehaviorSystem>(SystemUpdatePhase.GameSimulation);
              updateSystem.UpdateAfter<CommercialBalanceSystem,HouseholdBehaviorSystem>(SystemUpdatePhase.GameSimulation);
 
@@ -119,9 +114,6 @@
              // Temporarily reduce production workforce, then restore it.
              updateSystem.UpdateBefore<CommercialProductionReliefPrepareSystem,ServiceCompanySystem>(SystemUpdatePhase.GameSimulation);
              updateSystem.UpdateAfter<CommercialProductionReliefRestoreSystem,ServiceCompanySystem>(SystemUpdatePhase.GameSimulation);
-#if NCF_PERF_TEST
-             }
-#endif
 
  #if DEBUG
              updateSystem.UpdateAfter<PathHealthSystem,CommercialBalanceSystem>(SystemUpdatePhase.GameSimulation);
