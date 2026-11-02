@@ -49,13 +49,11 @@
 #if NCF_PERF_TEST
          private static BenchmarkSettings? s_BenchmarkSettings;
 
-         // Set once when a city loads. Changes made in Options during
-         // a running city are deferred until the next city load.
+         // Read once when the mod loads. Options changes require a game restart.
          internal static bool BalancingEnabled { get; private set; } = true;
 
          internal static void ApplyBenchmarkModeOnCityLoad()
          {
-             BalancingEnabled = s_BenchmarkSettings?.EnableBalancing ?? true;
              LogUtils.Info(
                  "[NCF-BENCHMARK] city load mode=" +
                  (BalancingEnabled ? "ON (normal fixes + logging)" :
@@ -105,6 +103,9 @@
 
 #if NCF_PERF_TEST
              BalancingEnabled = s_BenchmarkSettings?.EnableBalancing ?? true;
+             LogUtils.Info("[NCF-BENCHMARK] startup mode=" +
+                 (BalancingEnabled ? "ON" : "OFF") +
+                 " (restart game after changing Options)");
              if (BalancingEnabled)
              {
 #endif
