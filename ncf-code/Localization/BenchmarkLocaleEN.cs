@@ -34,7 +34,8 @@ namespace NoCustomersFix.Localization
                 { m_Settings.GetOptionLabelLocaleID(nameof(BenchmarkSettings.EnableBalancing)),
                     "NCF balancing enabled" },
                 { m_Settings.GetOptionDescLocaleID(nameof(BenchmarkSettings.EnableBalancing)),
-                    "ON: normal NCF fixes and speed logging. OFF: speed logging only, no NCF fixes. " +
+                    "ON: normal NCF fixes and speed logging.\n" +
+                    "OFF: speed logging only, no NCF fixes.\n" +
                     "Restart the game after changing this option. Load the same original save for both tests." },
             };
         }
