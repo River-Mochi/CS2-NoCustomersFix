@@ -87,17 +87,15 @@ namespace NoCustomersFix.Systems
         // healthy. Hysteresis avoids switching modes on each warning change.
         private const int kLowWarningEnter = 6;
         private const int kLowWarningExit = 12;
-        // At high NEC pressure, only correct on one in three eligible
-        // passes. More gradual recovery avoids flooding vanilla shopping
-        // and saves expensive household snapshots.
-        // Low-warning mode retains its separate one-in-four cadence.
+        // 2 of every 3 eligible busy-city passes: fewer shopping requests
+        // per game hour, while keeping the full NEC correction rules.
         private const int kNormalCorrectionCycle = 3;
-        private const int kNormalCorrectionActive = 1;
+        private const int kNormalCorrectionActive = 2;
         private const int kLowWarningCorrectionStride = 4;
 
         // Limit newly generated shopping trips; do not limit vanilla shopping.
         // Remaining Service pressure is rechecked on later updates.
-        private const int kMaxCorrectiveNeedsPerUpdate = 12;
+        private const int kMaxCorrectiveNeedsPerUpdate = 24;
 
         private int m_CommercialWarningCount;
         private bool m_LowWarningThrottle;
