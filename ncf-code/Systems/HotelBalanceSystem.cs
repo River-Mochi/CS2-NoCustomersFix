@@ -158,6 +158,12 @@ namespace NoCustomersFix.Systems
 
         protected override void OnUpdate()
         {
+#if NCF_PERF_TEST
+            if (!Mod.BalancingEnabled)
+            {
+                return;
+            }
+#endif
             if (m_EmptyHotelSkipsRemaining > 0)
             {
                 m_EmptyHotelSkipsRemaining--;
