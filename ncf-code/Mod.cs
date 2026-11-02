@@ -103,6 +103,11 @@
                  SystemUpdatePhase.GameSimulation);
 #endif
 
+#if NCF_PERF_TEST
+             BalancingEnabled = s_BenchmarkSettings?.EnableBalancing ?? true;
+             if (BalancingEnabled)
+             {
+#endif
              updateSystem.UpdateBefore<CommercialBalancePrepareSystem,HouseholdBehaviorSystem>(SystemUpdatePhase.GameSimulation);
              updateSystem.UpdateAfter<CommercialBalanceSystem,HouseholdBehaviorSystem>(SystemUpdatePhase.GameSimulation);
 
@@ -113,6 +118,9 @@
              // Temporarily reduce production workforce, then restore it.
              updateSystem.UpdateBefore<CommercialProductionReliefPrepareSystem,ServiceCompanySystem>(SystemUpdatePhase.GameSimulation);
              updateSystem.UpdateAfter<CommercialProductionReliefRestoreSystem,ServiceCompanySystem>(SystemUpdatePhase.GameSimulation);
+#if NCF_PERF_TEST
+             }
+#endif
 
  #if DEBUG
              updateSystem.UpdateAfter<PathHealthSystem,CommercialBalanceSystem>(SystemUpdatePhase.GameSimulation);
