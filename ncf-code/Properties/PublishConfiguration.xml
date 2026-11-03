@@ -114,11 +114,10 @@ tags: notification icons, no customers
 <!--Required DLC, can be set multiple times. Supported values are "Landmark Buildings", "San Fransisco Set", "Beach Properties", "Urban Promenades", "Modern Architecture"-->
 <RequiredDLC Value="" />
 <!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
-<ChangeLog Value="" />
 <ChangeLog>
-- Improved balancing for Commercial, Leisure, and Hotels.
-- Reduced unnecessary background processing when warnings are low.
-- Optimized performance for larger cities.
+- Smarter Leisure balancing to avoid excessive citywide boosts.
+- Reduced unnecessary Hotel checks and background processing.
+- Maintain good customer recovery with similar simulation speed.
 </ChangeLog>
 <!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
 <!--Supported values Public, Private, Unlisted-->
