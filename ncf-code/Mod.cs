@@ -55,7 +55,6 @@
 
          internal static void ApplyBenchmarkModeOnCityLoad()
          {
-             BalancingEnabled = s_BenchmarkSettings?.EnableBalancing ?? true;
              LogUtils.Info(
                  "[NCF-BENCHMARK] city load mode=" +
                  (BalancingEnabled ? "ON (normal fixes + logging)" :
