@@ -15,6 +15,8 @@ using Colossal.Serialization.Entities;
 using CS2Shared.RiverMochi;
 using Game;
 using Game.Simulation;
+using Unity.Collections;
+using Unity.Entities;
 
 namespace NoCustomersFix.Systems
 {
@@ -27,6 +29,10 @@ namespace NoCustomersFix.Systems
         private long m_NextSampleTick;
         private int m_SampledHour = -1;
         private bool m_SampledBalancingEnabled = true;
+        private EntityQuery m_IconQuery;
+        private EntityQuery m_CompanyNotificationQuery;
+        private int m_HourStartNec = -1;
+        private int m_HourEndNec = -1;
 
         public override int GetUpdateInterval(SystemUpdatePhase phase)
         {
@@ -38,6 +44,14 @@ namespace NoCustomersFix.Systems
             base.OnCreate();
             m_SimulationSystem = World.GetOrCreateSystemManaged<SimulationSystem>();
             m_TimeSystem = World.GetOrCreateSystemManaged<TimeSystem>();
+
+            // Match City Watchdog's real notification-icon count.
+            m_IconQuery = GetEntityQuery(
+                ComponentType.ReadOnly<Game.Notifications.Icon>(),
+                ComponentType.ReadOnly<Game.Prefabs.PrefabRef>(),
+                ComponentType.Exclude<Game.Common.Deleted>());
+            m_CompanyNotificationQuery = GetEntityQuery(
+                ComponentType.ReadOnly<Game.Prefabs.CompanyNotificationParameterData>());
         }
 
         protected override void OnGameLoaded(Context serializationContext)
@@ -46,6 +60,8 @@ namespace NoCustomersFix.Systems
             WriteHourlySummary();
             m_HourlySpeeds.Clear();
             m_SampledHour = -1;
+            m_HourStartNec = -1;
+            m_HourEndNec = -1;
             m_SampledBalancingEnabled = Mod.BalancingEnabled;
             m_NextSampleTick = 0;
             Mod.ApplyBenchmarkModeOnCityLoad();
@@ -88,6 +104,19 @@ namespace NoCustomersFix.Systems
                 WriteHourlySummary();
                 m_SampledHour = hour;
                 m_SampledBalancingEnabled = balancingEnabled;
+                m_HourStartNec = -1;
+                m_HourEndNec = -1;
+            }
+
+            int necIcons = CountNecIcons();
+            if (necIcons >= 0)
+            {
+                if (m_HourStartNec < 0)
+                {
+                    m_HourStartNec = necIcons;
+                }
+
+                m_HourEndNec = necIcons;
             }
 
             // Compare hourly averages at the same requested ASS target.
@@ -101,7 +130,32 @@ namespace NoCustomersFix.Systems
                 "[NCF-SPEED] " +
                 $"mode={mode} cityTime={hour:D2}:{minute:D2} " +
                 $"selected={selected:F2} actual={actual:F3} " +
-                $"frame={m_SimulationSystem.frameIndex}");
+                $"frame={m_SimulationSystem.frameIndex} necIcons={necIcons}");
+        }
+
+        private int CountNecIcons()
+        {
+            if (!m_CompanyNotificationQuery.TryGetSingleton(
+                    out Game.Prefabs.CompanyNotificationParameterData parameters) ||
+                parameters.m_NoCustomersNotificationPrefab == Entity.Null)
+            {
+                return -1;
+            }
+
+            Entity necPrefab = parameters.m_NoCustomersNotificationPrefab;
+            int count = 0;
+            using NativeArray<Game.Prefabs.PrefabRef> prefabs =
+                m_IconQuery.ToComponentDataArray<Game.Prefabs.PrefabRef>(Allocator.Temp);
+
+            for (int i = 0; i < prefabs.Length; i++)
+            {
+                if (prefabs[i].m_Prefab == necPrefab)
+                {
+                    count++;
+                }
+            }
+
+            return count;
         }
 
         private void WriteHourlySummary()
@@ -130,7 +184,8 @@ namespace NoCustomersFix.Systems
                 $"mode={(m_SampledBalancingEnabled ? "ON" : "OFF")} " +
                 $"hour={m_SampledHour:D2} selected=8.00 " +
                 $"samples={n} avg={sum / n:F3} median={median:F3} " +
-                $"min={sorted[0]:F3} max={sorted[n - 1]:F3}");
+                $"min={sorted[0]:F3} max={sorted[n - 1]:F3} " +
+                $"necStart={m_HourStartNec} necEnd={m_HourEndNec}");
             m_HourlySpeeds.Clear();
         }
     }

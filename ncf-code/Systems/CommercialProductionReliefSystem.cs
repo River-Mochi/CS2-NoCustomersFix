@@ -308,6 +308,17 @@ namespace NoCustomersFix.Systems
             m_RestoreJob = restoreJob;
         }
 
+#if NCF_PERF_TEST
+        internal bool HasPendingRestoreWork()
+        {
+            // A toggle can turn OFF after the prepare job but before restore.
+            // Complete outstanding jobs before inspecting their shared queue.
+            m_AdjustJob.Complete();
+            m_RestoreJob.Complete();
+            return m_RestoreEntries.IsCreated && m_RestoreEntries.Count > 0;
+        }
+#endif
+
         [BurstCompile]
         private struct ApplyProductionReliefJob : IJobChunk
         {
@@ -511,7 +522,9 @@ namespace NoCustomersFix.Systems
         protected override void OnUpdate()
         {
 #if NCF_PERF_TEST
-            if (!Mod.BalancingEnabled)
+            // Never strand temporarily masked employees when OFF is selected.
+            // If nothing is pending, OFF remains passive.
+            if (!Mod.BalancingEnabled && !m_PrepareSystem.HasPendingRestoreWork())
             {
                 return;
             }
