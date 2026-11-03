@@ -116,7 +116,7 @@ tags: notification icons, no customers
 <!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 <ChangeLog Value="" />
 <ChangeLog>
-- Improved customer balancing for Commercial, Leisure, and Hotels.
+- Improved balancing for Commercial, Leisure, and Hotels.
 - Reduced unnecessary background processing when warnings are low.
 - Optimized performance for larger cities.
 </ChangeLog>
