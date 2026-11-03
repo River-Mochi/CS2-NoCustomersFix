@@ -36,7 +36,7 @@ namespace NoCustomersFix.Localization
                 { m_Settings.GetOptionDescLocaleID(nameof(BenchmarkSettings.EnableBalancing)),
                     "ON: normal NCF fixes and speed logging.\n" +
                     "OFF: speed logging only, no NCF fixes.\n" +
-                    "Load the original city save again after changing this option. No restart needed." },
+                    "Changes apply immediately. Reload the original save for a fair comparison." },
             };
         }
 

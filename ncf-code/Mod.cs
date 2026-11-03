@@ -49,8 +49,9 @@
 #if NCF_PERF_TEST
          private static BenchmarkSettings? s_BenchmarkSettings;
 
-         // Benchmark choice is latched when a city loads.
-         internal static bool BalancingEnabled { get; private set; } = true;
+         // Read Options live, including changes made in a loaded city.
+         internal static bool BalancingEnabled =>
+             s_BenchmarkSettings?.EnableBalancing ?? true;
 
          internal static void ApplyBenchmarkModeOnCityLoad()
          {
@@ -99,7 +100,7 @@
              }
 
              LogUtils.Info(
-                 "[NCF-BENCHMARK] Options loaded. Mode applies on next city load.");
+                 "[NCF-BENCHMARK] Options loaded. Mode changes apply immediately.");
              updateSystem.UpdateBefore<BenchmarkSpeedSystem, CitizenBehaviorSystem>(
                  SystemUpdatePhase.GameSimulation);
 #endif

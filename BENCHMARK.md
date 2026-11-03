@@ -11,13 +11,13 @@ The PERF TEST DLL includes an **Options > No Customers Fix (Perf Test) > Benchma
 - **ON** (default): NCF balances Commercial, Leisure, Hotels and production, and logs simulation speed.
 - **OFF**: The balancing systems are present but immediately skip their updates, making no NCF corrections; only the speed logger does active work.
 
-**Load a city after changing the switch; no game restart is needed to change modes.** The selected mode is latched at city load, not applied mid-simulation. Always reload the **same original save** between trials; do not overwrite that save.
+**Switching ON/OFF takes effect immediately, even with a city loaded.** No game restart needed. For a fair comparison, reload the **same original save** between trials; do not overwrite that save.
 
 Suggested procedure: Set AdvancedSimulationSpeed to 8x, load the same 6 AM save and run past 9 AM. Repeat with the other mode using the same DLL, same playset, and a fresh load of that save. No manual speed tracking needed.
 
 Log records:
 
-- `[NCF-BENCHMARK]`: confirmed mode at city load
+- `[NCF-BENCHMARK]`: current mode at city load and live toggle changes
 - `[NCF-SPEED]`: mode, city time, selected 8x target, actual smooth speed, frame every ~10 real seconds
 - `[NCF-SPEED-HOUR]`: for each completed game hour, 8x-only sample count, mean, median, min and max
 - `[NCF-PERF-*]`: detailed workload timing when balancing is ON

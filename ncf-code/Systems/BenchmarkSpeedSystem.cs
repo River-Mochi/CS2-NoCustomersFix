@@ -26,6 +26,7 @@ namespace NoCustomersFix.Systems
         private TimeSystem m_TimeSystem = null!;
         private long m_NextSampleTick;
         private int m_SampledHour = -1;
+        private bool m_SampledBalancingEnabled = true;
 
         public override int GetUpdateInterval(SystemUpdatePhase phase)
         {
@@ -45,6 +46,7 @@ namespace NoCustomersFix.Systems
             WriteHourlySummary();
             m_HourlySpeeds.Clear();
             m_SampledHour = -1;
+            m_SampledBalancingEnabled = Mod.BalancingEnabled;
             m_NextSampleTick = 0;
             Mod.ApplyBenchmarkModeOnCityLoad();
         }
@@ -76,12 +78,16 @@ namespace NoCustomersFix.Systems
             int minute = minuteOfDay % 60;
             float selected = m_SimulationSystem.selectedSpeed;
             float actual = m_SimulationSystem.smoothSpeed;
-            string mode = Mod.BalancingEnabled ? "ON" : "OFF";
+            bool balancingEnabled = Mod.BalancingEnabled;
+            string mode = balancingEnabled ? "ON" : "OFF";
 
-            if (m_SampledHour != hour)
+            // A live switch starts a new sample window; never mix ON and OFF.
+            if (m_SampledHour != hour ||
+                m_SampledBalancingEnabled != balancingEnabled)
             {
                 WriteHourlySummary();
                 m_SampledHour = hour;
+                m_SampledBalancingEnabled = balancingEnabled;
             }
 
             // Compare hourly averages at the same requested ASS target.
@@ -121,7 +127,7 @@ namespace NoCustomersFix.Systems
 
             LogUtils.Info(
                 "[NCF-SPEED-HOUR] " +
-                $"mode={(Mod.BalancingEnabled ? "ON" : "OFF")} " +
+                $"mode={(m_SampledBalancingEnabled ? "ON" : "OFF")} " +
                 $"hour={m_SampledHour:D2} selected=8.00 " +
                 $"samples={n} avg={sum / n:F3} median={median:F3} " +
                 $"min={sorted[0]:F3} max={sorted[n - 1]:F3}");

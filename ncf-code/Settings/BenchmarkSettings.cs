@@ -9,6 +9,7 @@
 // Developer-only Options toggle. Not compiled into public Release builds.
 #if NCF_PERF_TEST
 using Colossal.IO.AssetDatabase;
+using CS2Shared.RiverMochi;
 using Game.Modding;
 using Game.Settings;
 
@@ -26,7 +27,15 @@ namespace NoCustomersFix.Settings
         }
 
         [SettingsUISection("Benchmark", "Mode")]
+        [SettingsUISetter(typeof(BenchmarkSettings), nameof(OnBalancingChanged))]
         public bool EnableBalancing { get; set; }
+
+        private void OnBalancingChanged(bool enabled)
+        {
+            LogUtils.Info(
+                "[NCF-BENCHMARK] toggle changed to " +
+                (enabled ? "ON" : "OFF") + " (applies immediately)");
+        }
 
         public override void SetDefaults()
         {

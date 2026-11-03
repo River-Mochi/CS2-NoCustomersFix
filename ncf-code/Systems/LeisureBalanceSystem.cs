@@ -148,6 +148,9 @@ namespace NoCustomersFix.Systems
 #if NCF_PERF_TEST
             if (!Mod.BalancingEnabled)
             {
+                // Restore the vanilla factor when disabled in a loaded city.
+                RestoreBaselineIfOwned();
+                ResetState();
                 return;
             }
 #endif
