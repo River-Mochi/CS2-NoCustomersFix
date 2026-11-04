@@ -15,7 +15,7 @@
         <PublishConfigScript>$(MSBuildProjectDirectory)\..\Scripts\Update-PublishConfig.ps1</PublishConfigScript>
 
         <!-- Versioning -->
-        <Version>0.6.7</Version>
+        <Version>0.6.8</Version>
         <GameVersion>1.6.*</GameVersion>
 
         <!-- Assembly identity -->

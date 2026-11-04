@@ -61,13 +61,23 @@ namespace NoCustomersFix.Systems
                 (HouseholdBehaviorSystem.kUpdatesPerDay * 16);
         }
 
+        protected virtual CommercialBalancePrepareSystem ResolvePrepareSystem()
+        {
+            return World.GetOrCreateSystemManaged<CommercialBalancePrepareSystem>();
+        }
+
+        protected virtual bool ShouldRunWithActiveHouseholdSystem()
+        {
+            return !HouseholdBehaviorCompatibility.IsReplacementActive;
+        }
+
         protected override void OnCreate()
         {
             base.OnCreate();
 
             m_SimulationSystem = World.GetOrCreateSystemManaged<SimulationSystem>();
             m_ResourceSystem = World.GetOrCreateSystemManaged<ResourceSystem>();
-            m_PrepareSystem = World.GetOrCreateSystemManaged<CommercialBalancePrepareSystem>();
+            m_PrepareSystem = ResolvePrepareSystem();
         }
 
         protected override void OnGameLoaded(Context serializationContext)
@@ -105,6 +115,10 @@ namespace NoCustomersFix.Systems
 
         protected override void OnUpdate()
         {
+            if (!ShouldRunWithActiveHouseholdSystem())
+            {
+                return;
+            }
 #if NCF_PERF_TEST
             if (!Mod.BalancingEnabled)
             {

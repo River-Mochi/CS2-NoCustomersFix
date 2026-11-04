@@ -185,7 +185,11 @@ namespace NoCustomersFix.Systems
             // Hotel placement is optional help. Avoid repeatedly assigning
             // tourists for the last few warnings at the cost of sim speed.
             // Vanilla hotel booking continues at its normal frequency.
-            bool lowWarning = m_CommercialBalanceSystem.IsLowWarningMode;
+            CommercialBalanceSystem activeBalance =
+                HouseholdBehaviorCompatibility.IsReplacementActive
+                    ? World.GetOrCreateSystemManaged<ReplacementCommercialBalanceSystem>()
+                    : m_CommercialBalanceSystem;
+            bool lowWarning = activeBalance.IsLowWarningMode;
             int cadence = lowWarning ? 4 : 2;
 
             if (m_HotelUpdateIndex++ % cadence != 0)
