@@ -95,6 +95,18 @@ namespace NoCustomersFix.Systems
                 (HouseholdBehaviorSystem.kUpdatesPerDay * 16);
         }
 
+        // The replacement household system runs every 128 frames.
+        // Only compatibility subclasses override this connection.
+        protected virtual CommercialBalanceSystem ResolveBalanceSystem()
+        {
+            return World.GetOrCreateSystemManaged<CommercialBalanceSystem>();
+        }
+
+        protected virtual bool ShouldRunWithActiveHouseholdSystem()
+        {
+            return !HouseholdBehaviorCompatibility.IsReplacementActive;
+        }
+
         protected override void OnCreate()
         {
             base.OnCreate();
@@ -153,6 +165,12 @@ namespace NoCustomersFix.Systems
             m_CandidateLimit = kInitialSnapshotCandidates;
             m_LastCapturedLimit = kInitialSnapshotCandidates;
             m_WasLowWarningMode = false;
+
+            // All mods have registered by city load, regardless of OnLoad order.
+            if (GetType() == typeof(CommercialBalancePrepareSystem))
+            {
+                HouseholdBehaviorCompatibility.TryRegister(World);
+            }
 #if DEBUG || NCF_PERF_TEST
             m_PerfPrepareUpdates = 0;
             m_PerfPrepareScheduled = 0;
@@ -165,6 +183,16 @@ namespace NoCustomersFix.Systems
 
         protected override void OnUpdate()
         {
+            if (GetType() == typeof(CommercialBalancePrepareSystem) &&
+                HouseholdBehaviorCompatibility.NeedsRegistration)
+            {
+                HouseholdBehaviorCompatibility.TryRegister(World);
+            }
+
+            if (!ShouldRunWithActiveHouseholdSystem())
+            {
+                return;
+            }
 #if NCF_PERF_TEST
             if (!Mod.BalancingEnabled)
             {
@@ -191,7 +219,7 @@ namespace NoCustomersFix.Systems
             // avoiding recursive creation during OnCreate.
             if (m_BalanceSystem == null)
             {
-                m_BalanceSystem = World.GetOrCreateSystemManaged<CommercialBalanceSystem>();
+                m_BalanceSystem = ResolveBalanceSystem();
             }
 
             // Skip expensive snapshots when corrective demand is low.
