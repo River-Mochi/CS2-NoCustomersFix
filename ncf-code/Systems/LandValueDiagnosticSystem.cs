@@ -270,7 +270,8 @@ namespace NoCustomersFix.Systems
                 {
                     for (int i = 0; i < icons.Length; i++)
                     {
-                        if (EntityManager.GetComponentData<PrefabRef>(icons[i]).m_Prefab ==
+                        if (highRentPrefab != Entity.Null &&
+                            EntityManager.GetComponentData<PrefabRef>(icons[i]).m_Prefab ==
                             highRentPrefab)
                         {
                             highRentIcons++;
