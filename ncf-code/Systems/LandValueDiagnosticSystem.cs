@@ -239,7 +239,7 @@ namespace NoCustomersFix.Systems
                 {
                     Building building =
                         EntityManager.GetComponentData<Building>(buildings[i]);
-                    if ((building.m_Flags & BuildingFlags.HighRentWarning) != BuildingFlags.None)
+                    if ((building.m_Flags & Game.Buildings.BuildingFlags.HighRentWarning) != Game.Buildings.BuildingFlags.None)
                     {
                         highRentFlags++;
                     }
