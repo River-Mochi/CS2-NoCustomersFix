@@ -1,8 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <!--
     No Customers Fix [NCF]
-    - CS2 toolchain supplies net48, supported C# version, and game references.
-    - Version is the single source of truth for assembly + PDX publish version.
+    - CS2 toolchain supplies net48, supported C# 9.0 version, and game references.
     -->
 
     <PropertyGroup>
@@ -14,7 +13,7 @@
         <PublishConfigurationPath>Properties\PublishConfiguration.xml</PublishConfigurationPath>
         <PublishConfigScript>$(MSBuildProjectDirectory)\..\Scripts\Update-PublishConfig.ps1</PublishConfigScript>
 
-        <!-- Versioning -->
+        <!-- Version here is the single source of truth for assembly + PDX publish version -->
         <Version>0.6.9</Version>
         <GameVersion>1.6.*</GameVersion>
 
