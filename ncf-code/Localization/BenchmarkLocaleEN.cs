@@ -37,6 +37,16 @@ namespace NoCustomersFix.Localization
                     "ON: normal NCF fixes and speed logging.\n" +
                     "OFF: speed logging only, no NCF fixes.\n" +
                     "Changes apply immediately. Reload the original save for a fair comparison." },
+                { m_Settings.GetOptionLabelLocaleID(nameof(BenchmarkSettings.DeferHotelBookingToTourismOverhaul)),
+                    "Let Tourism Overhaul book hotels" },
+                { m_Settings.GetOptionDescLocaleID(nameof(BenchmarkSettings.DeferHotelBookingToTourismOverhaul)),
+                    "ON: NCF skips direct hotel bookings when Tourism Overhaul replaces vanilla search.\n" +
+                    "OFF: NCF keeps booking hotels (comparison test only). Reload the original save." },
+                { m_Settings.GetOptionLabelLocaleID(nameof(BenchmarkSettings.EnableProductionRelief)),
+                    "NCF production relief enabled" },
+                { m_Settings.GetOptionDescLocaleID(nameof(BenchmarkSettings.EnableProductionRelief)),
+                    "ON: normal NCF production relief.\n" +
+                    "OFF: skip production relief (comparison test only). Reload the original save." },
             };
         }
 
