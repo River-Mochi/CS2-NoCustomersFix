@@ -17,6 +17,7 @@ using Game.Buildings;
 using Game.Common;
 using Game.Companies;
 using Game.Net;
+using Game.Notifications;
 using Game.Prefabs;
 using Game.Simulation;
 using Game.Tools;
@@ -32,15 +33,25 @@ namespace NoCustomersFix.Systems
         private EntityQuery m_BuildingQuery;
         private EntityQuery m_CompanyQuery;
         private EntityQuery m_ParametersQuery;
+        private EntityQuery m_HighRentIconQuery;
+        private EntityQuery m_BuildingConfigQuery;
         private LandValueSystem m_LandValueSystem = null!;
         private TimeSystem m_TimeSystem = null!;
         private SimulationSystem m_SimulationSystem = null!;
         private int m_LastHour = -1;
-        private int m_RapidSamplesRemaining;
+        private uint m_FirstSampleFrame;
+        private int m_RapidSampleIndex;
+
+        // Frame offsets from the first update after load (~182 frames per game minute).
+        // Capture the opening seconds, then roughly 10, 20, and 30 game minutes.
+        private static readonly uint[] s_LoadOffsets =
+            { 0u, 16u, 64u, 256u, 1824u, 3648u, 5472u };
 
         public override int GetUpdateInterval(SystemUpdatePhase phase)
         {
-            return 64;
+            // Cheap early exit outside the few snapshot frames.
+            // 16 frames catches a short spike much sooner than hourly scans.
+            return 16;
         }
 
         protected override void OnCreate()
@@ -52,6 +63,14 @@ namespace NoCustomersFix.Systems
 
             m_ParametersQuery = GetEntityQuery(
                 ComponentType.ReadOnly<LandValueParameterData>());
+
+            // Match City Watchdog's High Rent icon count using vanilla ECS.
+            m_BuildingConfigQuery = GetEntityQuery(
+                ComponentType.ReadOnly<BuildingConfigurationData>());
+            m_HighRentIconQuery = GetEntityQuery(
+                ComponentType.ReadOnly<Icon>(),
+                ComponentType.ReadOnly<PrefabRef>(),
+                ComponentType.Exclude<Deleted>());
 
             m_EdgeQuery = GetEntityQuery(new EntityQueryDesc
             {
@@ -95,8 +114,8 @@ namespace NoCustomersFix.Systems
         {
             base.OnGameLoaded(serializationContext);
             m_LastHour = -1;
-            // First 32 intervals (~8-10 game minutes), then hourly snapshots.
-            m_RapidSamplesRemaining = 32;
+            m_RapidSampleIndex = 0;
+            m_FirstSampleFrame = 0u;
         }
 
         protected override void OnUpdate()
@@ -106,17 +125,27 @@ namespace NoCustomersFix.Systems
                 return;
             }
 
+            uint frame = m_SimulationSystem.frameIndex;
             int minuteOfDay = (int)(m_TimeSystem.normalizedTime * 1440f);
             int hour = (minuteOfDay / 60) % 24;
-            bool rapid = m_RapidSamplesRemaining > 0;
-            if (!rapid && hour == m_LastHour)
-            {
-                return;
-            }
-
+            bool rapid = m_RapidSampleIndex < s_LoadOffsets.Length;
             if (rapid)
             {
-                m_RapidSamplesRemaining--;
+                if (m_RapidSampleIndex == 0)
+                {
+                    m_FirstSampleFrame = frame;
+                }
+                else if (frame - m_FirstSampleFrame <
+                    s_LoadOffsets[m_RapidSampleIndex])
+                {
+                    return;
+                }
+
+                m_RapidSampleIndex++;
+            }
+            else if (hour == m_LastHour)
+            {
+                return;
             }
 
             m_LastHour = hour;
@@ -146,7 +175,7 @@ namespace NoCustomersFix.Systems
                 }
             }
 
-            // Diagnostic reads, once per game hour only.
+            // Snapshot reads only: initial load burst, then once per game hour.
             EntityManager.CompleteDependencyBeforeRO<LandValue>();
             EntityManager.CompleteDependencyBeforeRO<ResourceAvailability>();
             EntityManager.CompleteDependencyBeforeRO<ServiceAvailable>();
@@ -207,8 +236,14 @@ namespace NoCustomersFix.Systems
             {
                 for (int i = 0; i < buildings.Length; i++)
                 {
-                    Entity roadEdge =
-                        EntityManager.GetComponentData<Building>(buildings[i]).m_RoadEdge;
+                    Building building =
+                        EntityManager.GetComponentData<Building>(buildings[i]);
+                    if ((building.m_Flags & BuildingFlags.HighRentWarning) != 0)
+                    {
+                        highRentFlags++;
+                    }
+
+                    Entity roadEdge = building.m_RoadEdge;
                     if (!EntityManager.HasComponent<LandValue>(roadEdge))
                     {
                         continue;
@@ -217,6 +252,30 @@ namespace NoCustomersFix.Systems
                     uiLandValueSum +=
                         EntityManager.GetComponentData<LandValue>(roadEdge).m_LandValue;
                     uiBuildingCount++;
+                }
+            }
+
+            // City Watchdog's High Rent number counts notification entities.
+            // Count the same icon prefab directly; no dependency on CWD.
+            int highRentIcons = 0;
+            int highRentFlags = 0;
+            if (!m_BuildingConfigQuery.IsEmptyIgnoreFilter)
+            {
+                EntityManager.CompleteDependencyBeforeRO<PrefabRef>();
+                Entity highRentPrefab =
+                    m_BuildingConfigQuery.GetSingleton<BuildingConfigurationData>()
+                        .m_HighRentNotification;
+                using (NativeArray<Entity> icons =
+                    m_HighRentIconQuery.ToEntityArray(Allocator.Temp))
+                {
+                    for (int i = 0; i < icons.Length; i++)
+                    {
+                        if (EntityManager.GetComponentData<PrefabRef>(icons[i]).m_Prefab ==
+                            highRentPrefab)
+                        {
+                            highRentIcons++;
+                        }
+                    }
                 }
             }
 
@@ -287,19 +346,26 @@ namespace NoCustomersFix.Systems
 
             double elapsedMs = (Stopwatch.GetTimestamp() - start) * 1000d /
                 Stopwatch.Frequency;
+            bool toSearchActive = TourismOverhaulCompatibility.IsActive(World);
+            string hotelBookingState = !Mod.BalancingEnabled
+                ? "DISABLED_NCF_OFF"
+                : (toSearchActive && Mod.DeferHotelBookingToTourismOverhaul
+                    ? "SKIPPED" : "ENABLED");
+            string sampleKind = rapid ? (m_RapidSampleIndex == 1
+                ? "loadFirstUpdate" : "loadFollowup") : "hourly";
+
             LogUtils.Info(
                 "[NCF-LAND] " +
                 $"mode={(Mod.BalancingEnabled ? "ON" : "OFF")} " +
                 $"productionRelief={(Mod.ProductionReliefEnabled ? "ON" : "OFF")} " +
-                $"toSearchActive={TourismOverhaulCompatibility.IsActive(World)} " +
+                $"toSearchActive={toSearchActive} " +
                 $"skipNCFHotelWhenTOActive={Mod.DeferHotelBookingToTourismOverhaul} " +
-                $"hotelBookings={(Mod.BalancingEnabled
-                    ? (TourismOverhaulCompatibility.IsActive(World) &&
-                       Mod.DeferHotelBookingToTourismOverhaul ? "SKIPPED" : "ENABLED")
-                    : "DISABLED_NCF_OFF")} " +
-                $"sample={(rapid ? "load" : "hourly")} " +
+                $"hotelBookings={hotelBookingState} " +
+                $"sample={sampleKind} " +
+                $"loadElapsedFrames={(rapid ? frame - m_FirstSampleFrame : 0u)} " +
                 $"hour={hour:D2} minute={minuteOfDay % 60:D2} " +
-                $"frame={m_SimulationSystem.frameIndex} " +
+                $"frame={frame} highRentIcons={highRentIcons} " +
+                $"highRentBuildingFlags={highRentFlags} " +
                 $"mapAvgAllCells={(map.IsCreated && map.Length > 0 ? mapSum / map.Length : 0d):F1} " +
                 $"mapMax={mapMax:F1} cellsOver100k={highCells} " +
                 $"uiAverageLandValue={(uiBuildingCount > 0 ? uiLandValueSum / uiBuildingCount : 0d):F1} " +
