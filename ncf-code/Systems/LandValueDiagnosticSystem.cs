@@ -36,10 +36,11 @@ namespace NoCustomersFix.Systems
         private TimeSystem m_TimeSystem = null!;
         private SimulationSystem m_SimulationSystem = null!;
         private int m_LastHour = -1;
+        private int m_RapidSamplesRemaining;
 
         public override int GetUpdateInterval(SystemUpdatePhase phase)
         {
-            return 256;
+            return 64;
         }
 
         protected override void OnCreate()
@@ -94,6 +95,8 @@ namespace NoCustomersFix.Systems
         {
             base.OnGameLoaded(serializationContext);
             m_LastHour = -1;
+            // First 32 intervals (~8-10 game minutes), then hourly snapshots.
+            m_RapidSamplesRemaining = 32;
         }
 
         protected override void OnUpdate()
@@ -105,9 +108,15 @@ namespace NoCustomersFix.Systems
 
             int minuteOfDay = (int)(m_TimeSystem.normalizedTime * 1440f);
             int hour = (minuteOfDay / 60) % 24;
-            if (hour == m_LastHour)
+            bool rapid = m_RapidSamplesRemaining > 0;
+            if (!rapid && hour == m_LastHour)
             {
                 return;
+            }
+
+            if (rapid)
+            {
+                m_RapidSamplesRemaining--;
             }
 
             m_LastHour = hour;
@@ -283,11 +292,18 @@ namespace NoCustomersFix.Systems
                 $"mode={(Mod.BalancingEnabled ? "ON" : "OFF")} " +
                 $"productionRelief={(Mod.ProductionReliefEnabled ? "ON" : "OFF")} " +
                 $"toSearchActive={TourismOverhaulCompatibility.IsActive(World)} " +
-                $"deferHotelToTO={Mod.DeferHotelBookingToTourismOverhaul} " +
-                $"hour={hour:D2} frame={m_SimulationSystem.frameIndex} " +
+                $"skipNCFHotelWhenTOActive={Mod.DeferHotelBookingToTourismOverhaul} " +
+                $"hotelBookings={(Mod.BalancingEnabled
+                    ? (TourismOverhaulCompatibility.IsActive(World) &&
+                       Mod.DeferHotelBookingToTourismOverhaul ? "SKIPPED" : "ENABLED")
+                    : "DISABLED_NCF_OFF")} " +
+                $"sample={(rapid ? "load" : "hourly")} " +
+                $"hour={hour:D2} minute={minuteOfDay % 60:D2} " +
+                $"frame={m_SimulationSystem.frameIndex} " +
                 $"mapAvgAllCells={(map.IsCreated && map.Length > 0 ? mapSum / map.Length : 0d):F1} " +
                 $"mapMax={mapMax:F1} cellsOver100k={highCells} " +
                 $"uiAverageLandValue={(uiBuildingCount > 0 ? uiLandValueSum / uiBuildingCount : 0d):F1} " +
+                $"uiAvgApproxCurrency={(uiBuildingCount > 0 ? 100d * uiLandValueSum / uiBuildingCount : 0d):F0} " +
                 $"uiBuildings={uiBuildingCount} " +
                 $"roads={edgeCount} roadAvg={(edgeCount > 0 ? roadSum / edgeCount : 0d):F1} " +
                 $"roadMax={roadMax:F1} maxRoadEdge={maxRoadEntity} " +
