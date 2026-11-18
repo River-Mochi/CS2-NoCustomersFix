@@ -92,10 +92,10 @@ namespace NoCustomersFix.Systems
                 companyDeps,
                 JobHandle.CombineDependencies(demandDeps, buildingDeps)).Complete();
 
-            using NativeArray<int> warnings =
-                new(EconomyUtils.ResourceCount, Allocator.Temp);
-            using NativeArray<int> vacant =
-                new(EconomyUtils.ResourceCount, Allocator.Temp);
+            // Small, hourly counters: managed arrays permit element updates
+            // without the readonly restriction on using declarations.
+            int[] warnings = new int[EconomyUtils.ResourceCount];
+            int[] vacant = new int[EconomyUtils.ResourceCount];
 
             ComponentLookup<IndustrialProcessData> processes =
                 SystemAPI.GetComponentLookup<IndustrialProcessData>(true);
