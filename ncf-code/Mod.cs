@@ -104,6 +104,12 @@
                  SystemUpdatePhase.GameSimulation);
 #endif
 
+#if NCF_PERF_TEST
+             // Passive hourly commercial demand logging, including benchmark OFF.
+             updateSystem.UpdateAfter<CommercialDemandDiagnosticSystem,CommercialDemandSystem>(
+                 SystemUpdatePhase.GameSimulation);
+#endif
+
              updateSystem.UpdateBefore<CommercialBalancePrepareSystem,HouseholdBehaviorSystem>(SystemUpdatePhase.GameSimulation);
              updateSystem.UpdateAfter<CommercialBalanceSystem,HouseholdBehaviorSystem>(SystemUpdatePhase.GameSimulation);
 
