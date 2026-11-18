@@ -67,7 +67,11 @@
                  (BalancingEnabled ? "ON (normal fixes + logging)" :
                      "OFF (logging only; all balancing updates skipped)") +
                  $" productionRelief={(ProductionReliefEnabled ? "ON" : "OFF")}" +
-                 $" deferHotelToTO={DeferHotelBookingToTourismOverhaul}");
+                 $" skipNCFHotelBookingsWhenTOActive={DeferHotelBookingToTourismOverhaul}");
+             if (!BalancingEnabled)
+             {
+                 LogUtils.Info("[NCF-TO] NCF hotel bookings: DISABLED (NCF balancing OFF).");
+             }
          }
 #else
          internal static bool DeferHotelBookingToTourismOverhaul => true;
@@ -120,8 +124,12 @@
              updateSystem.UpdateAfter<CommercialDemandDiagnosticSystem,CommercialDemandSystem>(
                  SystemUpdatePhase.GameSimulation);
 
-             // Read-only hourly land-value diagnostics for the compatibility test.
+             // Read-only land-value diagnostics: rapid samples after loading, hourly later.
              updateSystem.UpdateAt<LandValueDiagnosticSystem>(
+                 SystemUpdatePhase.GameSimulation);
+
+             // Resident household-needs snapshot, independent of InfoLoom.
+             updateSystem.UpdateAt<HouseholdNeedDiagnosticSystem>(
                  SystemUpdatePhase.GameSimulation);
 #endif
 
