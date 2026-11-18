@@ -106,7 +106,7 @@ tags: notification icons, no customers
 <!--Link to the forum post where the mod can be discussed-->
 <ForumLink Value="" />
 <!--Version of the mod-->
-<ModVersion Value="0.6.8" />
+<ModVersion Value="0.6.9" />
 <!--Recommended version of the base game to use the mod-->
 <GameVersion Value="1.6.*" />
 <!--Dependency for the mod, can be set multiple times-->
@@ -115,7 +115,7 @@ tags: notification icons, no customers
 <RequiredDLC Value="" />
 <!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 <ChangeLog>
-- Now compatible with EconomyEX mod.
+- Improved performance: reducr unneeded commercial checks, especially in busy cities, while keeping the same customer-balance behavior.
 </ChangeLog>
 <!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
 <!--Supported values Public, Private, Unlisted-->
