@@ -230,6 +230,7 @@ namespace NoCustomersFix.Systems
             // LandValue of every eligible building that has a valid road edge.
             double uiLandValueSum = 0d;
             int uiBuildingCount = 0;
+            int highRentFlags = 0;
             EntityManager.CompleteDependencyBeforeRO<Building>();
             using (NativeArray<Entity> buildings =
                 m_BuildingQuery.ToEntityArray(Allocator.Temp))
@@ -238,7 +239,7 @@ namespace NoCustomersFix.Systems
                 {
                     Building building =
                         EntityManager.GetComponentData<Building>(buildings[i]);
-                    if ((building.m_Flags & BuildingFlags.HighRentWarning) != 0)
+                    if ((building.m_Flags & BuildingFlags.HighRentWarning) != BuildingFlags.None)
                     {
                         highRentFlags++;
                     }
@@ -258,7 +259,6 @@ namespace NoCustomersFix.Systems
             // City Watchdog's High Rent number counts notification entities.
             // Count the same icon prefab directly; no dependency on CWD.
             int highRentIcons = 0;
-            int highRentFlags = 0;
             if (!m_BuildingConfigQuery.IsEmptyIgnoreFilter)
             {
                 EntityManager.CompleteDependencyBeforeRO<PrefabRef>();
