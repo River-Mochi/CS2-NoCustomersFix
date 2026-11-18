@@ -53,13 +53,24 @@
          internal static bool BalancingEnabled =>
              s_BenchmarkSettings?.EnableBalancing ?? true;
 
+         internal static bool ProductionReliefEnabled =>
+             BalancingEnabled &&
+             (s_BenchmarkSettings?.EnableProductionRelief ?? true);
+
+         internal static bool DeferHotelBookingToTourismOverhaul =>
+             s_BenchmarkSettings?.DeferHotelBookingToTourismOverhaul ?? true;
+
          internal static void ApplyBenchmarkModeOnCityLoad()
          {
              LogUtils.Info(
                  "[NCF-BENCHMARK] city load mode=" +
                  (BalancingEnabled ? "ON (normal fixes + logging)" :
-                     "OFF (logging only; all balancing updates skipped)"));
+                     "OFF (logging only; all balancing updates skipped)") +
+                 $" productionRelief={(ProductionReliefEnabled ? "ON" : "OFF")}" +
+                 $" deferHotelToTO={DeferHotelBookingToTourismOverhaul}");
          }
+#else
+         internal static bool DeferHotelBookingToTourismOverhaul => true;
 #endif
 
          public void OnLoad(UpdateSystem updateSystem)
@@ -107,6 +118,10 @@
 #if NCF_PERF_TEST
              // Passive hourly commercial demand logging, including benchmark OFF.
              updateSystem.UpdateAfter<CommercialDemandDiagnosticSystem,CommercialDemandSystem>(
+                 SystemUpdatePhase.GameSimulation);
+
+             // Read-only hourly land-value diagnostics for the compatibility test.
+             updateSystem.UpdateAt<LandValueDiagnosticSystem>(
                  SystemUpdatePhase.GameSimulation);
 #endif
 
