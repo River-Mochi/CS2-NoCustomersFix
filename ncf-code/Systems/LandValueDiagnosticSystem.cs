@@ -140,7 +140,6 @@ namespace NoCustomersFix.Systems
             double roadSum = 0d;
             float roadMax = 0f;
             float roadServiceAtMax = 0f;
-            float roadOtherAtMax = 0f;
             float maxCommercialBonus = 0f;
             Entity maxRoadEntity = Entity.Null;
             Entity maxBonusEntity = Entity.Null;
@@ -169,7 +168,6 @@ namespace NoCustomersFix.Systems
                     {
                         roadMax = road;
                         roadServiceAtMax = commercialBonus;
-                        roadOtherAtMax = road - commercialBonus;
                         maxRoadEntity = edge;
                     }
 
@@ -260,7 +258,6 @@ namespace NoCustomersFix.Systems
                 $"roads={edgeCount} roadAvg={(edgeCount > 0 ? roadSum / edgeCount : 0d):F1} " +
                 $"roadMax={roadMax:F1} maxRoadEdge={maxRoadEntity} " +
                 $"commercialBonusAtMaxRoad={roadServiceAtMax:F1} " +
-                $"otherBonusAtMaxRoad={roadOtherAtMax:F1} " +
                 $"commercialBonusMax={maxCommercialBonus:F1} maxBonusEdge={maxBonusEntity} " +
                 $"commercialMultiplier={parameters.m_CommercialServiceBonusMultiplier:F2} " +
                 $"attractivenessMultiplier={parameters.m_AttractivenessBonusMultiplier:F2} " +
