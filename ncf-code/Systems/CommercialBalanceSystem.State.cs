@@ -56,6 +56,8 @@ namespace NoCustomersFix.Systems
             new Resource[EconomyUtils.ResourceCount];
         private readonly ResourceData[] m_CachedRetailData =
             new ResourceData[EconomyUtils.ResourceCount];
+        private readonly bool[] m_CachedRetailEligible =
+            new bool[EconomyUtils.ResourceCount];
         private int m_CachedRetailCount;
 
 #if DEBUG
@@ -189,6 +191,7 @@ namespace NoCustomersFix.Systems
 
             m_PressureUpdateIndex = 0;
             m_CachedRetailCount = 0;
+            Array.Clear(m_CachedRetailEligible, 0, m_CachedRetailEligible.Length);
             m_CommercialWarningCount = 0;
             m_LowWarningThrottle = false;
             m_CorrectionSnapshotIndex = 0;
@@ -206,12 +209,11 @@ namespace NoCustomersFix.Systems
         {
             if (m_PressureUpdateIndex == 0)
             {
+                // Classify resource types once before checking all shops.
+                RefreshCachedRetailResources(ref resourceDatas);
                 BuildCommercialPressure(
                     serviceCompanyDatas,
-                    industrialProcessDatas,
-                    resourceDatas);
-
-                RefreshCachedRetailResources(ref resourceDatas);
+                    industrialProcessDatas);
                 PrepareCorrectionWindow();
             }
 
@@ -232,6 +234,7 @@ namespace NoCustomersFix.Systems
             ref ComponentLookup<ResourceData> resourceDatas)
         {
             m_CachedRetailCount = 0;
+            Array.Clear(m_CachedRetailEligible, 0, m_CachedRetailEligible.Length);
             ResourceIterator iterator = ResourceIterator.GetIterator();
 
             while (iterator.Next())
@@ -257,6 +260,13 @@ namespace NoCustomersFix.Systems
                     continue;
                 }
 
+                int resourceIndex = EconomyUtils.GetResourceIndex(resource);
+                if (resourceIndex < 0 || resourceIndex >= m_CachedRetailEligible.Length)
+                {
+                    continue;
+                }
+
+                m_CachedRetailEligible[resourceIndex] = true;
                 m_CachedRetailResources[m_CachedRetailCount] = resource;
                 m_CachedRetailData[m_CachedRetailCount] = data;
                 m_CachedRetailCount++;
@@ -267,9 +277,7 @@ namespace NoCustomersFix.Systems
             ComponentLookup<Game.Companies.ServiceCompanyData>
                 serviceCompanyDatas,
             ComponentLookup<IndustrialProcessData>
-                industrialProcessDatas,
-            ComponentLookup<ResourceData>
-                resourceDatas)
+                industrialProcessDatas)
         {
 #if DEBUG
             Array.Clear(
@@ -371,44 +379,33 @@ namespace NoCustomersFix.Systems
                         0,
                         serviceData.m_MaxService);
 
-                int stock = 0;
-
-                if (resourcesLookup.HasBuffer(company))
-                {
-                    stock =
-                        EconomyUtils.GetResources(
-                            resource,
-                            resourcesLookup[company]);
-                }
-
-                // Vehicles use the same company scan but retain their special
-                // generic-Vehicle purchase handling.
+                // Vehicles keep the original stock-sensitive handling.
                 if (resource == Resource.Vehicles)
                 {
+                    int vehicleStock = resourcesLookup.HasBuffer(company)
+                        ? EconomyUtils.GetResources(
+                            resource, resourcesLookup[company])
+                        : 0;
+
                     RecordVehiclePressure(
                         available,
                         serviceData.m_MaxService,
-                        stock,
+                        vehicleStock,
                         hasWarning);
 
                     continue;
                 }
 
-                if (!IsPhysicalRetailResource(
-                        resource,
-                        ref resourceDatas))
-                {
-                    continue;
-                }
-
-                int resourceIndex =
-                    EconomyUtils.GetResourceIndex(resource);
-
+                int resourceIndex = EconomyUtils.GetResourceIndex(resource);
                 if (resourceIndex < 0 ||
-                    resourceIndex >= m_ExcessService.Length)
+                    resourceIndex >= m_CachedRetailEligible.Length ||
+                    !m_CachedRetailEligible[resourceIndex])
                 {
                     continue;
                 }
+#if DEBUG || NCF_PERF_TEST
+                m_PerfPressureRetailCompanies++;
+#endif
 
 #if DEBUG
                 m_ServiceAvailable[resourceIndex] +=
@@ -425,12 +422,6 @@ namespace NoCustomersFix.Systems
                 }
 #endif
 
-                // Match the physical-stock side of vanilla NEC.
-                if (stock <= 200)
-                {
-                    continue;
-                }
-
                 int targetService =
                     (int)math.floor(
                         serviceData.m_MaxService *
@@ -442,6 +433,20 @@ namespace NoCustomersFix.Systems
                         available - targetService);
 
                 if (excess <= 0)
+                {
+                    continue;
+                }
+
+#if DEBUG || NCF_PERF_TEST
+                m_PerfPressureStockChecks++;
+#endif
+                // Only check stock if this store needs corrective demand.
+                int stock = resourcesLookup.HasBuffer(company)
+                    ? EconomyUtils.GetResources(
+                        resource, resourcesLookup[company])
+                    : 0;
+
+                if (stock <= 200)
                 {
                     continue;
                 }
@@ -528,31 +533,6 @@ namespace NoCustomersFix.Systems
             return Math.Max(1, budget);
         }
 
-        private bool IsPhysicalRetailResource(
-            Resource resource,
-            ref ComponentLookup<ResourceData>
-                resourceDatas)
-        {
-            if (resource == Resource.NoResource ||
-                resource == Resource.Vehicles ||
-                EconomyUtils.IsOfficeResource(resource))
-            {
-                return false;
-            }
-
-            Entity resourcePrefab =
-                m_ResourceSystem.GetPrefab(resource);
-
-            if (resourcePrefab == Entity.Null ||
-                !resourceDatas.HasComponent(
-                    resourcePrefab))
-            {
-                return false;
-            }
-
-            return !resourceDatas[
-                resourcePrefab].m_IsLeisure;
-        }
     }
 }
 
