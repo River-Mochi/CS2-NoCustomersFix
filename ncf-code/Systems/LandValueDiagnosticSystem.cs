@@ -13,6 +13,7 @@ using System.Diagnostics;
 using Colossal.Serialization.Entities;
 using CS2Shared.RiverMochi;
 using Game;
+using Game.Buildings;
 using Game.Common;
 using Game.Companies;
 using Game.Net;
@@ -28,6 +29,7 @@ namespace NoCustomersFix.Systems
     public partial class LandValueDiagnosticSystem : GameSystemBase
     {
         private EntityQuery m_EdgeQuery;
+        private EntityQuery m_BuildingQuery;
         private EntityQuery m_CompanyQuery;
         private EntityQuery m_ParametersQuery;
         private LandValueSystem m_LandValueSystem = null!;
@@ -64,6 +66,13 @@ namespace NoCustomersFix.Systems
                     ComponentType.ReadOnly<Temp>(),
                 },
             });
+
+            // Mirrors LandValueInfoviewUISystem's Average Land Value query.
+            m_BuildingQuery = GetEntityQuery(
+                ComponentType.ReadOnly<Building>(),
+                ComponentType.ReadOnly<BuildingCondition>(),
+                ComponentType.Exclude<Deleted>(),
+                ComponentType.Exclude<Temp>());
 
             m_CompanyQuery = GetEntityQuery(new EntityQueryDesc
             {
@@ -179,6 +188,29 @@ namespace NoCustomersFix.Systems
                 }
             }
 
+            // Match vanilla LandValueInfoviewUISystem: average the road-edge
+            // LandValue of every eligible building that has a valid road edge.
+            double uiLandValueSum = 0d;
+            int uiBuildingCount = 0;
+            EntityManager.CompleteDependencyBeforeRO<Building>();
+            using (NativeArray<Entity> buildings =
+                m_BuildingQuery.ToEntityArray(Allocator.Temp))
+            {
+                for (int i = 0; i < buildings.Length; i++)
+                {
+                    Entity roadEdge =
+                        EntityManager.GetComponentData<Building>(buildings[i]).m_RoadEdge;
+                    if (!EntityManager.HasComponent<LandValue>(roadEdge))
+                    {
+                        continue;
+                    }
+
+                    uiLandValueSum +=
+                        EntityManager.GetComponentData<LandValue>(roadEdge).m_LandValue;
+                    uiBuildingCount++;
+                }
+            }
+
             int companyCount = 0;
             int over90 = 0;
             int overMax = 0;
@@ -255,6 +287,8 @@ namespace NoCustomersFix.Systems
                 $"hour={hour:D2} frame={m_SimulationSystem.frameIndex} " +
                 $"mapAvgAllCells={(map.IsCreated && map.Length > 0 ? mapSum / map.Length : 0d):F1} " +
                 $"mapMax={mapMax:F1} cellsOver100k={highCells} " +
+                $"uiAverageLandValue={(uiBuildingCount > 0 ? uiLandValueSum / uiBuildingCount : 0d):F1} " +
+                $"uiBuildings={uiBuildingCount} " +
                 $"roads={edgeCount} roadAvg={(edgeCount > 0 ? roadSum / edgeCount : 0d):F1} " +
                 $"roadMax={roadMax:F1} maxRoadEdge={maxRoadEntity} " +
                 $"commercialBonusAtMaxRoad={roadServiceAtMax:F1} " +
