@@ -75,16 +75,14 @@ namespace NoCustomersFix.Systems
                 s_LastDecision = decision;
                 if (active)
                 {
-                    LogUtils.Info(
-                        "[NCF-TO] Tourism Overhaul target search active; NCF hotel booking " +
-                        (defer ? "deferred to Tourism Overhaul." :
-                            "enabled by compatibility test override."));
+                    LogUtils.Info(defer
+                        ? "[NCF-TO] NCF hotel bookings: SKIPPED (Tourism Overhaul tourist search active)."
+                        : "[NCF-TO] NCF hotel bookings: ENABLED (Tourism Overhaul active; test setting OFF).");
                 }
                 else if (decision == 0 && s_ReplacementType != null)
                 {
                     LogUtils.Info(
-                        "[NCF-TO] Tourism Overhaul target search not replacing vanilla; " +
-                        "NCF hotel booking enabled.");
+                        "[NCF-TO] NCF hotel bookings: ENABLED (Tourism Overhaul tourist search inactive).");
                 }
             }
 
