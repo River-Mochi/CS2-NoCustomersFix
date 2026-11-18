@@ -175,6 +175,13 @@ namespace NoCustomersFix.Systems
                 return;
             }
 #endif
+            // TO owns tourist hotel assignments while its replacement search is active.
+            // This is an optional, reversible compatibility safeguard.
+            if (TourismOverhaulCompatibility.ShouldDeferHotelBooking(World))
+            {
+                return;
+            }
+
             // Resolve lazily and reuse the existing company-pressure scan.
             if (m_CommercialBalanceSystem == null)
             {
