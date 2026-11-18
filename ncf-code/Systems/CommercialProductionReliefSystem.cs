@@ -187,7 +187,7 @@ namespace NoCustomersFix.Systems
         protected override void OnUpdate()
         {
 #if NCF_PERF_TEST
-            if (!Mod.BalancingEnabled)
+            if (!Mod.ProductionReliefEnabled)
             {
                 return;
             }
@@ -548,7 +548,7 @@ namespace NoCustomersFix.Systems
 #if NCF_PERF_TEST
             // Never strand temporarily masked employees when OFF is selected.
             // If nothing is pending, OFF remains passive.
-            if (!Mod.BalancingEnabled && !m_PrepareSystem.HasPendingRestoreWork())
+            if (!Mod.ProductionReliefEnabled && !m_PrepareSystem.HasPendingRestoreWork())
             {
                 return;
             }
