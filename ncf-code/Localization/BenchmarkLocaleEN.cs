@@ -34,8 +34,8 @@ namespace NoCustomersFix.Localization
                 { m_Settings.GetOptionLabelLocaleID(nameof(BenchmarkSettings.EnableBalancing)),
                     "NCF balancing enabled" },
                 { m_Settings.GetOptionDescLocaleID(nameof(BenchmarkSettings.EnableBalancing)),
-                    "ON: normal NCF fixes and speed logging.\n" +
-                    "OFF: speed logging only, no NCF fixes.\n" +
+                    "ON: NCF balancing plus diagnostic logging.\n" +
+                    "OFF: diagnostic logging only; no NCF balancing.\n" +
                     "Changes apply immediately. Reload the original save for a fair comparison." },
                 { m_Settings.GetOptionLabelLocaleID(nameof(BenchmarkSettings.DeferHotelBookingToTourismOverhaul)),
                     "Skip NCF hotel bookings when Tourism Overhaul is active" },
