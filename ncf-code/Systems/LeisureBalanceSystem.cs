@@ -423,7 +423,7 @@ namespace NoCustomersFix.Systems
                          resource == Resource.Meals ||
                          resource == Resource.Lodging))
                     {
-                        int stock = resources.HasBuffer(company)
+                        int diagnosticStock = resources.HasBuffer(company)
                             ? EconomyUtils.GetResources(resource, resources[company])
                             : -1;
 
@@ -442,7 +442,7 @@ namespace NoCustomersFix.Systems
                             notificationsRef.ValueRO.m_NoCustomersEntity,
                             serviceRef.ValueRO.m_ServiceAvailable,
                             serviceCompanyDatas[prefab].m_MaxService,
-                            stock, freeRooms, occupiedRooms);
+                            diagnosticStock, freeRooms, occupiedRooms);
                     }
 #endif
                 }
