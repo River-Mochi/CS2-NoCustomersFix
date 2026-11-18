@@ -108,6 +108,10 @@ namespace NoCustomersFix.Systems
                 GetEntityQuery(
                     ComponentType.ReadWrite<LeisureParametersData>());
 
+#if NCF_PERF_TEST
+            m_TargetTimeSystem =
+                World.GetOrCreateSystemManaged<Game.Simulation.TimeSystem>();
+#endif
             RequireForUpdate(m_LeisureParametersQuery);
         }
 
@@ -125,6 +129,7 @@ namespace NoCustomersFix.Systems
             RestoreBaselineIfOwned();
             ResetState();
 #if NCF_PERF_TEST
+            ResetTargetDiagnostics();
             m_PerfLeisureScans = 0;
             m_PerfMediumScans = 0;
             m_PerfStrongScans = 0;
@@ -178,6 +183,9 @@ namespace NoCustomersFix.Systems
 #if NCF_PERF_TEST
             long scanStart = System.Diagnostics.Stopwatch.GetTimestamp();
 #endif
+#if NCF_PERF_TEST
+            BeginTargetDiagnostics();
+#endif
             LeisurePressure pressure = ScanLeisurePressure();
 #if NCF_PERF_TEST
             RecordLeisureScan(System.Diagnostics.Stopwatch.GetTimestamp() - scanStart, pressure);
@@ -185,6 +193,9 @@ namespace NoCustomersFix.Systems
 
             int desiredFactor = CalculateDesiredFactor(pressure);
 
+#if NCF_PERF_TEST
+            EndTargetDiagnostics(pressure, currentFactor, desiredFactor);
+#endif
 #if DEBUG
             LogState(
                 pressure,
@@ -318,7 +329,7 @@ namespace NoCustomersFix.Systems
                     SystemAPI.GetBufferLookup<
                         Game.Economy.Resources>(
                             true);
-#if DEBUG
+#if DEBUG || NCF_PERF_TEST
             ComponentLookup<Game.Companies.LodgingProvider> lodgingProviders =
                 SystemAPI.GetComponentLookup<Game.Companies.LodgingProvider>(true);
 
@@ -403,6 +414,37 @@ namespace NoCustomersFix.Systems
                     {
                         pressure.OtherWarnings++;
                     }
+
+#if NCF_PERF_TEST
+                    // Reuse this scan; log only once per in-game hour.
+                    if (m_RecordTargetDiagnostics &&
+                        (resource == Resource.Entertainment ||
+                         resource == Resource.Recreation ||
+                         resource == Resource.Meals ||
+                         resource == Resource.Lodging))
+                    {
+                        int diagnosticStock = resources.HasBuffer(company)
+                            ? EconomyUtils.GetResources(resource, resources[company])
+                            : -1;
+
+                        int freeRooms = resource == Resource.Lodging &&
+                            lodgingProviders.HasComponent(company)
+                                ? lodgingProviders[company].m_FreeRooms
+                                : -1;
+
+                        int occupiedRooms = resource == Resource.Lodging &&
+                            hotelRenters.HasBuffer(company)
+                                ? hotelRenters[company].Length
+                                : -1;
+
+                        LogTargetWarning(
+                            resource, company,
+                            notificationsRef.ValueRO.m_NoCustomersEntity,
+                            serviceRef.ValueRO.m_ServiceAvailable,
+                            serviceCompanyDatas[prefab].m_MaxService,
+                            diagnosticStock, freeRooms, occupiedRooms);
+                    }
+#endif
                 }
 
                // Lodging is handled separately by HotelBalanceSystem.

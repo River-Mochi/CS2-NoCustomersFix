@@ -33,6 +33,8 @@ namespace NoCustomersFix.Systems
         private long m_PerfInjected;
         private int m_PerfSkippedSnapshots;
         private int m_PerfCappedCorrectionUpdates;
+        private long m_PerfPressureRetailCompanies;
+        private long m_PerfPressureStockChecks;
 
         private void RecordSkippedSnapshot()
         {
@@ -64,6 +66,8 @@ namespace NoCustomersFix.Systems
             m_PerfInjected = 0;
             m_PerfSkippedSnapshots = 0;
             m_PerfCappedCorrectionUpdates = 0;
+            m_PerfPressureRetailCompanies = 0;
+            m_PerfPressureStockChecks = 0;
         }
 
         private void RecordPerfUpdate(
@@ -98,6 +102,8 @@ namespace NoCustomersFix.Systems
                 $"updates={m_PerfUpdates} " +
                 $"snapshotMs={(m_PerfSnapshotTicks * millisecondsPerTick):F1} " +
                 $"pressureMs={(m_PerfPressureTicks * millisecondsPerTick):F1} " +
+                $"pressureRetailCompanies={m_PerfPressureRetailCompanies} " +
+                $"pressureStockChecks={m_PerfPressureStockChecks} " +
                 $"correctionMs={(m_PerfCorrectionTicks * millisecondsPerTick):F1} " +
                 $"maxCorrectionMs={(m_PerfLongestCorrection * millisecondsPerTick):F2} " +
                 $"householdSyncMs={(m_PerfHouseholdSyncTicks * millisecondsPerTick):F2} " +

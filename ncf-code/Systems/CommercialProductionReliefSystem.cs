@@ -70,6 +70,9 @@ namespace NoCustomersFix.Systems
         private long m_PerfMaskedEmployees;
         private long m_PerfRestoredEmployees;
         private long m_PerfSkippedRestorations;
+        private long m_PerfProductionCandidates;
+        private long m_PerfProductionStockChecks;
+        private long m_PerfProductionStockRejected;
 #endif
 
         internal NativeQueue<CommercialProductionEmployeeRestore> RestoreEntries => m_RestoreEntries;
@@ -120,7 +123,7 @@ namespace NoCustomersFix.Systems
 #if DEBUG || NCF_PERF_TEST
             // 0 = preventive companies; 1 = strong companies;
             // 2 = masked employees; 3 = restored; 4 = skipped restores.
-            m_Counts = new NativeArray<int>(5, Allocator.Persistent);
+            m_Counts = new NativeArray<int>(8, Allocator.Persistent);
 #endif
 
             RequireForUpdate(m_CompanyQuery);
@@ -175,6 +178,9 @@ namespace NoCustomersFix.Systems
             m_PerfMaskedEmployees = 0;
             m_PerfRestoredEmployees = 0;
             m_PerfSkippedRestorations = 0;
+            m_PerfProductionCandidates = 0;
+            m_PerfProductionStockChecks = 0;
+            m_PerfProductionStockRejected = 0;
 #endif
         }
 
@@ -201,6 +207,9 @@ namespace NoCustomersFix.Systems
             m_PerfMaskedEmployees += m_Counts[2];
             m_PerfRestoredEmployees += m_Counts[3];
             m_PerfSkippedRestorations += m_Counts[4];
+            m_PerfProductionCandidates += m_Counts[5];
+            m_PerfProductionStockChecks += m_Counts[6];
+            m_PerfProductionStockRejected += m_Counts[7];
 #endif
 
 #if DEBUG
@@ -290,7 +299,10 @@ namespace NoCustomersFix.Systems
                     $"strongCompanies={m_PerfStrongCompanies} " +
                     $"maskedEmployees={m_PerfMaskedEmployees} " +
                     $"restoredEmployees={m_PerfRestoredEmployees} " +
-                    $"skippedRestorations={m_PerfSkippedRestorations}");
+                    $"skippedRestorations={m_PerfSkippedRestorations} " +
+                    $"candidateCompanies={m_PerfProductionCandidates} " +
+                    $"stockChecks={m_PerfProductionStockChecks} " +
+                    $"stockRejected={m_PerfProductionStockRejected}");
                 m_PerfProductionUpdates = 0;
                 m_PerfProductionWaitTicks = 0;
                 m_PerfProductionPrepareTicks = 0;
@@ -299,6 +311,9 @@ namespace NoCustomersFix.Systems
                 m_PerfMaskedEmployees = 0;
                 m_PerfRestoredEmployees = 0;
                 m_PerfSkippedRestorations = 0;
+                m_PerfProductionCandidates = 0;
+                m_PerfProductionStockChecks = 0;
+                m_PerfProductionStockRejected = 0;
             }
 #endif
         }
@@ -397,12 +412,6 @@ namespace NoCustomersFix.Systems
                     }
 
 
-                    // Match vanilla's physical-stock side of NEC.
-                    if (EconomyUtils.GetResources(resource, resources[i]) <= 200)
-                    {
-                        continue;
-                    }
-
                     Game.Companies.ServiceCompanyData serviceData =
                         m_ServiceCompanyDatas[prefab];
 
@@ -411,6 +420,9 @@ namespace NoCustomersFix.Systems
                         continue;
                     }
 
+#if DEBUG || NCF_PERF_TEST
+                    m_Counts[5]++;
+#endif
                     int available =
                         math.clamp(
                             services[i].m_ServiceAvailable,
@@ -423,6 +435,18 @@ namespace NoCustomersFix.Systems
 
                     if (unusedRatio < kPreventiveRatio)
                     {
+                        continue;
+                    }
+
+#if DEBUG || NCF_PERF_TEST
+                    m_Counts[6]++;
+#endif
+                    // Check stock only for shops with high unused Service.
+                    if (EconomyUtils.GetResources(resource, resources[i]) <= 200)
+                    {
+#if DEBUG || NCF_PERF_TEST
+                        m_Counts[7]++;
+#endif
                         continue;
                     }
 
