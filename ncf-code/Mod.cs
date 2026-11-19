@@ -133,6 +133,10 @@
                  SystemUpdatePhase.GameSimulation);
 #endif
 
+             // One read-only load-time snapshot, including normal public Release builds.
+             updateSystem.UpdateAt<LoadedLandValueWarningSystem>(
+                 SystemUpdatePhase.GameSimulation);
+
              updateSystem.UpdateBefore<CommercialBalancePrepareSystem,HouseholdBehaviorSystem>(SystemUpdatePhase.GameSimulation);
              updateSystem.UpdateAfter<CommercialBalanceSystem,HouseholdBehaviorSystem>(SystemUpdatePhase.GameSimulation);
 
