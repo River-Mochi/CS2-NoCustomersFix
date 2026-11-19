@@ -39,13 +39,13 @@ NCF mod helps struggling shops recover by balancing production and shopping. No 
 
 ### What to expect
 
-*   **Install and play!** No Options settings needed.
-*   Cities show reduction in 5 minutes. Allow **30+ minutes** for major changes.
-*  A few remaining warnings? Check road access or remove excess shops. NCF doesn't hide legitimate problems.
-*   Recommended: [mod City Watchdog](https://mods.paradoxplaza.com/mods/144908/Windows) to track NEC totals (see screenshot). Just add a "blue star" next to "Not Enough Customers".
-*   Safe to remove, returns to vanilla. No Harmony patch means more compatible with other mods and the game.
-*   This mod is a temp fix until IFS improves commercial balancing.
-*   This is a **realistic** balance and does not magically turn off the problem. It does not fix legit problems with excess commercial or access to buildings. Players report it's just a few compared to 100's before the mod. The idea is to be as aligned with the game as possible.
+* **Install and play!** No Options settings needed.
+* Cities show reduction in 5 minutes. Allow **30+ minutes** for major changes.
+* A few remaining warnings? Check road access or remove excess shops. NCF doesn't hide legitimate problems.
+* Recommended: [mod City Watchdog](https://mods.paradoxplaza.com/mods/144908/Windows) to track NEC totals (see screenshot). Just add a "blue star" next to "Not Enough Customers".
+* Safe to remove, returns to vanilla. No Harmony patch means more compatible with other mods and the game.
+* NCF is a temp fix until IFS improves commercial balancing to avoid many NEC icons.
+* This is a **realistic** balance and does not magically turn off the problem. It does not fix legit problems with excess commercial or access to buildings. Players report it's just a few compared to 100's before the mod. The idea is to be as aligned with the game as possible.
 
 **Tips:** full commercial demand bar doesn't mean your citizens can support more shops! It means companies are looking for spaces which is optional to build.
 
@@ -60,7 +60,7 @@ NCF mod helps struggling shops recover by balancing production and shopping. No 
 
 *   To avoid conflicts, NCF skips hotel bookings when it detects mods Custom Tourism or Tourism Overhaul.
 *   Tourism mods affect the economy. If you want more tourists, the more narrow "Custom Tourism" mod is recommended. The other tourist mod makes broader changes to the commercial economy, increases Service on other systems, unknown side effects.
-*   NCF does not increase Service production. It does the opposite: it reduces it moderately when shops or hotels have too much unsold Service. Excess Service is one of the main causes of NEC warnings.
+*   NCF does not increase Service production. It does the opposite: it reduces it when shops or hotels have too much unsold Service. Excess Service is one of the main causes of NEC warnings.
 *   NCF does not change land values or rents, and cannot instantly undo economic problems already stored in a save city by other mods. However, it can still help cities recover over time by rebalancing the NEC issues.
 *   **Other mods can work against NCF** by increasing commercial workers or Service production, leading to more unsold Service faster than citizens can use it.
 
