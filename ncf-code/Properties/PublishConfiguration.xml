@@ -63,7 +63,7 @@ It's recommended to avoid these type of mods functions if you have issues with i
 ### Compatibility
 
 * This mod will leave tourist hotel bookings to mods Custom Tourism or Tourism Overhaul, if they are installed.
-* Note: changing tourism effects the economy so if truly desired, the more narrow "Custom Tourism" mod is recommended. The other tourist mod makes substatial changes to the commercial economy which has side effects.
+* Note: changing tourism affects the economy so if truly desired, the more narrow "Custom Tourism" mod is recommended. The other tourist mod makes substantial changes to the commercial economy which has side effects.
 * This mod does not directly change land values or rents, and cannot undo economic conditions already stored in a save from other mods. But over time, it tries to help rebalance things which is easier if it's not fighting other mods that are still actively changing the economy and increasing Service production.
 
 ### Credits and Thanks
@@ -127,7 +127,7 @@ tags: notification icons, no customers, commerical demand
 <ChangeLog>
 - Automatically avoids hotel bookings if players have mods Custom Tourism or Tourist overhaul installed.
 - Improved performance: reduced commercial processing overhead.
-- Added read-only land-value diagnostics to debug logs.
+- Added read-only land-value diagnostics to logs.
 </ChangeLog>
 <!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
 <!--Supported values Public, Private, Unlisted-->
