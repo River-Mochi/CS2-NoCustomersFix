@@ -380,16 +380,20 @@ namespace NoCustomersFix.Systems
             double elapsedMs = (Stopwatch.GetTimestamp() - start) * 1000d /
                 Stopwatch.Frequency;
             bool toSearchActive = TourismOverhaulCompatibility.IsActive(World);
+            bool customTourismActive =
+                TourismOverhaulCompatibility.IsCustomTourismActive(World);
+            bool externalBookingActive = toSearchActive || customTourismActive;
             string hotelBookingState = !Mod.BalancingEnabled
                 ? "DISABLED_NCF_OFF"
-                : (toSearchActive && Mod.DeferHotelBookingToTourismOverhaul
+                : (externalBookingActive && Mod.DeferHotelBookingToTourismOverhaul
                     ? "SKIPPED" : "ENABLED");
             LogUtils.Info(
                 "[NCF-LAND] " +
                 $"mode={(Mod.BalancingEnabled ? "ON" : "OFF")} " +
                 $"productionRelief={(Mod.ProductionReliefEnabled ? "ON" : "OFF")} " +
                 $"toSearchActive={toSearchActive} " +
-                $"skipNCFHotelWhenTOActive={Mod.DeferHotelBookingToTourismOverhaul} " +
+                $"customTourismActive={customTourismActive} " +
+                $"skipNCFHotelWhenTourismActive={Mod.DeferHotelBookingToTourismOverhaul} " +
                 $"hotelBookings={hotelBookingState} " +
                 $"sample={sampleKind} " +
                 $"loadElapsedFrames={loadElapsedFrames} " +
