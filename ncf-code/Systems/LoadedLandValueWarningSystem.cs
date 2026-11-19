@@ -6,7 +6,7 @@
 // This notice MUST be kept with copies or substantial portions of this code.
 // ================= </copyright> ======================
 
-// One read-only snapshot per city load, including normal public Release builds.
+// Two read-only snapshots per city load, including normal public Release builds.
 // It does not edit land values, road availability, companies or saved data.
 
 using System;
@@ -62,28 +62,44 @@ namespace NoCustomersFix.Systems
                 ComponentType.Exclude<Temp>());
         }
 
+        // The earliest safe opportunity after deserialization. May precede
+        // later prefab and map initialization; failures never affect loading.
+        protected override void OnGameLoaded(Context serializationContext)
+        {
+            base.OnGameLoaded(serializationContext);
+            CaptureSafely("postDeserialize");
+        }
+
         protected override void OnGameLoadingComplete(Purpose purpose, GameMode mode)
         {
             base.OnGameLoadingComplete(purpose, mode);
-            if (mode != GameMode.Game || m_ParametersQuery.IsEmptyIgnoreFilter)
+            if (mode == GameMode.Game)
+            {
+                CaptureSafely("loadComplete");
+            }
+        }
+
+        private void CaptureSafely(string sample)
+        {
+            if (m_ParametersQuery.IsEmptyIgnoreFilter)
             {
                 return;
             }
 
             try
             {
-                ReadLoadedValues();
+                ReadLoadedValues(sample);
             }
             catch (Exception exception)
             {
-                // Never make a diagnostic prevent a city from loading.
+                // Never make diagnostics prevent a city from loading.
                 LogUtils.Warn(
-                    "[NCF-LAND-LOAD] Unable to read initial land-value snapshot.",
+                    "[NCF-LAND-LOAD] Snapshot unavailable (" + sample + ").",
                     exception);
             }
         }
 
-        private void ReadLoadedValues()
+        private void ReadLoadedValues(string sample)
         {
             LandValueParameterData parameters =
                 m_ParametersQuery.GetSingleton<LandValueParameterData>();
@@ -152,7 +168,7 @@ namespace NoCustomersFix.Systems
 
             LogUtils.Info(
                 "[NCF-LAND-LOAD] readOnly=true " +
-                $"abnormal={abnormal} roads={roads} buildings={buildings} " +
+                $"sample={sample} abnormal={abnormal} roads={roads} buildings={buildings} " +
                 $"uiAvgApproxCurrency={uiAverageCurrency:F0} " +
                 $"maxRoadValue={maxRoad:F1} " +
                 $"commercialBonusMax={maxCommercialBonus:F1} " +
