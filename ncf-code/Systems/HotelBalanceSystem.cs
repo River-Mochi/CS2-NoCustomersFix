@@ -175,6 +175,13 @@ namespace NoCustomersFix.Systems
                 return;
             }
 #endif
+            // Defer to active tourism hotel-booking systems (TO / Custom Tourism).
+            // This is optional, automatic, and requires no foreign assembly dependency.
+            if (TourismOverhaulCompatibility.ShouldDeferHotelBooking(World))
+            {
+                return;
+            }
+
             // Resolve lazily and reuse the existing company-pressure scan.
             if (m_CommercialBalanceSystem == null)
             {

@@ -30,6 +30,12 @@ namespace NoCustomersFix.Settings
         [SettingsUISetter(typeof(BenchmarkSettings), nameof(OnBalancingChanged))]
         public bool EnableBalancing { get; set; }
 
+        [SettingsUISection("Benchmark", "Mode")]
+        public bool DeferHotelBookingToTourismOverhaul { get; set; }
+
+        [SettingsUISection("Benchmark", "Mode")]
+        public bool EnableProductionRelief { get; set; }
+
         private void OnBalancingChanged(bool enabled)
         {
             LogUtils.Info(
@@ -40,6 +46,8 @@ namespace NoCustomersFix.Settings
         public override void SetDefaults()
         {
             EnableBalancing = true;
+            DeferHotelBookingToTourismOverhaul = true;
+            EnableProductionRelief = true;
         }
     }
 }

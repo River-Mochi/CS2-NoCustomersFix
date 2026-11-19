@@ -51,12 +51,20 @@ The idea is to be as aligned with the game as possible.
 
 **Tips:** full commercial demand bar doesn't mean your citizens can support more shops! It means companies are looking for spaces which is optional to build.
 
-**Other mods:** that increase commercial workers can make NEC warnings worse! More workers or output may produce Service faster than customers can use it.
-It's recommended to avoid these type of mods/functions if you have issues with icons or balance.
+**Other mods:** that increase commercial workers can make NEC warnings worse! More workers or Service output may produce Service faster than customers can use it.
+It's recommended to avoid these type of mods functions if you have issues with icons or balance.
+
 ### Support and Feedback
 
 *   Support by clicking the LIKE 👍 button (top right)! No donations, just a free like for the many days of work.
 *   Feedback: [Discord](https://discord.gg/gwXgvtyhjc) | [GitHub](https://github.com/River-Mochi/CS2-NoCustomersFix), GPL-3.0 license.
+
+
+### Compatibility
+
+* This mod will leave tourist hotel bookings to mods Custom Tourism or Tourism Overhaul, if they are installed.
+* Note: changing tourism effects the economy so if truly desired, the more narrow "Custom Tourism" mod is recommended. The other tourist mod makes substatial changes to the commercial economy which has side effects.
+* This mod does not directly change land values or rents, and cannot undo economic conditions already stored in a save from other mods. But over time, it tries to help rebalance things which is easier if it's not fighting other mods that are still actively changing the economy and increasing Service production.
 
 ### Credits and Thanks
 
@@ -90,6 +98,8 @@ tags: notification icons, no customers
 * **安装即可生效！** 部分城市约5分钟就能看到改善，明显变化可能需要运行 **30分钟以上**。
 * 如果仍有少量警告，可检查道路连接，或适当减少多余商店。
 * **可安全卸载，不使用 Harmony 补丁。**
+* **旅游模组兼容：** 当 Tourism Overhaul 或 Custom Tourism 负责游客酒店预订时，NCF 会自动跳过自己的酒店预订。无需安装这两个模组。
+* **注意：** Tourism Overhaul 还会修改商业休闲服务容量、价格、存量和酒店分区等经济系统。NCF 不将其推荐为单纯增加游客数量的模组，也无法撤销存档中已有的经济异常。
 
 **💡 提示：** 商业需求条满了，不代表城市真的需要更多商店！
 
@@ -115,7 +125,9 @@ tags: notification icons, no customers
 <RequiredDLC Value="" />
 <!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 <ChangeLog>
-- improve performance: reduce commercial processing overhead
+- Automatically avoids hotel bookings if players have mods Custom Tourism or Tourist overhaul installed.
+- Improved performance: reduced commercial processing overhead.
+- Added read-only land-value diagnostics to debug logs.
 </ChangeLog>
 <!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
 <!--Supported values Public, Private, Unlisted-->

@@ -53,13 +53,28 @@
          internal static bool BalancingEnabled =>
              s_BenchmarkSettings?.EnableBalancing ?? true;
 
+         internal static bool ProductionReliefEnabled =>
+             BalancingEnabled &&
+             (s_BenchmarkSettings?.EnableProductionRelief ?? true);
+
+         internal static bool DeferHotelBookingToTourismOverhaul =>
+             s_BenchmarkSettings?.DeferHotelBookingToTourismOverhaul ?? true;
+
          internal static void ApplyBenchmarkModeOnCityLoad()
          {
              LogUtils.Info(
                  "[NCF-BENCHMARK] city load mode=" +
                  (BalancingEnabled ? "ON (normal fixes + logging)" :
-                     "OFF (logging only; all balancing updates skipped)"));
+                     "OFF (logging only; all balancing updates skipped)") +
+                 $" productionRelief={(ProductionReliefEnabled ? "ON" : "OFF")}" +
+                 $" skipNCFHotelBookingsWhenTourismModActive={DeferHotelBookingToTourismOverhaul}");
+             if (!BalancingEnabled)
+             {
+                 LogUtils.Info("[NCF-TO] NCF hotel bookings: DISABLED (NCF balancing OFF).");
+             }
          }
+#else
+         internal static bool DeferHotelBookingToTourismOverhaul => true;
 #endif
 
          public void OnLoad(UpdateSystem updateSystem)
@@ -108,7 +123,19 @@
              // Passive hourly commercial demand logging, including benchmark OFF.
              updateSystem.UpdateAfter<CommercialDemandDiagnosticSystem,CommercialDemandSystem>(
                  SystemUpdatePhase.GameSimulation);
+
+             // Read-only land-value diagnostics: load-complete snapshot, rapid samples, hourly later.
+             updateSystem.UpdateAt<LandValueDiagnosticSystem>(
+                 SystemUpdatePhase.GameSimulation);
+
+             // Resident household-needs snapshot, independent of InfoLoom.
+             updateSystem.UpdateAt<HouseholdNeedDiagnosticSystem>(
+                 SystemUpdatePhase.GameSimulation);
 #endif
+
+             // One read-only load-time snapshot, including normal public Release builds.
+             updateSystem.UpdateAt<LoadedLandValueWarningSystem>(
+                 SystemUpdatePhase.GameSimulation);
 
              updateSystem.UpdateBefore<CommercialBalancePrepareSystem,HouseholdBehaviorSystem>(SystemUpdatePhase.GameSimulation);
              updateSystem.UpdateAfter<CommercialBalanceSystem,HouseholdBehaviorSystem>(SystemUpdatePhase.GameSimulation);

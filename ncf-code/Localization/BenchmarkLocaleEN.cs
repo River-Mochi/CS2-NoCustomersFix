@@ -34,9 +34,20 @@ namespace NoCustomersFix.Localization
                 { m_Settings.GetOptionLabelLocaleID(nameof(BenchmarkSettings.EnableBalancing)),
                     "NCF balancing enabled" },
                 { m_Settings.GetOptionDescLocaleID(nameof(BenchmarkSettings.EnableBalancing)),
-                    "ON: normal NCF fixes and speed logging.\n" +
-                    "OFF: speed logging only, no NCF fixes.\n" +
+                    "ON: NCF balancing plus diagnostic logging.\n" +
+                    "OFF: diagnostic logging only; no NCF balancing.\n" +
                     "Changes apply immediately. Reload the original save for a fair comparison." },
+                { m_Settings.GetOptionLabelLocaleID(nameof(BenchmarkSettings.DeferHotelBookingToTourismOverhaul)),
+                    "Skip NCF hotel bookings when another tourism mod handles them" },
+                { m_Settings.GetOptionDescLocaleID(nameof(BenchmarkSettings.DeferHotelBookingToTourismOverhaul)),
+                    "ON (recommended): NCF leaves tourist hotel bookings to Tourism Overhaul or Custom Tourism when their booking systems are active.\n" +
+                    "OFF (testing only): NCF may also book hotels, risking duplicate handling.\n" +
+                    "This setting does not modify other mods. Reload the original save for comparisons." },
+                { m_Settings.GetOptionLabelLocaleID(nameof(BenchmarkSettings.EnableProductionRelief)),
+                    "NCF production relief enabled" },
+                { m_Settings.GetOptionDescLocaleID(nameof(BenchmarkSettings.EnableProductionRelief)),
+                    "ON: normal NCF production relief.\n" +
+                    "OFF: skip production relief (comparison test only). Reload the original save." },
             };
         }
 
