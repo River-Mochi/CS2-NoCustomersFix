@@ -175,8 +175,8 @@ namespace NoCustomersFix.Systems
                 return;
             }
 #endif
-            // TO owns tourist hotel assignments while its replacement search is active.
-            // This is an optional, reversible compatibility safeguard.
+            // Defer to active tourism hotel-booking systems (TO / Custom Tourism).
+            // This is optional, automatic, and requires no foreign assembly dependency.
             if (TourismOverhaulCompatibility.ShouldDeferHotelBooking(World))
             {
                 return;
