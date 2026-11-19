@@ -59,8 +59,8 @@ NCF mod helps struggling shops recover by balancing production and shopping. No 
 ### Compatibility
 
 *   To avoid conflicts, NCF skips hotel bookings when it detects mods Custom Tourism or Tourism Overhaul.
-*   Tourism mods affect the economy. If you want more tourists, the more narrow "Custom Tourism" mod is recommended. The other tourist mod makes broader changes to the commercial economy, increases Service on other systems, unknown side effects.
-*   NCF does not increase Service production. It does the opposite: it reduces it when shops or hotels have too much unsold Service. Excess Service is one of the main causes of NEC warnings.
+*   Tourism mods affect the economy. If you want more tourists, the more narrow "Custom Tourism" mod is recommended. The other tourist mod makes broader changes to the commercial economy, increases Service on systems, can cause other economic side effects.
+*   NCF does not increase Service production. It does the opposite: it reduces it when shops have too much unsold Service. Excess Service is one of the main causes of NEC warnings.
 *   NCF does not change land values or rents, and cannot instantly undo economic problems already stored in a save city by other mods. However, it can still help cities recover over time by rebalancing the NEC issues.
 *   **Other mods can work against NCF** by increasing commercial workers or Service production, leading to more unsold Service faster than citizens can use it.
 
@@ -107,7 +107,6 @@ tags: notification icons, no customers, commercial demand
 - 如果主要想增加游客，推荐改动较少的 Custom Tourism。Tourism Overhaul 对商业经济的调整范围更广。
 
 **喜欢这个模组？欢迎点个赞 👍！感谢支持！**
-
 </LongDescription>
 <!--Thumbnail-->
 <Thumbnail Value="Properties/Thumbnail01.jpg" />
