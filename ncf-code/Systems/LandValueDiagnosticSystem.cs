@@ -403,7 +403,6 @@ namespace NoCustomersFix.Systems
                 $"mapAvgAllCells={(map.IsCreated && map.Length > 0 ? mapSum / map.Length : 0d):F1} " +
                 $"mapMax={mapMax:F1} cellsOver100k={highCells} " +
                 $"uiAverageLandValue={(uiBuildingCount > 0 ? uiLandValueSum / uiBuildingCount : 0d):F1} " +
-                $"uiAvgApproxCurrency={(uiBuildingCount > 0 ? 100d * uiLandValueSum / uiBuildingCount : 0d):F0} " +
                 $"uiBuildings={uiBuildingCount} " +
                 $"roads={edgeCount} roadAvg={(edgeCount > 0 ? roadSum / edgeCount : 0d):F1} " +
                 $"roadMax={roadMax:F1} maxRoadEdge={maxRoadEntity} " +
