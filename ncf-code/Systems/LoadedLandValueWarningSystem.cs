@@ -25,6 +25,10 @@ namespace NoCustomersFix.Systems
 {
     public partial class LoadedLandValueWarningSystem : GameSystemBase
     {
+        // Observed vanilla Info View conversion: raw land value x 240 = currency/cell.
+        // This affects diagnostic display only; no simulation values are changed.
+        internal const double kLandValuePerCellDisplayScale = 240d;
+
         private EntityQuery m_RoadQuery;
         private EntityQuery m_BuildingQuery;
         private EntityQuery m_ParametersQuery;
@@ -160,8 +164,8 @@ namespace NoCustomersFix.Systems
                 }
             }
 
-            // The vanilla UI binding supplies this raw average. Currency
-            // formatting happens separately; do not assume a conversion factor.
+            // The vanilla C# UI binding supplies this raw average. The UI
+            // displays it as currency per cell using the observed x240 scale.
             double averageRawLandValue =
                 buildings > 0 ? sumBuildingRoadValue / buildings : 0d;
             // Diagnostic thresholds only, not simulation land-value caps.
@@ -172,6 +176,7 @@ namespace NoCustomersFix.Systems
                 "[NCF-LAND-LOAD] readOnly=true " +
                 $"sample={sample} abnormal={abnormal} roads={roads} buildings={buildings} " +
                 $"uiAvgRawLandValue={averageRawLandValue:F1} " +
+                $"uiAvgLandValuePerCellPrice=₡{averageRawLandValue * kLandValuePerCellDisplayScale:F0} " +
                 $"maxRoadValue={maxRoad:F1} " +
                 $"commercialBonusMax={maxCommercialBonus:F1} " +
                 $"maxBonusEdge={maxBonusEdge}");
