@@ -118,6 +118,27 @@ namespace NoCustomersFix.Systems
             m_FirstSampleFrame = 0u;
         }
 
+        // Snapshot the loaded values before the first scheduled simulation tick.
+        // This is intentionally separate from the rapid first-frame samples.
+        protected override void OnGameLoadingComplete(Purpose purpose, GameMode mode)
+        {
+            base.OnGameLoadingComplete(purpose, mode);
+            if (mode != GameMode.Game || m_ParametersQuery.IsEmptyIgnoreFilter)
+            {
+                return;
+            }
+
+            try
+            {
+                WriteSnapshot("loadComplete", 0u);
+            }
+            catch (Exception exception)
+            {
+                // Diagnostics must never stop a city loading.
+                LogUtils.Warn("[NCF-LAND] load-complete snapshot unavailable.", exception);
+            }
+        }
+
         protected override void OnUpdate()
         {
             if (m_ParametersQuery.IsEmptyIgnoreFilter)
@@ -149,6 +170,17 @@ namespace NoCustomersFix.Systems
             }
 
             m_LastHour = hour;
+            string sampleKind = rapid ? (m_RapidSampleIndex == 1
+                ? "loadFirstUpdate" : "loadFollowup") : "hourly";
+            WriteSnapshot(sampleKind,
+                rapid ? frame - m_FirstSampleFrame : 0u);
+        }
+
+        private void WriteSnapshot(string sampleKind, uint loadElapsedFrames)
+        {
+            uint frame = m_SimulationSystem.frameIndex;
+            int minuteOfDay = (int)(m_TimeSystem.normalizedTime * 1440f);
+            int hour = (minuteOfDay / 60) % 24;
             long start = Stopwatch.GetTimestamp();
             LandValueParameterData parameters =
                 m_ParametersQuery.GetSingleton<LandValueParameterData>();
@@ -352,9 +384,6 @@ namespace NoCustomersFix.Systems
                 ? "DISABLED_NCF_OFF"
                 : (toSearchActive && Mod.DeferHotelBookingToTourismOverhaul
                     ? "SKIPPED" : "ENABLED");
-            string sampleKind = rapid ? (m_RapidSampleIndex == 1
-                ? "loadFirstUpdate" : "loadFollowup") : "hourly";
-
             LogUtils.Info(
                 "[NCF-LAND] " +
                 $"mode={(Mod.BalancingEnabled ? "ON" : "OFF")} " +
@@ -363,7 +392,7 @@ namespace NoCustomersFix.Systems
                 $"skipNCFHotelWhenTOActive={Mod.DeferHotelBookingToTourismOverhaul} " +
                 $"hotelBookings={hotelBookingState} " +
                 $"sample={sampleKind} " +
-                $"loadElapsedFrames={(rapid ? frame - m_FirstSampleFrame : 0u)} " +
+                $"loadElapsedFrames={loadElapsedFrames} " +
                 $"hour={hour:D2} minute={minuteOfDay % 60:D2} " +
                 $"frame={frame} highRentIcons={highRentIcons} " +
                 $"highRentBuildingFlags={highRentFlags} " +
