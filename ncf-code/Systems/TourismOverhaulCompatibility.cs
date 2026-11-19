@@ -16,52 +16,86 @@ using Unity.Entities;
 
 namespace NoCustomersFix.Systems
 {
+    // Optional hotel-booking handoff. Never loads or instantiates a foreign system.
     internal static class TourismOverhaulCompatibility
     {
-        private const string kAssemblyName = "TourismOverhaul";
-        private const string kSystemName = "TourismOverhaul.Systems.TouristTargetSearchSystem";
+        private const string kTourismOverhaulAssembly = "TourismOverhaul";
+        private const string kTourismOverhaulSystem =
+            "TourismOverhaul.Systems.TouristTargetSearchSystem";
+        private const string kCustomTourismAssembly = "CustomizeIt";
+        private const string kCustomTourismSystem =
+            "CustomizeIt.Systems.TouristTransitArrivalSystem";
 
-        private static Type? s_ReplacementType;
+        private static Type? s_TourismOverhaulType;
+        private static Type? s_CustomTourismType;
         private static bool s_Discovered;
         private static World? s_LastWorld;
         private static int s_LastDecision = -1;
 
-        internal static bool IsActive(World world)
+        private static void Discover()
         {
-            if (!s_Discovered)
+            if (s_Discovered)
             {
-                s_Discovered = true;
-                Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
-                for (int i = 0; i < assemblies.Length; i++)
-                {
-                    if (assemblies[i].GetName().Name == kAssemblyName)
-                    {
-                        s_ReplacementType = assemblies[i].GetType(kSystemName, false);
-                        break;
-                    }
-                }
+                return;
             }
 
-            if (s_ReplacementType == null)
+            s_Discovered = true;
+            Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            for (int i = 0; i < assemblies.Length; i++)
+            {
+                string? name = assemblies[i].GetName().Name;
+                if (name == kTourismOverhaulAssembly)
+                {
+                    s_TourismOverhaulType =
+                        assemblies[i].GetType(kTourismOverhaulSystem, false);
+                }
+                else if (name == kCustomTourismAssembly)
+                {
+                    s_CustomTourismType =
+                        assemblies[i].GetType(kCustomTourismSystem, false);
+                }
+            }
+        }
+
+        internal static bool IsActive(World world)
+        {
+            Discover();
+            if (s_TourismOverhaulType == null)
             {
                 return false;
             }
 
-            // Never GetOrCreate a foreign system: its OnCreate may change vanilla behavior.
             GameSystemBase? replacement =
-                world.GetExistingSystemManaged(s_ReplacementType) as GameSystemBase;
+                world.GetExistingSystemManaged(s_TourismOverhaulType) as GameSystemBase;
             TouristFindTargetSystem? native =
                 world.GetExistingSystemManaged<TouristFindTargetSystem>();
 
-            // TO's search is authoritative only while it actually replaces vanilla.
+            // TO controls the normal tourist search only after it disables vanilla.
             return replacement != null && replacement.Enabled &&
                 native != null && !native.Enabled;
         }
 
+        internal static bool IsCustomTourismActive(World world)
+        {
+            Discover();
+            if (s_CustomTourismType == null)
+            {
+                return false;
+            }
+
+            // Custom Tourism runs this additional 16-frame pre-booking system,
+            // while vanilla TouristFindTargetSystem may remain enabled.
+            GameSystemBase? arrivalSystem =
+                world.GetExistingSystemManaged(s_CustomTourismType) as GameSystemBase;
+            return arrivalSystem != null && arrivalSystem.Enabled;
+        }
+
         internal static bool ShouldDeferHotelBooking(World world)
         {
-            bool active = IsActive(world);
-            bool defer = active && Mod.DeferHotelBookingToTourismOverhaul;
+            bool tourismOverhaul = IsActive(world);
+            bool customTourism = IsCustomTourismActive(world);
+            bool detected = tourismOverhaul || customTourism;
+            bool defer = detected && Mod.DeferHotelBookingToTourismOverhaul;
 
             if (s_LastWorld != world)
             {
@@ -69,20 +103,33 @@ namespace NoCustomersFix.Systems
                 s_LastDecision = -1;
             }
 
-            int decision = defer ? 2 : (active ? 1 : 0);
+            int decision = (tourismOverhaul ? 1 : 0) +
+                (customTourism ? 2 : 0) + (defer ? 4 : 0);
             if (decision != s_LastDecision)
             {
                 s_LastDecision = decision;
-                if (active)
+                if (detected)
                 {
-                    LogUtils.Info(defer
-                        ? "[NCF-TO] NCF hotel bookings: SKIPPED (Tourism Overhaul tourist search active)."
-                        : "[NCF-TO] NCF hotel bookings: ENABLED (Tourism Overhaul active; test setting OFF).");
+                    string provider = tourismOverhaul && customTourism
+                        ? "Tourism Overhaul and Custom Tourism"
+                        : (tourismOverhaul ? "Tourism Overhaul" : "Custom Tourism");
+                    LogUtils.Info(
+                        "[NCF-TO] NCF hotel bookings: " +
+                        (defer ? "SKIPPED" : "ENABLED (test override)") +
+                        " (" + provider + " tourist booking system active).");
+                    if (tourismOverhaul && customTourism)
+                    {
+                        LogUtils.Warn(
+                            "[NCF-TO] Both tourism mods have active hotel-booking systems; " +
+                            "NCF defers, but cannot resolve conflicts between those mods.");
+                    }
                 }
-                else if (decision == 0 && s_ReplacementType != null)
+                else if (s_TourismOverhaulType != null ||
+                    s_CustomTourismType != null)
                 {
                     LogUtils.Info(
-                        "[NCF-TO] NCF hotel bookings: ENABLED (Tourism Overhaul tourist search inactive).");
+                        "[NCF-TO] NCF hotel bookings: ENABLED " +
+                        "(no external tourist booking system active).");
                 }
             }
 
