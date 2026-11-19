@@ -18,7 +18,7 @@ NCF mod helps struggling shops recover by balancing production and shopping. No 
 
 ### Why does vanilla struggle?
 
-*   **90%+ unused Service** triggers "Not Enough Customers", but vanilla doesn't prioritize struggling shops of unused Service in the 89% - 100% range.
+*   **90%+ unused Service** triggers "Not Enough Customers". Vanilla doesn't give enough priority to struggling shops with unused Service in the 89% - 100% range and in more need of shoppers.
 *   Shop workers get paid to produce Service. Service is different from stock delivered (e.g., food, paper...).
 *   Shops keep producing even when they already have too much unsold Service.
 *   Citizens can't shop while at work, school, or sleeping. Only available adults and elderly can shop, making rush hours especially difficult. Elderly non-workers are important shoppers :)
