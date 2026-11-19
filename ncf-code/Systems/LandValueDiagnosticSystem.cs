@@ -387,6 +387,8 @@ namespace NoCustomersFix.Systems
                 ? "DISABLED_NCF_OFF"
                 : (externalBookingActive && Mod.DeferHotelBookingToTourismOverhaul
                     ? "SKIPPED" : "ENABLED");
+            double uiAverageRawLandValue =
+                uiBuildingCount > 0 ? uiLandValueSum / uiBuildingCount : 0d;
             LogUtils.Info(
                 "[NCF-LAND] " +
                 $"mode={(Mod.BalancingEnabled ? "ON" : "OFF")} " +
@@ -402,7 +404,8 @@ namespace NoCustomersFix.Systems
                 $"highRentBuildingFlags={highRentFlags} " +
                 $"mapAvgAllCells={(map.IsCreated && map.Length > 0 ? mapSum / map.Length : 0d):F1} " +
                 $"mapMax={mapMax:F1} cellsOver100k={highCells} " +
-                $"uiAverageLandValue={(uiBuildingCount > 0 ? uiLandValueSum / uiBuildingCount : 0d):F1} " +
+                $"uiAverageLandValue={uiAverageRawLandValue:F1} " +
+                $"uiAvgLandValuePerCellPrice=₡{uiAverageRawLandValue * LoadedLandValueWarningSystem.kLandValuePerCellDisplayScale:F0} " +
                 $"uiBuildings={uiBuildingCount} " +
                 $"roads={edgeCount} roadAvg={(edgeCount > 0 ? roadSum / edgeCount : 0d):F1} " +
                 $"roadMax={roadMax:F1} maxRoadEdge={maxRoadEntity} " +
