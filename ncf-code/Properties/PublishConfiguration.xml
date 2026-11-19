@@ -60,9 +60,9 @@ It's recommended to avoid these type of mods functions if you have issues with i
 *   Feedback: [Discord](https://discord.gg/gwXgvtyhjc) | [GitHub](https://github.com/River-Mochi/CS2-NoCustomersFix), GPL-3.0 license.
 
 
-### Tourism mod compatibility
+### Compatibility
 
-* This mod will leave tourist hotel bookings to mods Custom Tourism or Tourist Overhaul, if they are installed.
+* This mod will leave tourist hotel bookings to mods Custom Tourism or Tourism Overhaul, if they are installed.
 * Note: changing tourism effects the economy so if truly desired, the more narrow "Custom Tourism" mod is recommended. The other tourist mod makes substatial changes to the commercial economy which has side effects.
 * This mod does not directly change land values or rents, and cannot undo economic conditions already stored in a save from other mods. But over time, it tries to help rebalance things which is easier if it's not fighting other mods that are still actively changing the economy and increasing Service production.
 
