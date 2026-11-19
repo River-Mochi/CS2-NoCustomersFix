@@ -67,7 +67,7 @@
                  (BalancingEnabled ? "ON (normal fixes + logging)" :
                      "OFF (logging only; all balancing updates skipped)") +
                  $" productionRelief={(ProductionReliefEnabled ? "ON" : "OFF")}" +
-                 $" skipNCFHotelBookingsWhenTOActive={DeferHotelBookingToTourismOverhaul}");
+                 $" skipNCFHotelBookingsWhenTourismModActive={DeferHotelBookingToTourismOverhaul}");
              if (!BalancingEnabled)
              {
                  LogUtils.Info("[NCF-TO] NCF hotel bookings: DISABLED (NCF balancing OFF).");
@@ -124,7 +124,7 @@
              updateSystem.UpdateAfter<CommercialDemandDiagnosticSystem,CommercialDemandSystem>(
                  SystemUpdatePhase.GameSimulation);
 
-             // Read-only land-value diagnostics: rapid samples after loading, hourly later.
+             // Read-only land-value diagnostics: load-complete snapshot, rapid samples, hourly later.
              updateSystem.UpdateAt<LandValueDiagnosticSystem>(
                  SystemUpdatePhase.GameSimulation);
 
