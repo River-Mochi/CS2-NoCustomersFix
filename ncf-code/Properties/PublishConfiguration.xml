@@ -8,105 +8,105 @@
 <!--Long description of the mod. Single line or multi line. Supports minimal markdown subset-->
 <!--LongDescription Value="This is a long description" /-->
 <LongDescription>
-# 🛒 Too many "Not Enough Customers" icons?
+    # 🛒 Too many "Not Enough Customers" icons?
 
-**满城都是“顾客不足”警告**
+    **满城都是“顾客不足”警告**
 
-**Adding more citizens doesn't always fix it!**
+    **Adding more citizens doesn't always fix it!**
 
-NCF mod helps struggling shops recover by balancing production and shopping. No fake shoppers, no complicated settings!
+    NCF mod helps struggling shops recover by balancing production and shopping. No fake shoppers, no complicated settings!
 
-### Why does vanilla struggle?
+    ### Why does vanilla struggle?
 
-*   **90%+ unused Service** triggers "Not Enough Customers". Vanilla doesn't give enough priority to struggling shops with unused Service in the 89% - 100% "full" range and in more need of shoppers.
-*   Shop workers get paid to produce Service. Service is different from stock delivered (e.g., food, paper...).
-*   Shops keep producing even when they already have too much unsold Service.
-*   Citizens can't shop while at work, school, or sleeping. Only available adults and elderly can shop, making rush hours especially difficult. Elderly non-workers are important shoppers :)
+    *   **90%+ unused Service** triggers "Not Enough Customers". Vanilla doesn't give enough priority to struggling shops with unused Service in the 89% - 100% "full" range that desperately need shoppers.
+    *   Shop workers get paid to produce Service. Service is different from stock delivered (e.g., food, paper...).
+    *   Shops keep producing even when they already have too much unsold Service.
+    *   Citizens can't shop while at work, school, or sleeping. Only available adults and elderly can shop, making rush hours especially difficult. Elderly non-workers are important shoppers :)
 
-**Result: Too much Service, and shoppers keep visiting healthy shops instead of desperate shops with NEC icons!**
+    **Result: Too much Service, and shoppers keep visiting healthy shops instead of desperate shops with NEC icons!**
 
-### How this mod helps
+    ### How this mod helps
 
-*   ✅ Shops slow production starting at 80% unsold Service, to prevent NEC icons caused at critical 90%. This is realistic as real life shops reduce workers or production during slower periods.
-*   ✅ Spreads out extra shopping, helps avoid sudden waves of shoppers and traffic. Uses existing citizens, no fake shoppers.
-*   ✅ Helps both Retail and Leisure businesses (meals, entertainment, recreation).
-*   ✅ Helps Hotels fill empty rooms using existing tourists, not magic.
+    *   ✅ Shops slow production starting at 80% unsold Service, to prevent NEC icons caused at critical 90%. This is realistic as real life shops reduce workers or production during slower periods.
+    *   ✅ Spreads out extra shopping, helps avoid sudden waves of shoppers and traffic. Uses existing citizens, no fake shoppers.
+    *   ✅ Helps both Retail and Leisure businesses (meals, entertainment, recreation).
+    *   ✅ Helps Hotels fill empty rooms using existing tourists, not magic.
 
-### Real test results 🎉
+    ### Real test results 🎉
 
-*   **130k city:** 165 NEC → just **4** after ~30 minutes.
-*   **90k city:** 335 NEC → **30** after 10 minutes, **7** after 20 minutes
+    *   **130k city:** 165 NEC → just **4** after ~30 minutes.
+    *   **90k city:** 335 NEC → **30** after 10 minutes, **7** after 20 minutes
 
-### What to expect
+    ### What to expect
 
-* **Install and play!** No Options settings needed.
-* Cities show reduction in 5 minutes. Allow **30+ minutes** for major changes.
-* A few remaining warnings? Check road access or remove excess shops. NCF doesn't hide legit problems.
-* Recommended: [mod City Watchdog](https://mods.paradoxplaza.com/mods/144908/Windows) to track NEC totals (see screenshot). Just add a "blue star" next to "Not Enough Customers".
-* Safe to remove, returns to vanilla. No Harmony patch means more compatible with other mods and the game.
-* NCF is a temp fix until IFS improves commercial balancing to avoid many NEC icons.
-* This is a **realistic** balance and does not magically turn off the problem. It does not fix legit problems with excess commercial or access to buildings. Players report it's just a few compared to 100's before the mod. The idea is to be as aligned with the game as possible.
+    * **Install and play!** No Options settings needed.
+    * Cities show reduction in 5 minutes. Allow **30+ minutes** for major changes.
+    * A few remaining warnings? Check road access or remove excess shops. NCF doesn't hide legit problems.
+    * Recommended: [mod City Watchdog](https://mods.paradoxplaza.com/mods/144908/Windows) to track NEC totals (see screenshot). Just add a "blue star" next to "Not Enough Customers".
+    * Safe to remove, returns to vanilla. No Harmony patch means more compatible with other mods and the game.
+    * NCF is a temp fix until IFS improves commercial balancing to prevent a flood of NEC icons.
+    * This is a **realistic** balance and does not magically turn off the problem. It does not fix legit problems with excess commercial or access to buildings. Players report it's just a few compared to 100's before the mod. The idea is to be as aligned with the game as possible.
 
-**Tips:** full commercial demand bar doesn't mean your citizens can support more shops! It means companies are looking for spaces which is optional to build.
+    **Tips:** full commercial demand bar doesn't mean your citizens can support more shops! It means companies are looking for spaces which is optional to build.
 
-**Other mods:** that increase commercial workers or Service can make NEC warnings worse! More workers or Service output may produce Service faster than customers can use it.
+    **Other mods:** that increase commercial workers or Service can make NEC warnings worse! More workers or Service output may produce Service faster than customers can use it.
 
-### Support and Feedback
+    ### Support and Feedback
 
-*   Support by clicking the LIKE 👍 button (top right)! No donations, just a free like for the many days of work.
-*   Feedback: [Discord](https://discord.gg/gwXgvtyhjc) | [GitHub](https://github.com/River-Mochi/CS2-NoCustomersFix), GPL-3.0 license.
+    *   Support by clicking the LIKE 👍 button (top right)! No donations, just a free like for the many days of work.
+    *   Feedback: [Discord](https://discord.gg/gwXgvtyhjc) | [GitHub](https://github.com/River-Mochi/CS2-NoCustomersFix), GPL-3.0 license.
 
-### Compatibility
+    ### Compatibility
 
-*   To avoid conflicts, NCF skips hotel bookings when it detects mods Custom Tourism or Tourism Overhaul.
-*   Tourism mods affect the economy. If you want more tourists, the more narrow "Custom Tourism" mod is recommended. The other tourist mod makes broader changes to the commercial economy, increases Service on systems, can cause other economic side effects.
-*   NCF does not increase Service production. It does the opposite: it reduces it when shops have too much unsold Service. Excess Service is one of the main causes of NEC warnings.
-*   NCF does not change land values or rents, and cannot instantly undo economic problems already stored in a save city by other mods. However, it can still help cities recover over time by rebalancing the NEC issues.
-*   **Other mods can work against NCF** by increasing commercial workers or Service production, leading to more unsold Service faster than citizens can use it.
+    *   To avoid conflicts, NCF skips hotel bookings when it detects mods Custom Tourism or Tourism Overhaul.
+    *   Tourism mods affect the economy. If you really want more tourists, the more narrow "Custom Tourism" mod might be enough. The other tourist mod makes broader changes to commercial economies, increases Service on systems, which can cause other economic side effects.
+    *   NCF does not increase Service production. It does the opposite: it reduces it when shops have too much unsold Service. Excess Service is the main cause of NEC warnings.
+    *   NCF does not change land values or rents, and cannot instantly undo economic problems already stored in a save city by other mods. However, it can still help cities recover over time by rebalancing the NEC issues.
+    *   **Other mods can work against NCF** by increasing commercial workers or Service production, leading to more unsold Service faster than citizens can use it.
 
-### Credits and Thanks
+    ### Credits and Thanks
 
-*   RiverMochi: mod author
-*   Sunny Scunny: testing
+    *   RiverMochi: mod author
+    *   Sunny Scunny: testing
 
-tags: notification icons, no customers, commercial demand
+    tags: notification icons, no customers, commercial demand
 
-┌─────────────────────────────────────────────────┐
+    ┌───────────────────────────────────────────────┐
 
-**🛒 满城都是“顾客不足”警告？增加人口也不一定能解决！**
+    **🛒 满城都是“顾客不足”警告？增加人口也不一定能解决！**
 
-本模组通过减少过剩服务产出、调整购物需求，帮助商店恢复经营。
+    本模组通过减少过剩服务产出、调整购物需求，帮助商店恢复经营。
 
-**不制造虚假顾客，安装即用，无需设置！**
+    **不制造虚假顾客，安装即用，无需设置！**
 
-### ✅ 主要功能
+    ### ✅ 主要功能
 
-- **提前预防：** 闲置服务达到 **80%** 就开始减产，避免达到 **90%** 时出现“顾客不足”警告。
-- **降低交通压力：** 分散额外购物需求，避免顾客突然大量涌入。
-- **改善商业经营：** 帮助零售、餐饮、娱乐和休闲设施。
-- **帮助酒店：** 利用现有游客，提高客房入住率。
+    - **提前预防：** 闲置服务达到 **80%** 就开始减产，避免达到 **90%** 时出现“顾客不足”警告。
+    - **降低交通压力：** 分散额外购物需求，避免顾客突然大量涌入。
+    - **改善商业经营：** 帮助零售、餐饮、娱乐和休闲设施。
+    - **帮助酒店：** 利用现有游客，提高客房入住率。
 
-### 🎉 实际测试效果
+    ### 🎉 实际测试效果
 
-- **13万人城市：** 165 个警告 → 约30分钟后仅剩 **4 个！**
-- **9万人城市：** 335 个警告 → 10分钟后剩 **30 个**，20分钟后仅剩 **7 个！**
+    - **13万人城市：** 165 个警告 → 约30分钟后仅剩 **4 个！**
+    - **9万人城市：** 335 个警告 → 10分钟后剩 **30 个**，20分钟后仅剩 **7 个！**
 
-### 使用说明
+    ### 使用说明
 
-- **安装即可生效！** 部分城市约5分钟可见改善，明显变化可能需要 **30分钟以上**。
-- 少量警告仍可能存在，请检查道路连接或减少过剩商店。
-- **可安全卸载，恢复原版机制。不使用 Harmony 补丁。**
-- **提示：** 商业需求条满了，不代表城市真的需要更多商店！
+    - **安装即可生效！** 部分城市约5分钟可见改善，明显变化可能需要 **30分钟以上**。
+    - 少量警告仍可能存在，请检查道路连接或减少过剩商店。
+    - **可安全卸载，恢复原版机制。不使用 Harmony 补丁。**
+    - **提示：** 商业需求条满了，不代表城市真的需要更多商店！
 
-### 模组兼容性
+    ### 模组兼容性
 
-- **旅游模组：** 检测到 Tourism Overhaul 或 Custom Tourism 的酒店预订系统运行时，NCF 会自动跳过自己的酒店预订。
-- **NCF 绝不会增加服务产出！** 相反，它会在服务积压时减少产出，提前预防“顾客不足”警告。
-- **其他模组：** 增加商业员工或服务产出的模组，可能让服务积压更严重，影响 NCF 的效果。
-- NCF 不直接修改地价或租金，也无法立即修复存档中已有的经济问题，但可能帮助城市逐渐恢复平衡。
-- 如果主要想增加游客，推荐改动较少的 Custom Tourism。Tourism Overhaul 对商业经济的调整范围更广。
+    - **旅游模组：** 检测到 Tourism Overhaul 或 Custom Tourism 的酒店预订系统运行时，NCF 会自动跳过自己的酒店预订。
+    - **NCF 绝不会增加服务产出！** 相反，它会在服务积压时减少产出，提前预防“顾客不足”警告。
+    - **其他模组：** 增加商业员工或服务产出的模组，可能让服务积压更严重，影响 NCF 的效果。
+    - NCF 不直接修改地价或租金，也无法立即修复存档中已有的经济问题，但可能帮助城市逐渐恢复平衡。
+    - 如果主要想增加游客，推荐改动较少的 Custom Tourism。Tourism Overhaul 对商业经济的调整范围更广。
 
-**喜欢这个模组？欢迎点个赞 👍！感谢支持！**
+    **喜欢这个模组？欢迎点个赞 👍！感谢支持！**
 </LongDescription>
 <!--Thumbnail-->
 <Thumbnail Value="Properties/Thumbnail01.jpg" />
