@@ -125,7 +125,9 @@ tags: notification icons, no customers
 <RequiredDLC Value="" />
 <!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 <ChangeLog>
-- improve performance: reduce commercial processing overhead
+- Automatically avoids hotel bookings if players have mods Custom Tourism or Tourist overhaul installed.
+- Improved performance: reduced commercial processing overhead.
+- Added read-only land-value diagnostics to debug logs.
 </ChangeLog>
 <!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
 <!--Supported values Public, Private, Unlisted-->
