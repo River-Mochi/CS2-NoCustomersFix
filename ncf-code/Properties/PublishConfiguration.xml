@@ -53,6 +53,13 @@ The idea is to be as aligned with the game as possible.
 
 **Other mods:** that increase commercial workers can make NEC warnings worse! More workers or output may produce Service faster than customers can use it.
 It's recommended to avoid these type of mods/functions if you have issues with icons or balance.
+
+### Tourism mod compatibility
+
+* NCF automatically leaves tourist hotel bookings to **Tourism Overhaul** or **Custom Tourism** when their booking systems are active. Neither mod is required.
+* **Tourism Overhaul changes much more than tourist numbers:** commercial leisure service capacity and pricing, service stock on load, hotel zoning, and other economy behavior. It is **not recommended by NCF as a simple tourism booster**.
+* NCF does not directly change land values or rents, and cannot undo economic conditions already stored in a save.
+
 ### Support and Feedback
 
 *   Support by clicking the LIKE 👍 button (top right)! No donations, just a free like for the many days of work.
@@ -90,6 +97,8 @@ tags: notification icons, no customers
 * **安装即可生效！** 部分城市约5分钟就能看到改善，明显变化可能需要运行 **30分钟以上**。
 * 如果仍有少量警告，可检查道路连接，或适当减少多余商店。
 * **可安全卸载，不使用 Harmony 补丁。**
+* **旅游模组兼容：** 当 Tourism Overhaul 或 Custom Tourism 负责游客酒店预订时，NCF 会自动跳过自己的酒店预订。无需安装这两个模组。
+* **注意：** Tourism Overhaul 还会修改商业休闲服务容量、价格、存量和酒店分区等经济系统。NCF 不将其推荐为单纯增加游客数量的模组，也无法撤销存档中已有的经济异常。
 
 **💡 提示：** 商业需求条满了，不代表城市真的需要更多商店！
 
