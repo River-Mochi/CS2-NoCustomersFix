@@ -119,7 +119,7 @@ tags: notification icons, no customers, commercial demand
 <!--Link to the forum post where the mod can be discussed-->
 <ForumLink Value="" />
 <!--Version of the mod-->
-<ModVersion Value="0.6.9" />
+<ModVersion Value="0.7.0" />
 <!--Recommended version of the base game to use the mod-->
 <GameVersion Value="1.6.*" />
 <!--Dependency for the mod, can be set multiple times-->

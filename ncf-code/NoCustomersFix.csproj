@@ -14,7 +14,7 @@
         <PublishConfigScript>$(MSBuildProjectDirectory)\..\Scripts\Update-PublishConfig.ps1</PublishConfigScript>
 
         <!-- Version here is the single source of truth for assembly + PDX publish version -->
-        <Version>0.6.9</Version>
+        <Version>0.7.0</Version>
         <GameVersion>1.6.*</GameVersion>
 
         <!-- Assembly identity -->
