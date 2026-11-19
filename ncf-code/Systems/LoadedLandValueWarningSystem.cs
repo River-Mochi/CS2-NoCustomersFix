@@ -160,16 +160,18 @@ namespace NoCustomersFix.Systems
                 }
             }
 
-            double uiAverageCurrency =
-                buildings > 0 ? 100d * sumBuildingRoadValue / buildings : 0d;
-            // These are diagnostic thresholds, NOT land-value caps.
-            bool abnormal = uiAverageCurrency > 250000d ||
+            // The vanilla UI binding supplies this raw average. Currency
+            // formatting happens separately; do not assume a conversion factor.
+            double averageRawLandValue =
+                buildings > 0 ? sumBuildingRoadValue / buildings : 0d;
+            // Diagnostic thresholds only, not simulation land-value caps.
+            bool abnormal = averageRawLandValue > 2500d ||
                 maxCommercialBonus > 10000f || maxRoad > 10000f;
 
             LogUtils.Info(
                 "[NCF-LAND-LOAD] readOnly=true " +
                 $"sample={sample} abnormal={abnormal} roads={roads} buildings={buildings} " +
-                $"uiAvgApproxCurrency={uiAverageCurrency:F0} " +
+                $"uiAvgRawLandValue={averageRawLandValue:F1} " +
                 $"maxRoadValue={maxRoad:F1} " +
                 $"commercialBonusMax={maxCommercialBonus:F1} " +
                 $"maxBonusEdge={maxBonusEdge}");
